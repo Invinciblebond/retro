@@ -1,3 +1,15 @@
 git add . && git commit -m "update" && git push
 
 git pull origin main
+
+pkill -f "ngrok http 8000"
+pkill -f supergateway
+
+~/bin/notion-mcp-bridge.sh &
+ngrok http 8000 --basic-auth "notion:<password-from-readme>"
+
+check whats listening: 
+lsof -i :8000          # is the bridge listening?
+pgrep -fl ngrok        # is the tunnel up?
+
+Using the RetroGameWeb Files connection,
