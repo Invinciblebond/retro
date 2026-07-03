@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalog — Retro</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .cat-layout { display:flex; gap:22px; padding:22px 28px 40px; max-width:1400px; }
+  .filters { width:230px; flex-shrink:0; }
+  .fbox { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .fbox h4 { font-size:11.5px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .fbox label { display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:9px; color:var(--txt); }
+  .fbox input[type=range] { width:100%; accent-color:var(--accent); }
+  .fbox select { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:13px; }
+  .price-lbls { display:flex; justify-content:space-between; font-size:11.5px; color:var(--muted); margin-top:4px; }
+  .cat-main { flex:1; min-width:0; }
+  .subtabs { display:flex; gap:8px; overflow-x:auto; margin-bottom:18px; padding-bottom:4px; }
+  .subtabs a { padding:8px 16px; border-radius:20px; background:var(--card); border:1px solid var(--line); font-size:12.5px; font-weight:700; color:var(--muted); white-space:nowrap; }
+  .subtabs a.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  @media (max-width:900px){ .filters{ display:none; } }
+</style>
+</head>
+<body class="theme-1" data-page="catalog">
+
+<div data-include="header"></div>
+
+<div class="shell">
+  <div data-include="rail"></div>
+
+  <main class="main-col">
+    <div class="page-pad" style="padding-bottom:0">
+      <div class="construction">🚧 Catalog is under construction — new items added weekly!</div>
+    </div>
+
+    <div class="cat-layout">
+      <!-- Filter sidebar -->
+      <aside class="filters">
+        <div class="fbox">
+          <h4>Price (Retrobux)</h4>
+          <input type="range" min="0" max="1000" value="500">
+          <div class="price-lbls"><span>R 0</span><span>R 1,000+</span></div>
+        </div>
+        <div class="fbox">
+          <h4>Category</h4>
+          <label><input type="checkbox" checked> Hats</label>
+          <label><input type="checkbox" checked> Shirts</label>
+          <label><input type="checkbox" checked> Pants</label>
+          <label><input type="checkbox" checked> Faces</label>
+          <label><input type="checkbox" checked> Gear</label>
+          <label><input type="checkbox" checked> Accessories</label>
+        </div>
+        <div class="fbox">
+          <h4>Deals</h4>
+          <label><input type="checkbox"> On Sale</label>
+        </div>
+        <div class="fbox">
+          <h4>Sort By</h4>
+          <select>
+            <option>Relevance</option>
+            <option>Price: Low to High</option>
+            <option>Price: High to Low</option>
+            <option>Newest</option>
+          </select>
+        </div>
+      </aside>
+
+      <!-- Grid -->
+      <div class="cat-main">
+        <div class="subtabs">
+          <a href="#" class="active">All</a><a href="#">Hats</a><a href="#">Shirts</a><a href="#">Pants</a><a href="#">T-Shirts</a><a href="#">Faces</a><a href="#">Gear</a><a href="#">Accessories</a><a href="#">Bundles</a>
+        </div>
+        <div class="item-grid" id="grid"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script>
+  const items = [
+    { n:"Retro Cap", p:75, ic:"🧢", cat:"Hats" },
+    { n:"Pixel Hoodie", p:120, ic:"🧥", cat:"Shirts" },
+    { n:"Static Visor", p:60, ic:"🕶", cat:"Hats" },
+    { n:"Classic Fedora", p:350, ic:"🎩", cat:"Hats", owned:true },
+    { n:"Blocky Shades", p:45, ic:"🕶", cat:"Accessories" },
+    { n:"Arcade Tee", p:25, ic:"👕", cat:"T-Shirts", sale:true },
+    { n:"CRT Head", p:500, ic:"📺", cat:"Faces" },
+    { n:"Neon Trackpants", p:90, ic:"👖", cat:"Pants" },
+    { n:"8-Bit Smile", p:150, ic:"🙂", cat:"Faces" },
+    { n:"Joystick Gear", p:210, ic:"🕹", cat:"Gear" },
+    { n:"Cassette Backpack", p:130, ic:"🎒", cat:"Accessories", owned:true },
+    { n:"VHS Wings", p:800, ic:"📼", cat:"Accessories" },
+    { n:"Dial-Up Antenna", p:55, ic:"📡", cat:"Gear", sale:true },
+    { n:"Floppy Shield", p:275, ic:"💾", cat:"Gear" },
+    { n:"Synthwave Bundle", p:950, ic:"📦", cat:"Bundles" },
+    { n:"Boombox Gear", p:340, ic:"📻", cat:"Gear" },
+  ];
+
+  // T-Shirts count as Shirts for the sidebar checkboxes
+  const CHECKBOX_MAP = { "T-Shirts": "Shirts" };
+
+  const grid = document.getElementById('grid');
+  const tabs = [...document.querySelectorAll('.subtabs a')];
+  const boxes = [...document.querySelectorAll('.fbox input[type=checkbox]')].slice(0, 6);
+  const boxNames = ["Hats","Shirts","Pants","Faces","Gear","Accessories"];
+  const saleBox = document.querySelector('.fbox input[type=checkbox]:not(:checked)') || [...document.querySelectorAll('.fbox input[type=checkbox]')][6];
+  const price = document.querySelector('.fbox input[type=range]');
+  const priceLbl = document.querySelector('.price-lbls span:last-child');
+  const sortSel = document.querySelector('.fbox select');
+  price.max = 1000; price.value = 1000;
+  let activeTab = "All";
+
+  function render() {
+    const maxP = +price.value;
+    priceLbl.textContent = maxP >= 1000 ? "R 1,000+" : `R ${maxP}`;
+    const allowed = new Set(boxNames.filter((n, i) => boxes[i].checked));
+    let list = items.filter(it => {
+      const boxCat = CHECKBOX_MAP[it.cat] || it.cat;
+      if (activeTab !== "All" && it.cat !== activeTab) return false;
+      if (allowed.size && boxNames.includes(boxCat) && !allowed.has(boxCat)) return false;
+      if (maxP < 1000 && it.p > maxP) return false;
+      if (saleBox?.checked && !it.sale) return false;
+      return true;
+    });
+    const s = sortSel.value;
+    if (s === "Price: Low to High") list.sort((a,b) => a.p - b.p);
+    else if (s === "Price: High to Low") list.sort((a,b) => b.p - a.p);
+    else if (s === "Newest") list = list.slice().reverse();
+
+    grid.innerHTML = list.length ? list.map(it => `
+      <div class="item-card">
+        <span class="ribbon">${it.sale ? "ON SALE" : "PLACEHOLDER"}</span>
+        <div class="ithumb">${it.ic}</div>
+        <div class="imeta">
+          <div class="iname">${it.n}</div>
+          <div class="iprice"><span class="ric">R</span>${it.p}</div>
+          ${it.owned ? `<span class="owned">✓ Owned</span>` : `<a class="btn primary small" href="#">BUY</a>`}
+        </div>
+      </div>`).join('')
+      : '<p style="color:var(--muted);padding:30px 6px;font-size:14px;">No items match your filters.</p>';
+  }
+
+  tabs.forEach(t => t.addEventListener('click', e => {
+    e.preventDefault();
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    activeTab = t.textContent.trim();
+    render();
+  }));
+  boxes.forEach(b => b.addEventListener('change', render));
+  saleBox?.addEventListener('change', render);
+  price.addEventListener('input', render);
+  sortSel.addEventListener('change', render);
+  render();
+</script>
+<script type="module" src="assets/auth.js"></script>
+</body>
+</html>

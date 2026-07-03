@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home — Retro</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .home-grid { display:flex; gap:24px; padding:24px 28px 40px; max-width:1400px; }
+  .feed { flex:1; min-width:0; }
+  .right-rail { width:270px; flex-shrink:0; }
+
+  .profile-block { display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap; margin-bottom:8px; }
+  .avatar-frame { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center; position:relative; }
+  .avatar-render { width:170px; height:230px; border-radius:8px; background:var(--thumb); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--muted); font-size:12px; font-weight:700; letter-spacing:1px; }
+  .avatar-render .fig { font-size:64px; opacity:.6; }
+  .profile-meta h2 { font-size:30px; font-weight:900; }
+  .profile-meta .welcome { font-size:17px; font-weight:700; color:var(--accent2); margin:6px 0 14px; }
+  .statrow { display:flex; gap:12px; flex-wrap:wrap; }
+  .statrow .stat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 20px; text-align:center; }
+  .statrow .num { font-size:19px; font-weight:800; }
+  .statrow .lbl { font-size:10.5px; letter-spacing:1.2px; color:var(--muted); text-transform:uppercase; margin-top:2px; }
+
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:18px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+  .fr { display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:13px; font-weight:600; }
+  .fr .fpfp { width:38px; height:38px; border-radius:50%; background:var(--thumb); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--muted); position:relative; flex-shrink:0; }
+  .fr .st { margin-left:auto; font-size:11px; font-weight:700; }
+  .fr .on { color:var(--good); } .fr .off { color:var(--muted); }
+  .news p { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:10px; }
+  .news .ntitle { font-size:13.5px; font-weight:800; color:var(--txt); margin-bottom:4px; }
+  @media (max-width:1100px){ .right-rail{ display:none; } }
+</style>
+</head>
+<body class="theme-1" data-page="home">
+
+<div data-include="header"></div>
+
+<div class="shell">
+  <div data-include="rail"></div>
+
+  <main class="main-col">
+    <div class="home-grid">
+      <div class="feed">
+
+        <!-- Profile header block -->
+        <div class="profile-block" id="avatar">
+          <div class="avatar-frame">
+            <div class="avatar-render">
+              <span class="fig">🧍</span>
+              AVATAR RENDER
+              <span class="tag dev">IN DEV</span>
+            </div>
+          </div>
+          <div class="profile-meta">
+            <h2>King</h2>
+            <div class="welcome">Welcome to Retro!</div>
+            <div class="statrow">
+              <div class="stat"><div class="num">27</div><div class="lbl">Friends</div></div>
+              <div class="stat"><div class="num">142</div><div class="lbl">Followers</div></div>
+              <div class="stat"><div class="num">Mar 2026</div><div class="lbl">Joined</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Continue Playing -->
+        <div class="microlabel">Continue Playing <span class="see">See All</span></div>
+        <div class="carousel" data-fill="6"></div>
+
+        <!-- Recommended -->
+        <div class="microlabel">Recommended For You <span class="see">See All</span></div>
+        <div class="carousel" data-fill="6"></div>
+
+        <!-- Popular -->
+        <div class="microlabel">Popular Right Now <span class="see">See All</span></div>
+        <div class="carousel" data-fill="6"></div>
+      </div>
+
+      <!-- Right rail -->
+      <aside class="right-rail" id="friends">
+        <div class="panel">
+          <h4>Friends</h4>
+          <div class="fr"><span class="fpfp">RD</span>Redd <span class="st on">● Online</span></div>
+          <div class="fr"><span class="fpfp">TB</span>TOB <span class="st on">● Online</span></div>
+          <div class="fr"><span class="fpfp">KZ</span>krisztian75 <span class="st on">● Online</span></div>
+          <div class="fr"><span class="fpfp">WW</span>Walter_Whit <span class="st off">Offline</span></div>
+          <div class="fr"><span class="fpfp">RM</span>randymarsh <span class="st off">Offline</span></div>
+          <div class="fr"><span class="fpfp">JY</span>Jynn <span class="st off">Offline</span></div>
+        </div>
+        <div class="panel news">
+          <h4>Retro News</h4>
+          <div class="ntitle">Catalog opens for early access 🎉</div>
+          <p>New placeholder items are being added weekly while the real catalog art pipeline comes online.</p>
+          <div class="ntitle">Membership tiers announced</div>
+          <p>Light, Pro, and Master's Club are live on the Shop page — purchases handled by staff via Discord for now.</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script>
+  // Fill carousels with clearly-labeled placeholder experience cards
+  const counts = [847, 1203, 356, 92, 2411, 668, 1540, 77, 4302, 519];
+  document.querySelectorAll('.carousel[data-fill]').forEach((c, ci) => {
+    for (let i = 0; i < +c.dataset.fill; i++) {
+      const n = counts[(ci * 3 + i * 2) % counts.length];
+      c.insertAdjacentHTML('beforeend', `
+        <div class="exp-card">
+          <div class="thumb">[PLACEHOLDER EXPERIENCE]</div>
+          <div class="meta">
+            <div class="ename">Untitled Experience ${ci + 1}-${i + 1}</div>
+            <div class="estats"><span class="live">● ${n.toLocaleString()}</span> playing</div>
+            <a class="btn primary small" href="#">PLAY</a>
+          </div>
+        </div>`);
+    }
+  });
+</script>
+<script type="module" src="assets/auth.js"></script>
+</body>
+</html>

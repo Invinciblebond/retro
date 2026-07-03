@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop — Retro Membership</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .shop-head { text-align:center; padding:36px 20px 6px; }
+  .shop-head h1 { font-size:30px; font-weight:900; }
+  .shop-head p { color:var(--muted); font-size:14.5px; margin-top:8px; }
+  .tiers { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:20px; max-width:1080px; margin:28px auto 0; padding:0 24px; }
+  /* each tier card carries a theme-N class so it inherits that Color Scheme's variables */
+  .tier { background:var(--bg); color:var(--txt); border:1px solid var(--line); border-radius:16px; padding:26px 24px; display:flex; flex-direction:column; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+  .tier .tname { font-size:13px; letter-spacing:2px; text-transform:uppercase; font-weight:900; color:var(--accent); }
+  .tier .tprice { font-size:34px; font-weight:900; margin:10px 0 2px; }
+  .tier .tper { font-size:12.5px; color:var(--muted); margin-bottom:18px; }
+  .tier ul { list-style:none; margin-bottom:22px; flex:1; }
+  .tier li { font-size:13.5px; line-height:1.5; padding:8px 0; border-bottom:1px solid var(--line); color:var(--txt); display:flex; gap:8px; align-items:baseline; }
+  .tier li::before { content:"✓"; color:var(--good); font-weight:900; }
+  .tier .btn { border-radius:24px; }
+  .popular { position:relative; }
+  .popular::after { content:"MOST POPULAR"; position:absolute; top:-11px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; font-size:10px; font-weight:900; letter-spacing:1px; padding:4px 14px; border-radius:12px; }
+  .manual-note { max-width:1080px; margin:20px auto 0; padding:0 24px; font-size:13px; color:var(--muted); text-align:center; }
+  .faq { max-width:760px; margin:44px auto 0; padding:0 24px; }
+  .faq h2 { font-size:19px; font-weight:900; margin-bottom:14px; }
+  .faq details { background:var(--card); border:1px solid var(--line); border-radius:10px; margin-bottom:10px; padding:14px 18px; }
+  .faq summary { font-size:14px; font-weight:700; cursor:pointer; }
+  .faq p { font-size:13.5px; color:var(--muted); line-height:1.7; margin-top:10px; }
+</style>
+</head>
+<body class="theme-1" data-page="shop">
+
+<div data-include="header"></div>
+
+<div class="shell">
+  <div data-include="rail"></div>
+
+  <main class="main-col">
+    <div class="shop-head">
+      <h1>Retro Membership</h1>
+      <p>Monthly Retrobux, exclusive items, and more. Pick your tier.</p>
+    </div>
+
+    <div class="tiers">
+      <!-- Light — Color Scheme 2 -->
+      <div class="tier theme-2">
+        <div class="tname">Light</div>
+        <div class="tprice">$4.99</div>
+        <div class="tper">per month</div>
+        <ul>
+          <li>Small monthly Retrobux stipend <span class="tag soon">SOON</span></li>
+          <li>Light-tier name tag</li>
+          <li>One exclusive catalog item <span class="tag soon">SOON</span></li>
+        </ul>
+        <a class="btn primary block" href="#" title="Placeholder Discord invite">Contact Staff to Purchase via Discord</a>
+      </div>
+
+      <!-- Pro — Color Scheme 3 -->
+      <div class="tier theme-3 popular">
+        <div class="tname">Pro</div>
+        <div class="tprice">$9.99</div>
+        <div class="tper">per month</div>
+        <ul>
+          <li>Larger Retrobux stipend <span class="tag soon">SOON</span></li>
+          <li>Trading privileges</li>
+          <li>Pro name tag</li>
+          <li>Catalog discount <span class="tag soon">SOON</span></li>
+        </ul>
+        <a class="btn primary block" href="#" title="Placeholder Discord invite">Contact Staff to Purchase via Discord</a>
+      </div>
+
+      <!-- Master's Club — Color Scheme 4 -->
+      <div class="tier theme-4">
+        <div class="tname">Master's Club</div>
+        <div class="tprice">$14.99</div>
+        <div class="tper">per month</div>
+        <ul>
+          <li>Largest Retrobux stipend <span class="tag soon">SOON</span></li>
+          <li>Exclusive avatar bundle <span class="tag soon">SOON</span></li>
+          <li>Animated name tag</li>
+          <li>Priority support</li>
+        </ul>
+        <a class="btn primary block" href="#" title="Placeholder Discord invite">Contact Staff to Purchase via Discord</a>
+      </div>
+    </div>
+
+    <p class="manual-note">🚧 Payments aren't automated yet — all purchases are handled manually by staff via Discord for now.</p>
+
+    <div class="faq">
+      <h2>FAQ <span class="tag dev">SUBJECT TO CHANGE</span></h2>
+      <details>
+        <summary>How does billing work?</summary>
+        <p>Placeholder: memberships are intended to renew monthly. While payments are manual, staff will confirm your renewal with you each month via Discord. Automated billing is planned.</p>
+      </details>
+      <details>
+        <summary>Can I get a refund?</summary>
+        <p>Placeholder: Retrobux and membership purchases are non-refundable once delivered. Because purchases are currently handled manually, contact staff on Discord about any purchase issue and we'll do our best to make it right.</p>
+      </details>
+      <details>
+        <summary>Does Retrobux have real-world value?</summary>
+        <p>No. Retrobux is a virtual currency for use within Retro only. It has no cash value and cannot be exchanged, sold, or cashed out.</p>
+      </details>
+    </div>
+  </main>
+</div>
+
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+<script src="assets/retro.js"></script>
+<script type="module" src="assets/auth.js"></script>
+</body>
+</html>

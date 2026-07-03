@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RetroGameWeb — Color Scheme Picker</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',-apple-system,'Segoe UI',Arial,sans-serif; }
+  body { background:#0a0a0a; padding:40px 20px; }
+  h1.pagetitle { color:#fff; text-align:center; margin-bottom:8px; }
+  p.sub { color:#888; text-align:center; margin-bottom:36px; }
+  .scheme-label { color:#fff; max-width:1300px; margin:0 auto 12px; font-size:24px; font-weight:800; }
+  .scheme { border-radius:14px; overflow:hidden; margin:0 auto 60px; max-width:1300px; box-shadow:0 10px 40px rgba(0,0,0,.6); }
+
+  /* ===== layout ===== */
+  .topnav { display:flex; align-items:center; gap:28px; padding:0 24px; height:58px; font-size:15px; border-bottom:1px solid var(--line); background:var(--nav); }
+  .logo { font-weight:700; font-size:17px; letter-spacing:2px; color:var(--logo); }
+  .topnav a { text-decoration:none; color:var(--muted); font-weight:500; font-size:13.5px; }
+  .topnav a:hover { color:var(--txt); }
+  .topnav .search { flex:1; display:flex; justify-content:center; }
+  .topnav .search input { width:100%; max-width:420px; padding:8px 14px; border-radius:6px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:13px; }
+  .pill { display:flex; align-items:center; gap:6px; font-weight:600; font-size:13px; color:var(--txt); background:var(--card); border:1px solid var(--line); padding:6px 12px; border-radius:6px; }
+  .pill b { color:var(--accent); font-weight:700; }
+
+  .shell { display:flex; background:var(--bg); color:var(--txt); }
+  .sidebar { width:230px; padding:16px 10px; border-right:1px solid var(--line); background:var(--side); flex-shrink:0; }
+  .me { display:flex; align-items:center; gap:10px; padding:10px 12px; font-weight:700; font-size:14px; margin-bottom:6px; }
+  .me .pfp { width:34px; height:34px; border-radius:6px; background:var(--thumb); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--muted); }
+  .sidebar .item { display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:6px; font-size:13.5px; font-weight:500; color:var(--muted); cursor:pointer; }
+  .sidebar .item.active { background:var(--card); color:var(--txt); border-left:3px solid var(--accent); }
+  .sidebar .item:hover { background:var(--card); }
+  .sidebar .divider { height:1px; background:var(--line); margin:10px 12px; }
+  .badge { margin-left:auto; background:var(--accent); color:#fff; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:4px; }
+
+  .main { flex:1; min-width:0; }
+  .banner { height:150px; background:var(--banner); position:relative; }
+  .profile-head { display:flex; gap:20px; padding:0 32px; align-items:flex-end; margin-top:-56px; position:relative; }
+  .avatar { width:120px; height:120px; border-radius:8px; background:var(--thumb); border:4px solid var(--bg); display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:700; color:var(--muted); letter-spacing:1px; }
+  .who { padding-bottom:8px; flex:1; }
+  .who h2 { font-size:23px; font-weight:700; }
+  .who .handle { color:var(--muted); font-size:13px; }
+  .who .online { color:var(--good); font-size:12.5px; font-weight:600; margin-top:3px; }
+  .head-actions { padding-bottom:12px; display:flex; gap:8px; }
+  .btn { padding:9px 18px; border-radius:6px; font-size:13px; font-weight:600; border:none; cursor:pointer; }
+  .btn.primary { background:var(--accent); color:#fff; }
+  .btn.ghost { background:var(--card); color:var(--txt); border:1px solid var(--line); }
+
+  .content { padding:24px 32px 36px; }
+  .stats { display:flex; gap:14px; margin-bottom:26px; }
+  .stat { flex:1; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; text-align:center; }
+  .stat .num { font-size:20px; font-weight:700; color:var(--txt); }
+  .stat .lbl { font-size:10.5px; letter-spacing:1.2px; color:var(--muted); margin-top:3px; }
+
+  h3.sec { font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; text-transform:uppercase; letter-spacing:.8px; }
+  h3.sec .see { margin-left:auto; font-size:12px; color:var(--accent); font-weight:600; text-transform:none; letter-spacing:0; }
+  .about { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:16px; font-size:13.5px; line-height:1.6; color:var(--txt); margin-bottom:26px; }
+
+  .friends-row { display:flex; gap:18px; margin-bottom:26px; }
+  .friend { text-align:center; font-size:12px; color:var(--muted); }
+  .friend { font-size:11.5px; }
+  .friend .fpfp { width:60px; height:60px; border-radius:8px; background:var(--thumb); margin:0 auto 6px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:var(--muted); position:relative; }
+  .friend .dot { position:absolute; bottom:2px; right:2px; width:14px; height:14px; border-radius:50%; background:var(--good); border:2px solid var(--bg); }
+
+  .games { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .game { background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .game .thumb { height:110px; background:var(--thumb); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; letter-spacing:1px; color:var(--muted); }
+  .game .meta { padding:10px 12px; }
+  .game .gname { font-weight:600; font-size:13.5px; }
+  .game .gstats { font-size:11.5px; color:var(--muted); margin-top:4px; }
+
+  /* ===== 1. DARK ===== */
+  .s1 { --bg:#161719; --side:#121315; --nav:#1a1b1e; --card:#1f2124; --input:#161719; --thumb:#292b2f;
+        --line:#2a2c30; --txt:#e6e7ea; --muted:#8f939c; --accent:#5b7fb8; --good:#4caf6e; --logo:#e6e7ea;
+        --banner:linear-gradient(120deg,#1f2124 0%,#2a2d33 50%,#1f2124 100%); }
+  /* ===== 2. LIGHT ===== */
+  .s2 { --bg:#f6f7f8; --side:#ffffff; --nav:#ffffff; --card:#ffffff; --input:#eef0f2; --thumb:#e4e7ea;
+        --line:#e2e5e9; --txt:#22262e; --muted:#6b7180; --accent:#33569b; --good:#1e824c; --logo:#22262e;
+        --banner:linear-gradient(120deg,#dfe3e9 0%,#eef1f5 50%,#dfe3e9 100%); }
+  /* ===== 3. RED ===== */
+  .s3 { --bg:#191113; --side:#140e10; --nav:#1e1416; --card:#241719; --input:#191113; --thumb:#31201f;
+        --line:#332022; --txt:#ece0e1; --muted:#a08a8c; --accent:#a83240; --good:#4caf6e; --logo:#d8949c;
+        --banner:linear-gradient(120deg,#3a161d 0%,#6b2430 50%,#3a161d 100%); }
+  /* ===== 4. BLUE ===== */
+  .s4 { --bg:#101720; --side:#0d131b; --nav:#131c28; --card:#18222f; --input:#101720; --thumb:#212e3f;
+        --line:#243044; --txt:#dfe6ef; --muted:#8595ab; --accent:#3c6ea5; --good:#4caf8e; --logo:#a9c2e0;
+        --banner:linear-gradient(120deg,#182c45 0%,#2a4a73 50%,#182c45 100%); }
+</style>
+</head>
+<body>
+<h1 class="pagetitle">RetroGameWeb — Profile Page</h1>
+<p class="sub">Pick a color scheme: 1, 2, 3, or 4</p>
+
+<div class="scheme-label">1. Dark Mode</div>
+<div class="scheme s1" id="scheme1"></div>
+
+<div class="scheme-label">2. Light Mode</div>
+<div class="scheme s2" id="scheme2"></div>
+
+<div class="scheme-label">3. Red Mode</div>
+<div class="scheme s3" id="scheme3"></div>
+
+<div class="scheme-label">4. Blue Mode</div>
+<div class="scheme s4" id="scheme4"></div>
+
+<script>
+const tpl = `
+  <div class="topnav">
+    <span class="logo">RETROGAME</span>
+    <a href="#">Home</a><a href="#">Charts</a><a href="#">Marketplace</a><a href="#">Create</a>
+    <div class="search"><input placeholder="Search"></div>
+    <span class="pill"><b>◆</b> 27,555</span>
+    <span class="pill">$10.05</span>
+  </div>
+  <div class="shell">
+    <div class="sidebar">
+      <div class="me"><div class="pfp">K</div>King</div>
+      <div class="item">Home</div>
+      <div class="item active">Profile</div>
+      <div class="item">Messages <span class="badge">500</span></div>
+      <div class="item">Friends <span class="badge">78</span></div>
+      <div class="divider"></div>
+      <div class="item">Avatar</div>
+      <div class="item">Inventory</div>
+      <div class="item">Trade</div>
+      <div class="item">Communities</div>
+      <div class="divider"></div>
+      <div class="item">Blog</div>
+      <div class="item">Official Store</div>
+    </div>
+    <div class="main">
+      <div class="banner"></div>
+      <div class="profile-head">
+        <div class="avatar">KG</div>
+        <div class="who">
+          <h2>King</h2>
+          <div class="handle">@sovietecore</div>
+          <div class="online">● Online — Playing Castle Tycoon</div>
+        </div>
+        <div class="head-actions">
+          <button class="btn primary">Add Friend</button>
+          <button class="btn ghost">Message</button>
+          <button class="btn ghost">More</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="stats">
+          <div class="stat"><div class="num">267</div><div class="lbl">FRIENDS</div></div>
+          <div class="stat"><div class="num">1.2K</div><div class="lbl">FOLLOWERS</div></div>
+          <div class="stat"><div class="num">33.4K</div><div class="lbl">PLACE VISITS</div></div>
+          <div class="stat"><div class="num">42</div><div class="lbl">BADGES</div></div>
+          <div class="stat"><div class="num">2019</div><div class="lbl">JOINED</div></div>
+        </div>
+        <h3 class="sec">About</h3>
+        <div class="about">Game developer specializing in tycoon and simulation experiences. Building on the platform since 2019. Open to collaboration and trading inquiries.</div>
+        <h3 class="sec">Friends (267) <span class="see">See All</span></h3>
+        <div class="friends-row">
+          <div class="friend"><div class="fpfp">KR<span class="dot"></span></div>KING ®</div>
+          <div class="friend"><div class="fpfp">KZ<span class="dot"></span></div>krisztian75</div>
+          <div class="friend"><div class="fpfp">TB<span class="dot"></span></div>TOB</div>
+          <div class="friend"><div class="fpfp">GU</div>Guest_1337</div>
+          <div class="friend"><div class="fpfp">DR</div>Drawing ®</div>
+          <div class="friend"><div class="fpfp">RM</div>randymarsh</div>
+          <div class="friend"><div class="fpfp">WW</div>Walter_Whit</div>
+          <div class="friend"><div class="fpfp">RD</div>Redd ®</div>
+        </div>
+        <h3 class="sec">Creations <span class="see">See All</span></h3>
+        <div class="games">
+          <div class="game"><div class="thumb">THUMBNAIL</div><div class="meta"><div class="gname">Castle Tycoon</div><div class="gstats">93% rating · 33.4K visits</div></div></div>
+          <div class="game"><div class="thumb">THUMBNAIL</div><div class="meta"><div class="gname">Pixel Racers</div><div class="gstats">88% rating · 4.7K visits</div></div></div>
+          <div class="game"><div class="thumb">THUMBNAIL</div><div class="meta"><div class="gname">Sword Arena</div><div class="gstats">84% rating · 2K visits</div></div></div>
+          <div class="game"><div class="thumb">THUMBNAIL</div><div class="meta"><div class="gname">Dam Tycoon</div><div class="gstats">59% rating · 52 visits</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+for (let i=1; i<=4; i++) document.getElementById('scheme'+i).innerHTML = tpl;
+</script>
+<script type="module" src="assets/auth.js"></script>
+</body>
+</html>
