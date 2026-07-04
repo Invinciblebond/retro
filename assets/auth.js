@@ -172,7 +172,7 @@ function setAvatarImg(el, url, username) {
 async function loadProfile(user) {
   let { data: profile, error } = await supabase
     .from("profiles")
-    .select("username, retrobux, subscribed, subscription_type, avatar_url, created_at")
+    .select("username, retrobux, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
     .eq("id", user.id)
     .single();
   if (error || !profile) return;
@@ -182,7 +182,7 @@ async function loadProfile(user) {
       .from("profiles")
       .update({ avatar_url: DEFAULT_AVATAR, updated_at: new Date().toISOString() })
       .eq("id", user.id)
-      .select("username, retrobux, subscribed, subscription_type, avatar_url, created_at")
+      .select("username, retrobux, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
       .single();
     profile = updated || { ...profile, avatar_url: DEFAULT_AVATAR };
   }
@@ -195,6 +195,21 @@ async function loadProfile(user) {
   if (rbx) {
     const ric = '<span class="ric">R</span>';
     rbx.innerHTML = `${ric}${(profile.retrobux ?? 0).toLocaleString()} <a class="getmore" href="shop.html">Get More</a>`;
+    // Wallet balance chip (custom SVG icon), next to Retrobux
+    let wal = document.getElementById("wallet-chip");
+    if (!wal) {
+      wal = document.createElement("a");
+      wal.id = "wallet-chip";
+      wal.href = "deposit.html";
+      wal.title = "Wallet — deposit funds";
+      wal.style.cssText = "display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:12.5px;font-weight:800;color:var(--txt);text-decoration:none;";
+      rbx.after(wal);
+    }
+    wal.innerHTML = `<svg width="16" height="14" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M2 3.5C2 2.12 3.12 1 4.5 1H16a2 2 0 0 1 2 2v1H4.5A1.5 1.5 0 0 1 3 2.5" stroke="var(--accent2,#6cf)" stroke-width="1.6"/>
+        <rect x="2" y="4" width="16" height="11.5" rx="2" stroke="var(--accent2,#6cf)" stroke-width="1.6"/>
+        <circle cx="14.2" cy="9.8" r="1.4" fill="var(--accent2,#6cf)"/>
+      </svg>$${Number(profile.wallet_balance ?? 0).toFixed(2)}`;
   }
 
   if (profile.subscribed && profile.subscription_type && !document.getElementById("sub-badge")) {

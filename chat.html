@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .chat-grid { display:flex; gap:0; margin:22px 28px 40px; max-width:1200px; height:calc(100vh - 190px); min-height:440px;
+    background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .convo-list { width:280px; flex-shrink:0; border-right:1px solid var(--line); overflow-y:auto; }
+  .convo-list h4 { font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); padding:16px 16px 8px; }
+  .convo { display:flex; align-items:center; gap:10px; padding:11px 16px; cursor:pointer; font-size:13.5px; font-weight:700; }
+  .convo:hover, .convo.active { background:rgba(255,255,255,.05); }
+  .convo .cpfp { width:38px; height:38px; border-radius:50%; background:var(--thumb); display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; color:var(--muted); position:relative; flex-shrink:0; overflow:hidden; }
+  .convo .cpfp img { width:100%; height:100%; object-fit:cover; }
+  .convo .dot { position:absolute; bottom:0; right:0; width:10px; height:10px; border-radius:50%; border:2px solid var(--card); }
+  .convo .dot.on { background:#4caf50; } .convo .dot.off { background:#777; }
+  .thread { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .thread-head { padding:14px 18px; border-bottom:1px solid var(--line); font-weight:800; font-size:14.5px; display:flex; align-items:center; gap:10px; }
+  .msgs { flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:8px; }
+  .msg { max-width:70%; padding:9px 13px; border-radius:14px; font-size:13.5px; line-height:1.45; word-wrap:break-word; }
+  .msg.me { align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:4px; }
+  .msg.them { align-self:flex-start; background:var(--input); border:1px solid var(--line); border-bottom-left-radius:4px; }
+  .msg .t { display:block; font-size:9.5px; opacity:.65; margin-top:3px; }
+  .composer { display:flex; gap:10px; padding:12px 14px; border-top:1px solid var(--line); }
+  .composer input { flex:1; padding:11px 14px; border-radius:10px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:13.5px; }
+  .empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px; color:var(--muted); }
+  .empty-state .big { font-size:52px; margin-bottom:12px; }
+  .empty-state p { font-size:13.5px; line-height:1.6; margin-bottom:16px; max-width:320px; }
+  @media (max-width:800px){ .convo-list { width:88px; } .convo span.cname, .convo-list h4 { display:none; } }
+</style>
+</head>
+<body class="theme-1" data-page="chat">
+
+<div data-include="header"></div>
+
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="chat-grid">
+      <div class="convo-list" id="convos"><h4>Messages</h4></div>
+      <div class="thread" id="thread">
+        <div class="empty-state" id="thread-empty">
+          <div class="big">💬</div>
+          <p>Pick a friend on the left to start chatting.<br>Chats unlock when you're mutual friends.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return; // guard redirects anyway
+  const me = session.user.id;
+
+  const convos = document.getElementById("convos");
+  const thread = document.getElementById("thread");
+  let friends = [], current = null, pollTimer = null;
+
+  // skeleton conversation list
+  convos.innerHTML = "<h4>Messages</h4>" +
+    Array.from({length:4},()=>'<div class="skel-fr" style="padding:0 16px;"><span class="skel c"></span><span class="skel l"></span></div>').join("");
+
+  const { data } = await sb.rpc("get_friends");
+  friends = data || [];
+
+  function renderConvos() {
+    convos.innerHTML = "<h4>Messages</h4>" + (friends.length ? friends.map((f) => `
+      <div class="convo${current === f.friend_id ? " active" : ""}" data-id="${f.friend_id}" data-hovercard="${f.username}">
+        <span class="cpfp">${f.avatar_url ? `<img src="${f.avatar_url}" alt="">` : (f.username||"?").slice(0,2).toUpperCase()}
+          <span class="dot ${f.is_online ? "on" : "off"}"></span></span>
+        <span class="cname">${f.username}</span>
+      </div>`).join("")
+      : `<div class="empty-state" style="padding:20px 16px;">
+          <div class="big">👋</div>
+          <p>No friends yet — chats open up once you're mutual friends with someone.</p>
+          <a class="btn primary small" href="home.html">Find people</a>
+        </div>`);
+    convos.querySelectorAll(".convo").forEach((el) => el.addEventListener("click", () => openThread(el.dataset.id)));
+  }
+
+  async function loadMsgs(fid) {
+    const { data: msgs } = await sb.from("messages")
+      .select("id, sender, body, created_at")
+      .or(`and(sender.eq.${me},recipient.eq.${fid}),and(sender.eq.${fid},recipient.eq.${me})`)
+      .order("created_at", { ascending: true })
+      .limit(200);
+    return msgs || [];
+  }
+
+  function msgHtml(m) {
+    const t = new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const safe = m.body.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+    return `<div class="msg ${m.sender === me ? "me" : "them"}">${safe}<span class="t">${t}</span></div>`;
+  }
+
+  async function openThread(fid) {
+    current = fid;
+    clearInterval(pollTimer);
+    renderConvos();
+    const f = friends.find((x) => x.friend_id === fid);
+    thread.innerHTML = `
+      <div class="thread-head"><span class="cpfp" style="width:30px;height:30px;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--thumb);font-size:10px;">${f.avatar_url ? `<img src="${f.avatar_url}" style="width:100%;height:100%;object-fit:cover;">` : (f.username||"?").slice(0,2).toUpperCase()}</span>
+        ${f.username} <span style="font-size:11px;font-weight:700;color:${f.is_online ? "#4caf50" : "var(--muted)"};">${f.is_online ? "● Online" : "Offline"}</span></div>
+      <div class="msgs" id="msgs"><div class="skel" style="height:40px;width:55%;"></div><div class="skel" style="height:40px;width:45%;align-self:flex-end;"></div></div>
+      <form class="composer" id="composer">
+        <input type="text" maxlength="2000" placeholder="Message ${f.username}…" autocomplete="off">
+        <button class="btn primary" type="submit">Send</button>
+      </form>`;
+    const msgsEl = document.getElementById("msgs");
+    let lastId = 0;
+    async function refresh() {
+      const msgs = await loadMsgs(fid);
+      if (!msgs.length) {
+        msgsEl.innerHTML = `<div class="empty-state"><div class="big">📭</div><p>No messages yet — say hi to ${f.username}!</p></div>`;
+        return;
+      }
+      const newest = msgs[msgs.length - 1].id;
+      if (newest === lastId) return;
+      lastId = newest;
+      msgsEl.innerHTML = msgs.map(msgHtml).join("");
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+    await refresh();
+    pollTimer = setInterval(refresh, 5000);
+
+    document.getElementById("composer").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = e.target.querySelector("input");
+      const body = input.value.trim();
+      if (!body) return;
+      input.value = "";
+      const { error } = await sb.from("messages").insert({ sender: me, recipient: fid, body });
+      if (error) { toast(window.retroAuth.friendly(error.message), "err"); input.value = body; return; }
+      lastId = 0; await refresh();
+    });
+  }
+
+  renderConvos();
+  const want = new URLSearchParams(location.search).get("u");
+  if (want) {
+    const f = friends.find((x) => x.username.toLowerCase() === want.toLowerCase());
+    if (f) openThread(f.friend_id);
+  }
+});
+</script>
+</body>
+</html>

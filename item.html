@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Item — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .item-wrap { max-width:980px; margin:28px auto; padding:0 20px; }
+  .item-top { display:flex; gap:26px; flex-wrap:wrap; }
+  .item-visual { width:300px; height:300px; background:var(--card); border:1px solid var(--line); border-radius:14px;
+    display:flex; align-items:center; justify-content:center; font-size:110px; overflow:hidden; flex-shrink:0; }
+  .item-visual img { width:100%; height:100%; object-fit:cover; }
+  .item-info { flex:1; min-width:280px; }
+  .item-info h1 { font-size:26px; font-weight:900; margin-bottom:6px; }
+  .type-tag { display:inline-flex; align-items:center; gap:2px; font-size:12px; font-weight:900; letter-spacing:.5px; margin-bottom:12px; }
+  .type-tag .u { color:#2ecc40; font-size:15px; } .type-tag .lim { color:#f1c40f; }
+  .type-tag.limited { color:#f1c40f; }
+  .type-tag.normal { color:var(--muted); }
+  .item-price { font-size:22px; font-weight:900; margin:10px 0 4px; }
+  .stock-line { font-size:12.5px; color:var(--muted); font-weight:700; margin-bottom:16px; }
+  .own-line { font-size:12.5px; color:#4caf50; font-weight:800; margin-bottom:14px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-top:26px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+  .listing { display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid var(--line); font-size:13.5px; font-weight:700; }
+  .listing:last-child { border-bottom:none; }
+  .listing .price { margin-left:auto; font-weight:900; }
+  .modal-ov { position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; }
+  .modal-ov.open { display:flex; }
+  .modal { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:26px; width:380px; max-width:92vw; }
+  .modal h3 { font-size:16px; font-weight:900; margin-bottom:14px; }
+  .fee-row { display:flex; justify-content:space-between; font-size:13px; font-weight:700; padding:6px 0; }
+  .fee-row.total { border-top:1px solid var(--line); margin-top:6px; padding-top:10px; font-weight:900; }
+  .fee-row .neg { color:#e2231a; }
+  .modal input[type=number] { width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:14px; margin-bottom:8px; }
+  .modal .row { display:flex; gap:10px; margin-top:16px; }
+  .modal .row .btn { flex:1; }
+</style>
+</head>
+<body class="theme-1" data-page="item">
+
+<div data-include="header"></div>
+
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="item-wrap">
+      <div class="item-top">
+        <div class="item-visual skel" id="ivis"></div>
+        <div class="item-info">
+          <div class="skel" style="height:28px;width:60%;margin-bottom:12px;" id="iname-skel"></div>
+          <h1 id="iname" style="display:none;"></h1>
+          <div id="itype"></div>
+          <div class="item-price" id="iprice"></div>
+          <div class="stock-line" id="istock"></div>
+          <div class="own-line" id="iown"></div>
+          <div id="iactions"></div>
+        </div>
+      </div>
+      <div class="panel" id="resale-panel" style="display:none;">
+        <h4>Resellers — player market</h4>
+        <div id="listings"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-ov" id="modal-ov"><div class="modal" id="modal"></div></div>
+
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id) { location.replace("catalog.html"); return; }
+
+  const ov = document.getElementById("modal-ov");
+  const modal = document.getElementById("modal");
+  function openModal(html) { modal.innerHTML = html; ov.classList.add("open"); }
+  function closeModal() { ov.classList.remove("open"); }
+  ov.addEventListener("click", (e) => { if (e.target === ov) closeModal(); });
+
+  const { data: item, error } = await sb.from("catalog_items")
+    .select("id, name, price, category, icon, image_url, on_sale, sale_percent, item_type, stock, created_at")
+    .eq("id", id).single();
+  if (error || !item) { toast("Item not found.", "err"); setTimeout(()=>location.replace("catalog.html"), 900); return; }
+  document.title = `${item.name} — Utopoly`;
+  window.retroViewed?.record({ id: item.id, n: item.name, p: item.price, ic: item.icon, img: item.image_url });
+
+  // visual + name
+  const vis = document.getElementById("ivis");
+  vis.classList.remove("skel");
+  vis.innerHTML = item.image_url ? `<img src="${item.image_url}" alt="${item.name}">` : (item.icon || "📦");
+  document.getElementById("iname-skel")?.remove();
+  const nameEl = document.getElementById("iname");
+  nameEl.textContent = item.name; nameEl.style.display = "block";
+
+  // type tag — ULimited: green U + gold Limited
+  const typeEl = document.getElementById("itype");
+  if (item.item_type === "ulimited") typeEl.innerHTML = '<span class="type-tag"><span class="u">U</span><span class="lim">Limited</span></span>';
+  else if (item.item_type === "limited") typeEl.innerHTML = '<span class="type-tag limited">LIMITED</span>';
+  else typeEl.innerHTML = `<span class="type-tag normal">${item.category?.toUpperCase() || "ITEM"}</span>`;
+
+  const salePrice = item.sale_percent ? Math.floor(item.price * (100 - item.sale_percent) / 100) : item.price;
+  document.getElementById("iprice").innerHTML = item.item_type === "ulimited"
+    ? "" : `<span class="ric">R</span> ${salePrice.toLocaleString()}` +
+      (item.sale_percent ? ` <span style="font-size:13px;color:var(--muted);text-decoration:line-through;">R ${item.price.toLocaleString()}</span> <span style="font-size:12px;color:#2ecc40;font-weight:900;">-${item.sale_percent}%</span>` : "");
+  document.getElementById("istock").textContent =
+    item.item_type === "limited" ? `${item.stock} left in stock — becomes tradeable when sold out` :
+    item.item_type === "ulimited" ? "Sold out — available only from resellers below" : "";
+
+  // my copies
+  const { data: copies } = await sb.rpc("get_my_copies", { p_item: id });
+  const mine = copies || [];
+  if (mine.length) document.getElementById("iown").textContent =
+    `✓ You own ${mine.length} ${mine.length > 1 ? "copies" : "copy"}${mine[0].serial ? ` (serial #${mine.map(c=>c.serial).join(", #")})` : ""}`;
+
+  /* ----- actions ----- */
+  const actions = document.getElementById("iactions");
+  function confirmBuy(label, priceR, onConfirm) {
+    openModal(`
+      <h3>Confirm purchase</h3>
+      <div class="fee-row"><span>${label}</span><span><span class="ric">R</span> ${priceR.toLocaleString()}</span></div>
+      <div class="fee-row total"><span>You pay</span><span><span class="ric">R</span> ${priceR.toLocaleString()}</span></div>
+      <div class="row">
+        <button class="btn ghost" id="m-cancel">Cancel</button>
+        <button class="btn primary" id="m-ok">Buy now</button>
+      </div>`);
+    document.getElementById("m-cancel").onclick = closeModal;
+    document.getElementById("m-ok").onclick = onConfirm;
+  }
+
+  if (item.item_type !== "ulimited") {
+    const buyBtn = document.createElement("button");
+    buyBtn.className = "btn primary";
+    buyBtn.textContent = item.item_type === "limited" && item.stock <= 0 ? "Sold Out" : "Buy";
+    if (item.item_type === "limited" && item.stock <= 0) buyBtn.disabled = true;
+    buyBtn.onclick = () => confirmBuy(item.name, salePrice, async () => {
+      const b = document.getElementById("m-ok"); b.disabled = true; b.textContent = "Buying…";
+      const { error } = await sb.rpc("buy_item", { p_item: id });
+      closeModal();
+      if (error) toast(friendly(error.message), "err");
+      else { toast(`You bought ${item.name}!`, "ok"); setTimeout(()=>location.reload(), 1200); }
+    });
+    actions.appendChild(buyBtn);
+  }
+
+  // Sell (owned unlisted ULimited copies)
+  const sellable = item.item_type === "ulimited" ? mine.filter((c) => !c.listed) : [];
+  if (sellable.length) {
+    const sellBtn = document.createElement("button");
+    sellBtn.className = "btn ghost";
+    sellBtn.style.marginLeft = "8px";
+    sellBtn.textContent = "Sell";
+    sellBtn.onclick = () => {
+      openModal(`
+        <h3>List ${item.name} for sale</h3>
+        <input type="number" id="sell-price" min="1" placeholder="Asking price (Retrobux)">
+        <div id="fee-breakdown"></div>
+        <div class="row">
+          <button class="btn ghost" id="m-cancel">Cancel</button>
+          <button class="btn primary" id="m-ok" disabled>Review listing</button>
+        </div>`);
+      const inp = document.getElementById("sell-price");
+      const fb = document.getElementById("fee-breakdown");
+      const ok = document.getElementById("m-ok");
+      inp.addEventListener("input", () => {
+        const p = parseInt(inp.value, 10);
+        if (!Number.isFinite(p) || p < 1) { fb.innerHTML = ""; ok.disabled = true; return; }
+        const fee = p - Math.floor(p * 0.85);
+        fb.innerHTML = `
+          <div class="fee-row"><span>Asking price</span><span><span class="ric">R</span> ${p.toLocaleString()}</span></div>
+          <div class="fee-row"><span>Platform fee (15%)</span><span class="neg">− <span class="ric">R</span> ${fee.toLocaleString()}</span></div>
+          <div class="fee-row total"><span>You receive</span><span><span class="ric">R</span> ${Math.floor(p*0.85).toLocaleString()}</span></div>`;
+        ok.disabled = false;
+      });
+      document.getElementById("m-cancel").onclick = closeModal;
+      ok.onclick = async () => {
+        const p = parseInt(inp.value, 10);
+        ok.disabled = true; ok.textContent = "Listing…";
+        const { error } = await sb.rpc("create_listing", { p_inventory: sellable[0].inventory_id, p_price: p });
+        closeModal();
+        if (error) toast(friendly(error.message), "err");
+        else { toast("Listed on the player market!", "ok"); setTimeout(()=>location.reload(), 1100); }
+      };
+    };
+    actions.appendChild(sellBtn);
+  }
+
+  /* ----- resale listings (ULimited) ----- */
+  if (item.item_type === "ulimited") {
+    const panel = document.getElementById("resale-panel");
+    panel.style.display = "block";
+    const box = document.getElementById("listings");
+    box.innerHTML = Array.from({length:3},()=>'<div class="skel" style="height:38px;margin-bottom:8px;"></div>').join("");
+    const { data: ls } = await sb.rpc("get_item_listings", { p_item: id });
+    const myListings = new Set(mine.filter((c) => c.listed).map((c) => c.listing_id));
+    box.innerHTML = (ls && ls.length) ? ls.map((l) => `
+      <div class="listing">
+        <span data-hovercard="${l.seller}">${l.seller}</span>
+        <span class="price"><span class="ric">R</span> ${l.price.toLocaleString()}</span>
+        ${myListings.has(l.listing_id)
+          ? `<button class="btn ghost small" data-cancel="${l.listing_id}">Remove</button>`
+          : `<button class="btn primary small" data-buy="${l.listing_id}" data-price="${l.price}">Buy</button>`}
+      </div>`).join("")
+      : `<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">
+          <div style="font-size:40px;margin-bottom:8px;">🏷️</div>
+          No sellers right now — check back later${sellable.length ? ", or list yours with the Sell button" : ""}.
+        </div>`;
+    box.querySelectorAll("[data-buy]").forEach((b) => b.addEventListener("click", () =>
+      confirmBuy(`${item.name} (reseller)`, +b.dataset.price, async () => {
+        const okB = document.getElementById("m-ok"); okB.disabled = true; okB.textContent = "Buying…";
+        const { error } = await sb.rpc("buy_listing", { p_listing: b.dataset.buy });
+        closeModal();
+        if (error) toast(friendly(error.message), "err");
+        else { toast(`You bought ${item.name} from the player market!`, "ok"); setTimeout(()=>location.reload(), 1200); }
+      })));
+    box.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", async () => {
+      await sb.rpc("cancel_listing", { p_listing: b.dataset.cancel });
+      toast("Listing removed.", "ok"); setTimeout(()=>location.reload(), 800);
+    }));
+  }
+});
+</script>
+</body>
+</html>

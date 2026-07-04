@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deposit Funds — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .dep-wrap { max-width:560px; margin:34px auto; padding:0 20px; }
+  .dep-card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:28px; }
+  .dep-card h1 { font-size:22px; font-weight:900; margin-bottom:4px; }
+  .dep-card .sub { font-size:13px; color:var(--muted); margin-bottom:22px; }
+  .bal-box { display:flex; align-items:center; gap:12px; background:var(--input); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:24px; }
+  .bal-box .amt { font-size:26px; font-weight:900; }
+  .bal-box .lbl { font-size:11px; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); }
+  .amount-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px; }
+  .amount-grid button { padding:14px 0; border-radius:10px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:15px; font-weight:800; cursor:pointer; transition:border-color .15s, transform .1s; }
+  .amount-grid button:hover { border-color:var(--accent2); }
+  .amount-grid button.sel { border-color:var(--accent); background:rgba(226,35,26,.08); transform:scale(1.02); }
+  .mod-note { background:rgba(108,204,255,.06); border:1px solid var(--accent2); border-radius:12px; padding:16px 18px; font-size:13px; line-height:1.6; }
+  .mod-note b { color:var(--accent2); }
+  #dep-req { width:100%; margin-top:16px; }
+</style>
+</head>
+<body class="theme-1" data-page="deposit">
+
+<div data-include="header"></div>
+
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="dep-wrap">
+      <div class="dep-card">
+        <h1>Deposit Funds</h1>
+        <p class="sub">Add money to your Utopoly wallet — spend it on Retrobux and memberships without entering a card each time.</p>
+
+        <div class="bal-box">
+          <svg width="30" height="26" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 3.5C2 2.12 3.12 1 4.5 1H16a2 2 0 0 1 2 2v1H4.5A1.5 1.5 0 0 1 3 2.5" stroke="var(--accent2)" stroke-width="1.4"/>
+            <rect x="2" y="4" width="16" height="11.5" rx="2" stroke="var(--accent2)" stroke-width="1.4"/>
+            <circle cx="14.2" cy="9.8" r="1.4" fill="var(--accent2)"/>
+          </svg>
+          <div>
+            <div class="lbl">Wallet balance</div>
+            <div class="amt" id="dep-balance">$0.00</div>
+          </div>
+        </div>
+
+        <div class="microlabel" style="margin-bottom:10px;">Choose an amount</div>
+        <div class="amount-grid">
+          <button data-amt="5">$5</button>
+          <button data-amt="10">$10</button>
+          <button data-amt="25">$25</button>
+          <button data-amt="50">$50</button>
+          <button data-amt="100">$100</button>
+          <button data-amt="custom">Custom</button>
+        </div>
+
+        <div class="mod-note">
+          <b>How deposits work right now:</b> automated payments aren't live yet. To deposit, contact a
+          <b>moderator in the Discord</b> with your username and the amount — they'll credit your wallet, usually
+          within a few hours.
+        </div>
+        <a class="btn primary" id="dep-discord" href="https://discord.gg/QJyffYR63" target="_blank" rel="noopener" style="width:100%;margin-top:16px;display:block;text-align:center;">Open the Discord</a>
+        <button class="btn ghost" id="dep-req" type="button" style="width:100%;margin-top:8px;">Copy deposit request</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script>
+  let chosen = 10;
+  document.querySelectorAll(".amount-grid button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".amount-grid button").forEach((x) => x.classList.remove("sel"));
+    b.classList.add("sel");
+    if (b.dataset.amt === "custom") {
+      const v = parseFloat(prompt("Enter an amount in USD:", "15"));
+      chosen = Number.isFinite(v) && v > 0 ? v : chosen;
+      b.textContent = `$${chosen}`;
+    } else chosen = +b.dataset.amt;
+  }));
+  document.addEventListener("retro:profile", (e) => {
+    document.getElementById("dep-balance").textContent = `$${Number(e.detail.wallet_balance ?? 0).toFixed(2)}`;
+  });
+  document.getElementById("dep-req").addEventListener("click", async () => {
+    const uname = window.retroProfile?.username || "my-username";
+    const text = `Deposit request — user: ${uname}, amount: $${chosen}`;
+    try { await navigator.clipboard.writeText(text); window.retroAuth?.toast?.("Copied! Paste it to a moderator on Discord.", "ok"); }
+    catch { window.retroAuth?.toast?.(text, "info", 8000); }
+  });
+</script>
+</body>
+</html>

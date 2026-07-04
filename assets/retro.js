@@ -17,7 +17,7 @@
     <div class="hicons">
       <span class="rbx"><span class="ric">R</span>… <a class="getmore" href="shop.html">Get More</a></span>
       <span class="hicon" title="Notifications">🔔<span class="dot"></span></span>
-      <span class="hicon" title="Messages">✉️</span>
+      <a class="hicon" title="Messages" href="chat.html" style="text-decoration:none;">✉️</a>
       <a href="home.html" class="avatar-head" title="Profile"></a>
     </div>
   </header>`;
@@ -30,7 +30,7 @@
     <a class="ritem ${page === "catalog" ? "active" : ""}" href="catalog.html"><span class="ic">▦</span>Catalog</a>
     <a class="ritem ${page === "shop" ? "active" : ""}" href="shop.html"><span class="ic">◆</span>Shop</a>
     <a class="ritem" href="home.html#friends"><span class="ic">◫</span>Friends</a>
-    <a class="ritem" href="#"><span class="ic">✉</span>Chat <span class="tag soon" style="margin-left:auto">SOON</span></a>
+    <a class="ritem ${page === "chat" ? "active" : ""}" href="chat.html"><span class="ic">✉</span>Chat</a>
     <a class="ritem" href="#"><span class="ic">⚙</span>Settings <span class="tag soon" style="margin-left:auto">SOON</span></a>
   </aside>`;
 

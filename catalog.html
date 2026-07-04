@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     const { data, error } = await supabase
       .from("catalog_items")
-      .select("id, name, price, category, icon, image_url, on_sale")
+      .select("id, name, price, category, icon, image_url, on_sale, sale_percent, item_type, stock, created_at")
       .order("created_at", { ascending: true });
     if (error) throw error;
     items = (data || []).map((r) => ({
@@ -137,10 +137,24 @@ document.addEventListener("DOMContentLoaded", async () => {
       img: r.image_url,
       cat: r.category,
       sale: r.on_sale,
+      sp: r.sale_percent,
+      ty: r.item_type || 'normal',
+      st: r.stock,
+      ca: r.created_at,
     }));
   } catch (err) {
     console.error("Failed to load catalog items:", err?.message || err);
   }
+
+  // Favorites (wishlist hearts)
+  let favs = new Set();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: fv } = await supabase.from('favorites').select('item_id');
+      favs = new Set((fv || []).map(r => r.item_id));
+    }
+  } catch {}
 
   // T-Shirts count as Shirts for the sidebar checkboxes
   const CHECKBOX_MAP = { "T-Shirts": "Shirts" };
@@ -174,14 +188,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     else if (s === "Price: High to Low") list.sort((a,b) => b.p - a.p);
     else if (s === "Newest") list = list.slice().reverse();
 
+    const badge = (it) => {
+      if (it.ty === 'ulimited') return `<span class="ribbon" style="background:#111;"><span style="color:#2ecc40;font-weight:900;">U</span><span style="color:#f1c40f;font-weight:900;">Limited</span></span>`;
+      if (it.ty === 'limited') return `<span class="ribbon" style="background:#f1c40f;color:#111;">LIMITED${(it.st ?? 0) > 0 ? ` · ${it.st} LEFT` : ''}</span>`;
+      if (it.sp) return `<span class="ribbon" style="background:#2ecc40;color:#111;">-${it.sp}%</span>`;
+      if (it.ca && (Date.now() - new Date(it.ca)) < 7*24*3600*1000) return `<span class="ribbon" style="background:var(--accent2);color:#111;">NEW</span>`;
+      return it.sale ? `<span class="ribbon">ON SALE</span>` : '';
+    };
     grid.innerHTML = list.length ? list.map(it => `
-      <div class="item-card" data-id="${it.id}">
-        <span class="ribbon">${it.sale ? "ON SALE" : "PLACEHOLDER"}</span>
+      <div class="item-card" data-id="${it.id}" style="cursor:pointer;position:relative;">
+        ${badge(it)}
+        <button data-fav="${it.id}" title="${favs.has(it.id) ? 'Remove from wishlist' : 'Add to wishlist'}"
+          style="position:absolute;top:8px;right:8px;z-index:5;background:rgba(0,0,0,.45);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;color:${favs.has(it.id) ? '#e2231a' : '#fff'};">${favs.has(it.id) ? '♥' : '♡'}</button>
         <div class="ithumb">${it.img ? `<img src="${it.img}" alt="${it.n}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;">` : it.ic}</div>
         <div class="imeta">
           <div class="iname">${it.n}</div>
-          <div class="iprice"><span class="ric">R</span>${it.p}</div>
-          ${it.owned ? `<span class="owned">✓ Owned</span>` : `<a class="btn primary small" href="#">BUY</a>`}
+          <div class="iprice">${it.ty === 'ulimited' ? '<span style="font-size:11px;color:var(--muted);font-weight:700;">From resellers</span>' : `<span class="ric">R</span>${it.sp ? Math.floor(it.p*(100-it.sp)/100) : it.p}`}</div>
+          <a class="btn primary small" href="item.html?id=${it.id}">${it.ty === 'ulimited' ? 'VIEW' : 'BUY'}</a>
         </div>
       </div>`).join('')
       : '<p style="color:var(--muted);padding:30px 6px;font-size:14px;">No items match your filters.</p>';
@@ -207,12 +230,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   render();
 
-  // Record catalog item views for the homepage "Recently Viewed" module
-  grid.addEventListener('click', (e) => {
+  // Card clicks: heart toggles wishlist; anywhere else opens the item detail page
+  grid.addEventListener('click', async (e) => {
+    const heart = e.target.closest('[data-fav]');
+    if (heart) {
+      e.stopPropagation();
+      const id = heart.dataset.fav;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      if (favs.has(id)) { favs.delete(id); await supabase.from('favorites').delete().eq('item_id', id); }
+      else { favs.add(id); await supabase.from('favorites').insert({ user_id: session.user.id, item_id: id }); }
+      heart.textContent = favs.has(id) ? '♥' : '♡';
+      heart.style.color = favs.has(id) ? '#e2231a' : '#fff';
+      return;
+    }
+    if (e.target.closest('a')) return; // let the BUY/VIEW link handle it
     const card = e.target.closest('.item-card');
     if (!card) return;
     const it = items.find(x => String(x.id) === card.dataset.id);
     if (it) window.retroViewed?.record(it);
+    location.href = `item.html?id=${card.dataset.id}`;
   });
 
   /* ---------- Publish An Item ---------- */
