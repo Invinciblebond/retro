@@ -8,7 +8,7 @@ dist/
 .env
 .env.local
 .env.*.local
-assets/env.js
+# assets/env.js holds only the public publishable key — safe to commit (RLS enforces security)
 
 # Supabase CLI
 supabase/.temp/

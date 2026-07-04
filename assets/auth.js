@@ -1,5 +1,7 @@
 // UTOPOLY — global auth handling (signup, login, logout, session, route protection)
 // Classic script: relies on window.supabaseClient created by assets/supabaseClient.js
+// Wrapped in an IIFE so `supabase` doesn't collide with the UMD library's global.
+(() => {
 const supabase = window.supabaseClient;
 
 const page = document.body.dataset.page || "";
@@ -286,3 +288,4 @@ supabase.auth.onAuthStateChange((_event, newSession) => {
 });
 
 window.retroAuth = { supabase, logIn, logOut, signUp, updateProfile };
+})();
