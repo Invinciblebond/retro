@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Home — Retro</title>
+<title>Home — Utopoly</title>
 <link rel="stylesheet" href="assets/retro.css">
 <style>
   .home-grid { display:flex; gap:24px; padding:24px 28px 40px; max-width:1400px; }
@@ -14,7 +14,9 @@
   .avatar-frame { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center; position:relative; }
   .avatar-render { width:170px; height:230px; border-radius:8px; background:var(--thumb); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--muted); font-size:12px; font-weight:700; letter-spacing:1px; }
   .avatar-render .fig { font-size:64px; opacity:.6; }
-  .profile-meta h2 { font-size:30px; font-weight:900; }
+  .profile-meta h2 { font-size:30px; font-weight:900; } .name-row { display:flex; align-items:center; gap:12px; } .pfp-circle { width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--line); background:var(--thumb); flex-shrink:0; }
+  .name-row { display:flex; align-items:center; gap:12px; }
+  .pfp-circle { width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--line); background:var(--thumb); flex-shrink:0; }
   .profile-meta .welcome { font-size:17px; font-weight:700; color:var(--accent2); margin:6px 0 14px; }
   .statrow { display:flex; gap:12px; flex-wrap:wrap; }
   .statrow .stat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 20px; text-align:center; }
@@ -53,12 +55,15 @@
             </div>
           </div>
           <div class="profile-meta">
-            <h2>King</h2>
-            <div class="welcome">Welcome to Retro!</div>
+            <div class="name-row">
+              <img id="profile-avatar" class="pfp-circle" src="https://i.ibb.co/3t5CJPD/3544ea05dc3cd161d076eefc393b2e62.jpg" alt="Profile picture">
+              <h2 id="profile-username">…</h2>
+            </div>
+            <div class="welcome">Welcome to Utopoly!</div>
             <div class="statrow">
               <div class="stat"><div class="num">27</div><div class="lbl">Friends</div></div>
               <div class="stat"><div class="num">142</div><div class="lbl">Followers</div></div>
-              <div class="stat"><div class="num">Mar 2026</div><div class="lbl">Joined</div></div>
+              <div class="stat"><div class="num" id="profile-joined">—</div><div class="lbl">Joined</div></div>
             </div>
           </div>
         </div>
@@ -88,7 +93,7 @@
           <div class="fr"><span class="fpfp">JY</span>Jynn <span class="st off">Offline</span></div>
         </div>
         <div class="panel news">
-          <h4>Retro News</h4>
+          <h4>Utopoly News</h4>
           <div class="ntitle">Catalog opens for early access 🎉</div>
           <p>New placeholder items are being added weekly while the real catalog art pipeline comes online.</p>
           <div class="ntitle">Membership tiers announced</div>

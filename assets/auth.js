@@ -1,18 +1,23 @@
-// RETRO — global auth handling (signup, login, logout, session, route protection)
+// UTOPOLY — global auth handling (signup, login, logout, session, route protection)
 import { supabase } from "./supabaseClient.js";
+window.supabase = supabase;
 
 const page = document.body.dataset.page || "";
-const DEFAULT_AVATAR = "https://i.ibb.co/TDr5zC7Z/12312334314.png";
-const PROTECTED = ["home", "catalog", "shop"]; // pages that require login
+const DEFAULT_AVATAR = "https://i.ibb.co/3t5CJPD/3544ea05dc3cd161d076eefc393b2e62.jpg";
+
+// SITE-WIDE RULE: every page except the landing page (index.html) requires login.
+// Any page whose data-page is not "landing" (including pages with no data-page)
+// bounces logged-out visitors back to index.html with a login/signup prompt.
+const isLanding = page === "landing";
 
 /* ---------- Route protection ---------- */
 async function guard() {
   const { data: { session } } = await supabase.auth.getSession();
-  if (PROTECTED.includes(page) && !session) {
-    location.replace("index.html");
+  if (!isLanding && !session) {
+    location.replace("index.html?auth=required");
     return null;
   }
-  if (page === "landing" && session) {
+  if (isLanding && session) {
     // already logged in → go to app
     location.replace("home.html");
     return session;
@@ -25,7 +30,7 @@ function applyAuthUI(session) {
   const user = session?.user;
   document.body.classList.toggle("logged-in", !!user);
 
-  // Header avatar initials + username
+  // Header avatar + username
   const username = user?.user_metadata?.username || user?.email?.split("@")[0] || "";
   document.querySelectorAll(".avatar-head").forEach((el) => {
     el.title = username ? `Profile — ${username}` : "Profile";
@@ -52,7 +57,7 @@ function applyAuthUI(session) {
   if (user) loadProfile(user);
 }
 
-/* ---------- Avatar rendering (cached PNG, initials fallback) ---------- */
+/* ---------- Avatar rendering (image with initials fallback) ---------- */
 function setAvatarImg(el, url, username) {
   let img = el.querySelector("img.avatar-img");
   if (!img) {
@@ -70,27 +75,39 @@ function setAvatarImg(el, url, username) {
   if (img.src !== url) img.src = url;
 }
 
-/* ---------- Profile (retrobux + subscription) ---------- */
+/* ---------- Profile (fetched from Supabase on login/signup) ---------- */
 async function loadProfile(user) {
-  const { data: profile, error } = await supabase
+  let { data: profile, error } = await supabase
     .from("profiles")
-    .select("username, retrobux, subscribed, subscription_type")
+    .select("username, retrobux, subscribed, subscription_type, avatar_url, created_at")
     .eq("id", user.id)
     .single();
   if (error || !profile) return;
+
+  // Ensure the default avatar is stored on Supabase for accounts missing one
+  if (!profile.avatar_url) {
+    const { data: updated } = await supabase
+      .from("profiles")
+      .update({ avatar_url: DEFAULT_AVATAR, updated_at: new Date().toISOString() })
+      .eq("id", user.id)
+      .select("username, retrobux, subscribed, subscription_type, avatar_url, created_at")
+      .single();
+    profile = updated || { ...profile, avatar_url: DEFAULT_AVATAR };
+  }
   window.retroProfile = profile;
 
-  // Avatar (per-user URL, else default)
   const uname = profile.username || user.email?.split("@")[0] || "";
+
+  // Header avatar (circular, per-user URL with default fallback)
   document.querySelectorAll(".avatar-head").forEach((el) =>
     setAvatarImg(el, profile.avatar_url || DEFAULT_AVATAR, uname)
   );
 
-  // Retrobux balance in header (replaces hardcoded R350)
+  // Retrobux balance in header
   const rbx = document.querySelector(".rbx");
   if (rbx) {
     const ric = '<span class="ric">R</span>';
-    rbx.innerHTML = `${ric}${profile.retrobux.toLocaleString()} <a class="getmore" href="shop.html">Get More</a>`;
+    rbx.innerHTML = `${ric}${(profile.retrobux ?? 0).toLocaleString()} <a class="getmore" href="shop.html">Get More</a>`;
   }
 
   // Subscription badge next to avatar
@@ -104,6 +121,22 @@ async function loadProfile(user) {
         "font-size:9px;font-weight:900;letter-spacing:1px;padding:3px 8px;border-radius:10px;background:var(--accent);color:#fff;";
       avatar.before(b);
     }
+  }
+
+  // Home page profile header (username, circular avatar, joined date)
+  const nameEl = document.getElementById("profile-username");
+  if (nameEl) nameEl.textContent = uname;
+  const avEl = document.getElementById("profile-avatar");
+  if (avEl) {
+    avEl.src = profile.avatar_url || DEFAULT_AVATAR;
+    avEl.alt = uname ? `${uname}'s profile picture` : "Profile picture";
+  }
+  const joinedEl = document.getElementById("profile-joined");
+  if (joinedEl && profile.created_at) {
+    joinedEl.textContent = new Date(profile.created_at).toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
   }
 
   document.dispatchEvent(new CustomEvent("retro:profile", { detail: profile }));
@@ -163,6 +196,18 @@ function showMsg(el, text, ok = false) {
 
 /* ---------- Wiring ---------- */
 function wireLanding() {
+  // Bounced here from a protected page? Ask the visitor to log in or sign up.
+  if (new URLSearchParams(location.search).get("auth") === "required") {
+    const bar = document.createElement("div");
+    bar.id = "auth-required-bar";
+    bar.textContent = "🔒 You need to log in or sign up to access that page.";
+    bar.style.cssText =
+      "background:var(--accent);color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:700;";
+    document.body.prepend(bar);
+    const card = document.querySelector(".signup-card");
+    if (card) showMsg(card, "Please log in or sign up to continue.");
+  }
+
   // Header quick login
   const head = document.querySelector(".land-login");
   if (head) {
@@ -172,6 +217,10 @@ function wireLanding() {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
       try {
+        if (!emailIn.value.trim() || !passIn.value) {
+          alert("Enter your email and password to log in.");
+          return;
+        }
         await logIn(emailIn.value.trim(), passIn.value);
         location.href = "home.html";
       } catch (err) {
@@ -222,7 +271,7 @@ function wireLanding() {
 (async () => {
   const session = await guard();
   applyAuthUI(session);
-  if (page === "landing") wireLanding();
+  if (isLanding) wireLanding();
 })();
 
 // Logout (header is injected by retro.js — use delegation)
@@ -233,7 +282,7 @@ document.addEventListener("click", (e) => {
 // Keep UI in sync across tabs / token refresh / sign-out
 supabase.auth.onAuthStateChange((_event, newSession) => {
   applyAuthUI(newSession);
-  if (PROTECTED.includes(page) && !newSession) location.replace("index.html");
+  if (!isLanding && !newSession) location.replace("index.html?auth=required");
 });
 
 window.retroAuth = { supabase, logIn, logOut, signUp, updateProfile };

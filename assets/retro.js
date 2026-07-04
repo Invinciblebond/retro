@@ -1,8 +1,8 @@
-/* RETRO — shared header & footer components */
+/* UTOPOLY — shared header & footer components */
 (function () {
   const page = document.body.dataset.page || "";
 
-  const wordmark = `<a href="home.html" class="wordmark">RE<span class="chip">T</span>R<span class="chip">O</span></a>`;
+  const wordmark = `<a href="home.html" class="wordmark">UT<span class="chip">O</span>P<span class="chip">O</span>LY</a>`;
 
   /* ---- Signed-in sticky header ---- */
   const header = `
@@ -13,12 +13,12 @@
       <a href="catalog.html" class="${page === "catalog" ? "active" : ""}">Catalog</a>
       <a href="shop.html" class="${page === "shop" ? "active" : ""}">Shop</a>
     </nav>
-    <div class="search"><input type="search" placeholder="Search Retro" aria-label="Search"></div>
+    <div class="search"><input type="search" placeholder="Search Utopoly" aria-label="Search"></div>
     <div class="hicons">
-      <span class="rbx"><span class="ric">R</span>350 <a class="getmore" href="shop.html">Get More</a></span>
+      <span class="rbx"><span class="ric">R</span>… <a class="getmore" href="shop.html">Get More</a></span>
       <span class="hicon" title="Notifications">🔔<span class="dot"></span></span>
       <span class="hicon" title="Messages">✉️</span>
-      <a href="home.html" class="avatar-head" title="Profile">KG</a>
+      <a href="home.html" class="avatar-head" title="Profile"></a>
     </div>
   </header>`;
 
@@ -50,7 +50,7 @@
     <div class="foot-grid">
       <div>
         ${wordmark}
-        <p class="foot-desc">Retro is an early-access social gaming platform. Create an avatar, collect items, join experiences, and hang out — powered by Retrobux.</p>
+        <p class="foot-desc">Utopoly is an early-access social gaming platform. Create an avatar, collect items, join experiences, and hang out — powered by Retrobux.</p>
       </div>
       <div>
         <h4>Company</h4>
@@ -70,7 +70,7 @@
       <a href="terms.html">Terms of Use</a>
       <a href="privacy.html">Data Usage Policy</a>
     </div>
-    <p class="foot-fine">© 2026 Retro. All Rights Reserved. Retro is an independent, fan-made project and is not affiliated with, endorsed by, or sponsored by Roblox Corporation.</p>
+    <p class="foot-fine">© 2026 Utopoly.com. All Rights Reserved. Utopoly is an independent, fan-made project and is not affiliated with, endorsed by, or sponsored by Roblox Corporation.</p>
   </footer>`;
 
   document.querySelectorAll("[data-include]").forEach((el) => {

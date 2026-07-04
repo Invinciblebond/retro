@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shop — Retro Membership</title>
+<title>Shop — Utopoly</title>
 <link rel="stylesheet" href="assets/retro.css">
 <style>
   .shop-head { text-align:center; padding:36px 20px 6px; }
@@ -22,25 +22,25 @@
   .popular { position:relative; }
   .popular::after { content:"MOST POPULAR"; position:absolute; top:-11px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; font-size:10px; font-weight:900; letter-spacing:1px; padding:4px 14px; border-radius:12px; }
   .manual-note { max-width:1080px; margin:20px auto 0; padding:0 24px; font-size:13px; color:var(--muted); text-align:center; }
+
+  /* Retrobux purchases — stacked rows (layout modeled on the reference image) */
+  .rbx-section { max-width:820px; margin:44px auto 0; padding:0 24px; }
+  .rbx-section h2 { font-size:22px; font-weight:900; margin-bottom:14px; }
+  .rbx-list { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .rbx-row { display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .rbx-row:last-child { border-bottom:none; }
+  .rbx-row .ric { color:var(--accent); font-weight:900; font-size:18px; }
+  .rbx-row .amt { font-size:19px; font-weight:900; }
+  .rbx-row .base { font-size:14px; color:var(--muted); text-decoration:line-through; font-weight:700; }
+  .rbx-row .bonus { font-size:11px; font-weight:800; color:var(--txt); background:var(--input); border:1px solid var(--line); border-radius:12px; padding:3px 10px; }
+  .rbx-row .buy { margin-left:auto; }
+  .rbx-row .buy .btn { min-width:110px; text-align:center; border-radius:10px; }
+
   .faq { max-width:760px; margin:44px auto 0; padding:0 24px; }
   .faq h2 { font-size:19px; font-weight:900; margin-bottom:14px; }
   .faq details { background:var(--card); border:1px solid var(--line); border-radius:10px; margin-bottom:10px; padding:14px 18px; }
   .faq summary { font-size:14px; font-weight:700; cursor:pointer; }
   .faq p { font-size:13.5px; color:var(--muted); line-height:1.7; margin-top:10px; }
-
-  /* Buy Retrobux */
-  .rbx-head { text-align:center; padding:44px 20px 6px; }
-  .rbx-head h2 { font-size:24px; font-weight:900; }
-  .rbx-head p { color:var(--muted); font-size:13.5px; margin-top:6px; }
-  .rbx-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; max-width:1080px; margin:22px auto 0; padding:0 24px; }
-  .rbx-card { position:relative; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 16px; text-align:center; display:flex; flex-direction:column; gap:4px; }
-  .rbx-card .rbx-amt { font-size:22px; font-weight:900; }
-  .rbx-card .rbx-amt .ric { color:var(--accent); margin-right:2px; }
-  .rbx-card .rbx-price { font-size:16px; font-weight:800; color:var(--accent2); }
-  .rbx-card .rbx-rate { font-size:11px; color:var(--muted); margin-bottom:12px; }
-  .rbx-card .btn { border-radius:20px; font-size:11px; margin-top:auto; }
-  .rbx-card.best { border-color:var(--accent); box-shadow:0 8px 26px rgba(0,0,0,.4); }
-  .rbx-badge { position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; font-size:9px; font-weight:900; letter-spacing:1px; padding:3px 10px; border-radius:10px; }
 </style>
 </head>
 <body class="theme-1" data-page="shop">
@@ -52,10 +52,11 @@
 
   <main class="main-col">
     <div class="shop-head">
-      <h1>Retro Membership</h1>
-      <p>Monthly Retrobux, exclusive items, and more. Pick your tier.</p>
+      <h1>Enjoy up to 25% more Retrobux</h1>
+      <p>Memberships and one-time Retrobux packages — bigger packs come with bonus Retrobux.</p>
     </div>
 
+    <!-- Memberships (subscriptions) -->
     <div class="tiers">
       <!-- Light — Color Scheme 2 -->
       <div class="tier theme-2">
@@ -101,12 +102,18 @@
 
     <p class="manual-note">🚧 Payments aren't automated yet — all purchases are handled manually by staff via Discord for now.</p>
 
-    <!-- Buy Retrobux -->
-    <div class="rbx-head" id="retrobux">
-      <h2>Buy Retrobux</h2>
-      <p>One-time Retrobux packs — the bigger the pack, the better the rate.</p>
+    <!-- Bonus Retrobux deals (stacked rows) -->
+    <div class="rbx-section" id="retrobux">
+      <h2>Bonus Retrobux deals we picked for you</h2>
+      <div class="rbx-list" id="rbx-bonus"></div>
     </div>
-    <div class="rbx-grid" id="rbx-grid"></div>
+
+    <!-- Retrobux packages (stacked rows) -->
+    <div class="rbx-section">
+      <h2>Retrobux packages</h2>
+      <div class="rbx-list" id="rbx-packs"></div>
+    </div>
+
     <p class="manual-note">💬 To buy Retrobux, contact a Discord admin — all currency purchases are delivered manually for now.</p>
 
     <div class="faq">
@@ -121,7 +128,7 @@
       </details>
       <details>
         <summary>Does Retrobux have real-world value?</summary>
-        <p>No. Retrobux is a virtual currency for use within Retro only. It has no cash value and cannot be exchanged, sold, or cashed out.</p>
+        <p>No. Retrobux is a virtual currency for use within Utopoly only. It has no cash value and cannot be exchanged, sold, or cashed out.</p>
       </details>
     </div>
   </main>
@@ -129,25 +136,34 @@
 
 <div data-include="tabbar"></div>
 <div data-include="footer"></div>
+
 <script>
-  // Retrobux packs — price per 10 RBX scales linearly from $0.10 (10 pack) down to $0.05 (100K pack)
-  const RBX_AMOUNTS = [10, 25, 50, 100, 250, 500, 1000, 2000, 4000, 6000, 10000, 20000, 50000, 100000];
-  const RATE_START = 0.10, RATE_END = 0.05; // $ per 10 RBX
-  const fmtAmt = (a) => a >= 1000 ? (a / 1000) + "K" : String(a);
-  const rbxGrid = document.getElementById("rbx-grid");
-  RBX_AMOUNTS.forEach((amt, i) => {
-    const rate = RATE_START - (RATE_START - RATE_END) * (i / (RBX_AMOUNTS.length - 1));
-    const price = Math.round(rate * (amt / 10) * 100) / 100;
-    const best = i === RBX_AMOUNTS.length - 1;
-    rbxGrid.insertAdjacentHTML("beforeend", `
-      <div class="rbx-card${best ? " best" : ""}">
-        ${best ? '<span class="rbx-badge">BEST VALUE</span>' : ""}
-        <div class="rbx-amt" title="${amt.toLocaleString()} Retrobux"><span class="ric">R</span>${fmtAmt(amt)}</div>
-        <div class="rbx-price">${"$" + price.toFixed(2)}</div>
-        <div class="rbx-rate">${"$" + rate.toFixed(3) + " per 10 RBX"}</div>
-        <a class="btn primary block" href="#" title="Placeholder Discord invite">Contact Discord Admin to Purchase</a>
-      </div>`);
-  });
+  // Retrobux purchase rows — amounts, bonuses, and prices mirror the reference image.
+  const BONUS_DEALS = [
+    { amount: 24000, base: 22500, bonus: 1500, price: 199.99 },
+    { amount: 11000, base: 10000, bonus: 1000, price: 99.99 },
+    { amount: 5250,  base: 4500,  bonus: 750,  price: 49.99 },
+    { amount: 3625,  base: 3150,  bonus: 475,  price: 34.99 },
+    { amount: 2000,  base: 1700,  bonus: 300,  price: 19.99 },
+  ];
+  const PACKAGES = [
+    { amount: 1500, base: 1200, bonus: 300, price: 14.99 },
+    { amount: 1000, base: 800,  bonus: 200, price: 9.99 },
+    { amount: 500,  base: 400,  bonus: 100, price: 4.99 },
+  ];
+  function rowHTML(d) {
+    const dollars = "$" + d.price.toFixed(2);
+    return `
+      <div class="rbx-row">
+        <span class="ric">R</span>
+        <span class="amt">${d.amount.toLocaleString()}</span>
+        <span class="base">${d.base.toLocaleString()}</span>
+        <span class="bonus">+ ${d.bonus.toLocaleString()} more</span>
+        <span class="buy"><a class="btn primary small" href="#" title="Contact a Discord admin to purchase (placeholder invite)">${dollars}</a></span>
+      </div>`;
+  }
+  document.getElementById("rbx-bonus").innerHTML = BONUS_DEALS.map(rowHTML).join("");
+  document.getElementById("rbx-packs").innerHTML = PACKAGES.map(rowHTML).join("");
 </script>
 <script src="assets/retro.js"></script>
 <script type="module" src="assets/auth.js"></script>
