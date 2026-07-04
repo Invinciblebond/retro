@@ -482,5 +482,5 @@ supabase.auth.onAuthStateChange((_event, newSession) => {
   if (!isLanding && !newSession) location.replace("index.html?auth=required");
 });
 
-window.retroAuth = { supabase, logIn, logOut, signUp, updateProfile };
+window.retroAuth = { supabase, logIn, logOut, signUp, updateProfile, toast, friendly };
 })();

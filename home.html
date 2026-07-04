@@ -68,9 +68,9 @@
           </div>
         </div>
 
-        <!-- Continue Playing -->
-        <div class="microlabel">Continue Playing <span class="see">See All</span></div>
-        <div class="carousel" data-fill="6"></div>
+        <!-- Recently Viewed (catalog items) -->
+        <div class="microlabel">Recently Viewed <span class="see"><a href="catalog.html" style="color:inherit;text-decoration:none;">See All</a></span></div>
+        <div class="carousel" id="recent-viewed"></div>
 
         <!-- Recommended -->
         <div class="microlabel">Recommended For You <span class="see">See All</span></div>
@@ -83,14 +83,8 @@
 
       <!-- Right rail -->
       <aside class="right-rail" id="friends">
-        <div class="panel">
+        <div class="panel" id="friends-panel">
           <h4>Friends</h4>
-          <div class="fr"><span class="fpfp">RD</span>Redd <span class="st on">● Online</span></div>
-          <div class="fr"><span class="fpfp">TB</span>TOB <span class="st on">● Online</span></div>
-          <div class="fr"><span class="fpfp">KZ</span>krisztian75 <span class="st on">● Online</span></div>
-          <div class="fr"><span class="fpfp">WW</span>Walter_Whit <span class="st off">Offline</span></div>
-          <div class="fr"><span class="fpfp">RM</span>randymarsh <span class="st off">Offline</span></div>
-          <div class="fr"><span class="fpfp">JY</span>Jynn <span class="st off">Offline</span></div>
         </div>
         <div class="panel news">
           <h4>Utopoly News</h4>
@@ -130,5 +124,6 @@
 <script src="assets/env.js"></script>
 <script src="assets/supabaseClient.js"></script>
 <script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
 </body>
 </html>

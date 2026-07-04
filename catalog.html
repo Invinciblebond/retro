@@ -116,10 +116,13 @@
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const supabase = window.supabaseClient;
+  const urlQ = (new URLSearchParams(location.search).get("q") || "").trim().toLowerCase();
 
   // Catalog items live in Supabase (public.catalog_items).
   // Placeholder images (emoji icons) for now — names & prices are editable in the database.
   let items = [];
+  const gridEl = document.getElementById('grid');
+  if (gridEl) gridEl.innerHTML = Array.from({length:8},()=>'<div class="skel" style="height:210px;border-radius:12px;"></div>').join('');
   try {
     const { data, error } = await supabase
       .from("catalog_items")
@@ -161,6 +164,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const boxCat = CHECKBOX_MAP[it.cat] || it.cat;
       if (activeTab !== "All" && it.cat !== activeTab) return false;
       if (allowed.size && boxNames.includes(boxCat) && !allowed.has(boxCat)) return false;
+      if (urlQ && !it.n.toLowerCase().includes(urlQ)) return false;
       if (maxP < 1000 && it.p > maxP) return false;
       if (saleBox?.checked && !it.sale) return false;
       return true;
@@ -171,7 +175,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     else if (s === "Newest") list = list.slice().reverse();
 
     grid.innerHTML = list.length ? list.map(it => `
-      <div class="item-card">
+      <div class="item-card" data-id="${it.id}">
         <span class="ribbon">${it.sale ? "ON SALE" : "PLACEHOLDER"}</span>
         <div class="ithumb">${it.img ? `<img src="${it.img}" alt="${it.n}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;">` : it.ic}</div>
         <div class="imeta">
@@ -195,7 +199,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   saleBox?.addEventListener('change', render);
   price.addEventListener('input', render);
   sortSel.addEventListener('change', render);
+  if (urlQ) {
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:13px;font-weight:700;color:var(--muted);margin:0 0 12px;';
+    lbl.innerHTML = `Results for “${urlQ}” — <a href="catalog.html" style="color:var(--accent2);">clear</a>`;
+    grid.before(lbl);
+  }
   render();
+
+  // Record catalog item views for the homepage "Recently Viewed" module
+  grid.addEventListener('click', (e) => {
+    const card = e.target.closest('.item-card');
+    if (!card) return;
+    const it = items.find(x => String(x.id) === card.dataset.id);
+    if (it) window.retroViewed?.record(it);
+  });
 
   /* ---------- Publish An Item ---------- */
   const PUB_ICONS = { Hats: "🧢", Shirts: "👕" };
@@ -239,5 +257,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 <script src="assets/env.js"></script>
 <script src="assets/supabaseClient.js"></script>
 <script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
 </body>
 </html>
