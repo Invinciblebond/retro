@@ -6,7 +6,7 @@ pkill -f "ngrok http 8000"
 pkill -f supergateway
 
 ~/bin/notion-mcp-bridge.sh &
-ngrok http 8000 --basic-auth "notion:<password-from-readme>"
+ngrok http 8000 --basic-auth ""
 
 check whats listening: 
 lsof -i :8000          # is the bridge listening?

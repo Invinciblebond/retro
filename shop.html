@@ -27,6 +27,20 @@
   .faq details { background:var(--card); border:1px solid var(--line); border-radius:10px; margin-bottom:10px; padding:14px 18px; }
   .faq summary { font-size:14px; font-weight:700; cursor:pointer; }
   .faq p { font-size:13.5px; color:var(--muted); line-height:1.7; margin-top:10px; }
+
+  /* Buy Retrobux */
+  .rbx-head { text-align:center; padding:44px 20px 6px; }
+  .rbx-head h2 { font-size:24px; font-weight:900; }
+  .rbx-head p { color:var(--muted); font-size:13.5px; margin-top:6px; }
+  .rbx-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; max-width:1080px; margin:22px auto 0; padding:0 24px; }
+  .rbx-card { position:relative; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 16px; text-align:center; display:flex; flex-direction:column; gap:4px; }
+  .rbx-card .rbx-amt { font-size:22px; font-weight:900; }
+  .rbx-card .rbx-amt .ric { color:var(--accent); margin-right:2px; }
+  .rbx-card .rbx-price { font-size:16px; font-weight:800; color:var(--accent2); }
+  .rbx-card .rbx-rate { font-size:11px; color:var(--muted); margin-bottom:12px; }
+  .rbx-card .btn { border-radius:20px; font-size:11px; margin-top:auto; }
+  .rbx-card.best { border-color:var(--accent); box-shadow:0 8px 26px rgba(0,0,0,.4); }
+  .rbx-badge { position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; font-size:9px; font-weight:900; letter-spacing:1px; padding:3px 10px; border-radius:10px; }
 </style>
 </head>
 <body class="theme-1" data-page="shop">
@@ -87,6 +101,14 @@
 
     <p class="manual-note">🚧 Payments aren't automated yet — all purchases are handled manually by staff via Discord for now.</p>
 
+    <!-- Buy Retrobux -->
+    <div class="rbx-head" id="retrobux">
+      <h2>Buy Retrobux</h2>
+      <p>One-time Retrobux packs — the bigger the pack, the better the rate.</p>
+    </div>
+    <div class="rbx-grid" id="rbx-grid"></div>
+    <p class="manual-note">💬 To buy Retrobux, contact a Discord admin — all currency purchases are delivered manually for now.</p>
+
     <div class="faq">
       <h2>FAQ <span class="tag dev">SUBJECT TO CHANGE</span></h2>
       <details>
@@ -107,6 +129,26 @@
 
 <div data-include="tabbar"></div>
 <div data-include="footer"></div>
+<script>
+  // Retrobux packs — price per 10 RBX scales linearly from $0.10 (10 pack) down to $0.05 (100K pack)
+  const RBX_AMOUNTS = [10, 25, 50, 100, 250, 500, 1000, 2000, 4000, 6000, 10000, 20000, 50000, 100000];
+  const RATE_START = 0.10, RATE_END = 0.05; // $ per 10 RBX
+  const fmtAmt = (a) => a >= 1000 ? (a / 1000) + "K" : String(a);
+  const rbxGrid = document.getElementById("rbx-grid");
+  RBX_AMOUNTS.forEach((amt, i) => {
+    const rate = RATE_START - (RATE_START - RATE_END) * (i / (RBX_AMOUNTS.length - 1));
+    const price = Math.round(rate * (amt / 10) * 100) / 100;
+    const best = i === RBX_AMOUNTS.length - 1;
+    rbxGrid.insertAdjacentHTML("beforeend", `
+      <div class="rbx-card${best ? " best" : ""}">
+        ${best ? '<span class="rbx-badge">BEST VALUE</span>' : ""}
+        <div class="rbx-amt" title="${amt.toLocaleString()} Retrobux"><span class="ric">R</span>${fmtAmt(amt)}</div>
+        <div class="rbx-price">${"$" + price.toFixed(2)}</div>
+        <div class="rbx-rate">${"$" + rate.toFixed(3) + " per 10 RBX"}</div>
+        <a class="btn primary block" href="#" title="Placeholder Discord invite">Contact Discord Admin to Purchase</a>
+      </div>`);
+  });
+</script>
 <script src="assets/retro.js"></script>
 <script type="module" src="assets/auth.js"></script>
 </body>

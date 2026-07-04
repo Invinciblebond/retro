@@ -80,25 +80,30 @@
 <div data-include="footer"></div>
 
 <script src="assets/retro.js"></script>
-<script>
-  const items = [
-    { n:"Retro Cap", p:75, ic:"🧢", cat:"Hats" },
-    { n:"Pixel Hoodie", p:120, ic:"🧥", cat:"Shirts" },
-    { n:"Static Visor", p:60, ic:"🕶", cat:"Hats" },
-    { n:"Classic Fedora", p:350, ic:"🎩", cat:"Hats", owned:true },
-    { n:"Blocky Shades", p:45, ic:"🕶", cat:"Accessories" },
-    { n:"Arcade Tee", p:25, ic:"👕", cat:"T-Shirts", sale:true },
-    { n:"CRT Head", p:500, ic:"📺", cat:"Faces" },
-    { n:"Neon Trackpants", p:90, ic:"👖", cat:"Pants" },
-    { n:"8-Bit Smile", p:150, ic:"🙂", cat:"Faces" },
-    { n:"Joystick Gear", p:210, ic:"🕹", cat:"Gear" },
-    { n:"Cassette Backpack", p:130, ic:"🎒", cat:"Accessories", owned:true },
-    { n:"VHS Wings", p:800, ic:"📼", cat:"Accessories" },
-    { n:"Dial-Up Antenna", p:55, ic:"📡", cat:"Gear", sale:true },
-    { n:"Floppy Shield", p:275, ic:"💾", cat:"Gear" },
-    { n:"Synthwave Bundle", p:950, ic:"📦", cat:"Bundles" },
-    { n:"Boombox Gear", p:340, ic:"📻", cat:"Gear" },
-  ];
+<script type="module">
+  import { supabase } from "./assets/supabaseClient.js";
+
+  // Catalog items live in Supabase (public.catalog_items).
+  // Placeholder images (emoji icons) for now — names & prices are editable in the database.
+  let items = [];
+  try {
+    const { data, error } = await supabase
+      .from("catalog_items")
+      .select("id, name, price, category, icon, image_url, on_sale")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    items = (data || []).map((r) => ({
+      id: r.id,
+      n: r.name,
+      p: r.price,
+      ic: r.icon || "📦",
+      img: r.image_url,
+      cat: r.category,
+      sale: r.on_sale,
+    }));
+  } catch (err) {
+    console.error("Failed to load catalog items:", err?.message || err);
+  }
 
   // T-Shirts count as Shirts for the sidebar checkboxes
   const CHECKBOX_MAP = { "T-Shirts": "Shirts" };
@@ -134,7 +139,7 @@
     grid.innerHTML = list.length ? list.map(it => `
       <div class="item-card">
         <span class="ribbon">${it.sale ? "ON SALE" : "PLACEHOLDER"}</span>
-        <div class="ithumb">${it.ic}</div>
+        <div class="ithumb">${it.img ? `<img src="${it.img}" alt="${it.n}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;">` : it.ic}</div>
         <div class="imeta">
           <div class="iname">${it.n}</div>
           <div class="iprice"><span class="ric">R</span>${it.p}</div>
@@ -142,6 +147,7 @@
         </div>
       </div>`).join('')
       : '<p style="color:var(--muted);padding:30px 6px;font-size:14px;">No items match your filters.</p>';
+    if (!items.length) grid.innerHTML = '<p style="color:var(--muted);padding:30px 6px;font-size:14px;">Catalog is empty — check back soon!</p>';
   }
 
   tabs.forEach(t => t.addEventListener('click', e => {
