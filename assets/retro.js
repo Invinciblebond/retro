@@ -71,6 +71,7 @@
       <a href="privacy.html">Data Usage Policy</a>
     </div>
     <p class="foot-fine">© 2026 Utopoly.com. All Rights Reserved. Utopoly is an independent, fan-made project and is not affiliated with, endorsed by, or sponsored by Roblox Corporation.</p>
+    <p class="foot-version">V0.01</p>
   </footer>`;
 
   document.querySelectorAll("[data-include]").forEach((el) => {
