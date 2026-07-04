@@ -267,7 +267,16 @@ async function signUp({ email, password, username, birthday, gender }) {
   return data;
 }
 
-async function logIn(email, password) {
+async function logIn(identifier, password) {
+  // Accepts an email OR a username
+  let email = identifier;
+  if (!identifier.includes("@")) {
+    const { data, error: rpcErr } = await supabase.rpc("get_login_email", { p_username: identifier });
+    if (rpcErr) throw rpcErr;
+    if (data === "not_found") throw new Error("No account with that username.");
+    if (data === "use_email") throw new Error("That account uses email login — enter your email address instead.");
+    email = data;
+  }
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
@@ -312,12 +321,12 @@ function wireLanding() {
   let headEmail, headPass;
   if (head) {
     [headEmail, headPass] = head.querySelectorAll("input");
-    headEmail.placeholder = "Email";
+    headEmail.placeholder = "Username or Email";
     const btn = head.querySelector("a.btn");
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
       if (!headEmail.value.trim() || !headPass.value) {
-        toast("Enter your email and password to log in.", "info");
+        toast("Enter your username (or email) and password to log in.", "info");
         return;
       }
       setLoading(btn, true, "Logging in…");
@@ -337,16 +346,24 @@ function wireLanding() {
   if (!form) return;
   form.onsubmit = null;
 
-  // add an email field before the username field if missing
+  // Optional email lives in a small dropdown at the BOTTOM of the form.
+  // Left empty, the account gets an internal placeholder address and the user
+  // logs in with username + password.
   if (!form.querySelector('input[type="email"]')) {
-    const userLabel = [...form.querySelectorAll("label")].find((l) => l.textContent === "Username");
-    const lbl = document.createElement("label");
-    lbl.textContent = "Email";
-    const inp = document.createElement("input");
-    inp.type = "email";
-    inp.required = true;
-    inp.placeholder = "you@example.com";
-    userLabel.before(lbl, inp);
+    const det = document.createElement("details");
+    det.id = "email-optional";
+    det.style.cssText = "margin-top:14px;";
+    det.innerHTML = `
+      <summary style="cursor:pointer;font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.5px;">
+        ＋ Add an email (optional)
+      </summary>
+      <label>Email</label>
+      <input type="email" placeholder="you@example.com — for account recovery">
+      <p style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;">
+        No email needed to play — you'll log in with your username. Adding one just helps you recover your account later.
+      </p>`;
+    const submit = form.querySelector('button[type="submit"]');
+    submit.before(det);
   }
 
   const emailIn = form.querySelector('input[type="email"]');
@@ -419,14 +436,18 @@ function wireLanding() {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = emailIn.value.trim();
+    let email = emailIn.value.trim();
     const username = userIn.value.trim();
     const password = passIn.value;
     const [m, d, y] = form.querySelectorAll(".bday select");
     const gender = form.querySelectorAll("select")[3]?.value;
 
+    if (username.length < 3 || !/^[a-z0-9_]+$/i.test(username))
+      return toast("Usernames need at least 3 characters (letters, numbers, _ only).", "err");
     if (password.length < 8) return toast("Passwords need at least 8 characters.", "err");
     if (unameOk === false) return toast("That username is taken — pick another first.", "err");
+    // No email? No problem — generate an internal account address; they log in with their username.
+    if (!email) email = `${username.toLowerCase()}@users.utopoly.com`;
 
     setLoading(submitBtn, true, "Creating account…");
     try {
@@ -452,9 +473,15 @@ function wireLanding() {
         // Auto-login: no email gate. Verification (if pending) nudges later, never blocks.
         successModal(`Welcome, ${username || "friend"}!`, "Your account is ready — jumping in…", goDest, 1600);
       } else {
-        // Email confirmation still required by the server — show it, don't just say it.
-        setLoading(submitBtn, false);
-        showMailPanel(email);
+        // No session returned — try logging in directly with the credentials they just chose.
+        try {
+          await logIn(email, password);
+          successModal(`Welcome, ${username || "friend"}!`, "Your account is ready — jumping in…", goDest, 1600);
+        } catch {
+          // Server insists on email confirmation — show it, don't just say it.
+          setLoading(submitBtn, false);
+          showMailPanel(email);
+        }
       }
     } catch (err) {
       setLoading(submitBtn, false);
@@ -467,6 +494,7 @@ function wireLanding() {
 async function verifyNudge(session) {
   const user = session?.user;
   if (!user || user.email_confirmed_at || sessionStorage.getItem("retro:nudged")) return;
+  if (user.email?.endsWith("@users.utopoly.com")) return; // no real email — nothing to verify
   sessionStorage.setItem("retro:nudged", "1");
   setTimeout(() => {
     const t = toast(`📬 Quick thing — verify <b>${user.email}</b> when you get a sec. <a href="#" id="nudge-resend" style="color:#fff;text-decoration:underline;">Resend link</a>`, "info", 9000);
