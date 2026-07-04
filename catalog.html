@@ -113,8 +113,9 @@
 <div data-include="footer"></div>
 
 <script src="assets/retro.js"></script>
-<script type="module">
-  import { supabase } from "./assets/supabaseClient.js";
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const supabase = window.supabaseClient;
 
   // Catalog items live in Supabase (public.catalog_items).
   // Placeholder images (emoji icons) for now — names & prices are editable in the database.
@@ -232,7 +233,11 @@
       pubMsg.textContent = err?.message || "Failed to publish.";
     }
   });
+});
 </script>
-<script type="module" src="assets/auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
 </body>
 </html>

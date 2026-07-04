@@ -1,6 +1,6 @@
 // UTOPOLY — global auth handling (signup, login, logout, session, route protection)
-import { supabase } from "./supabaseClient.js";
-window.supabase = supabase;
+// Classic script: relies on window.supabaseClient created by assets/supabaseClient.js
+const supabase = window.supabaseClient;
 
 const page = document.body.dataset.page || "";
 const DEFAULT_AVATAR = "https://i.ibb.co/3t5CJPD/3544ea05dc3cd161d076eefc393b2e62.jpg";
@@ -286,4 +286,3 @@ supabase.auth.onAuthStateChange((_event, newSession) => {
 });
 
 window.retroAuth = { supabase, logIn, logOut, signUp, updateProfile };
-export { supabase, logIn, logOut, signUp, updateProfile };
