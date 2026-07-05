@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — Utopoly</title>
+<title>Admin - Utopoly</title>
+<meta name="description" content="Utopoly staff administration panel.">
+<link rel="icon" type="image/png" href="https://i.ibb.co/N6wqhtTn/f079a25a-b9e0-46d8-98f0-cc38807b3c82-removebg-preview.png">
+<meta name="robots" content="noindex">
 <link rel="stylesheet" href="assets/retro.css?v=0.07">
 <style>
   .awrap { max-width:1080px; margin:24px auto; padding:0 20px; }
@@ -74,7 +77,7 @@
 
       <section id="t-economy" style="display:none;">
         <div class="panel">
-          <h4>Rix → Retrobux exchange rate</h4>
+          <h4>Rix → Retrobux exchange rate (Rix needed per 1 Retrobux)</h4>
           <div style="display:flex;gap:10px;align-items:center;">
             <input id="e-rate" type="number" step="0.1" min="0.1" style="width:120px;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
             <button class="btn primary small" id="e-rate-save">Set rate</button>
@@ -311,7 +314,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function loadEconomy() {
     const { data: cfg } = await sb.from("app_config").select("value").eq("key", "rix_to_retrobux_rate").single();
     document.getElementById("e-rate").value = cfg?.value?.rate ?? "";
-    document.getElementById("e-rate-now").textContent = `current: 1 Rix = ${cfg?.value?.rate} Retrobux`;
+    document.getElementById("e-rate-now").textContent = `current: ${cfg?.value?.rate} Rix = 1 Retrobux`;
     const { data: ls } = await sb.from("listings").select("id, price, catalog_items(name), profiles(username)").eq("active", true).limit(50);
     document.getElementById("e-listings").innerHTML = (ls || []).map((l) => `
       <div class="lrow"><b>${esc(l.catalog_items?.name)}</b><span class="mut">R ${l.price} by ${esc(l.profiles?.username)}</span>

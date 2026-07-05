@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shop — Utopoly</title>
+<title>Shop - Utopoly</title>
+<meta name="description" content="Get Retrobux and memberships, redeem promo codes, and convert Rix to Retrobux in the Utopoly shop.">
+<link rel="icon" type="image/png" href="https://i.ibb.co/N6wqhtTn/f079a25a-b9e0-46d8-98f0-cc38807b3c82-removebg-preview.png">
 <link rel="stylesheet" href="assets/retro.css?v=0.07">
 <style>
   .shop-head { text-align:center; padding:36px 20px 6px; }
@@ -234,12 +236,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const { data: cfg } = await sb.from("app_config").select("value").eq("key", "rix_to_retrobux_rate").single();
   const rate = Number(cfg?.value?.rate ?? 0);
   document.getElementById("cv-rate").textContent = rate
-    ? `Current rate: 1 Rix = ${rate} Retrobux` : "Conversion temporarily unavailable.";
+    ? `Current rate: ${rate} Rix = 1 Retrobux` : "Conversion temporarily unavailable.";
   const inp = document.getElementById("cv-amount"), out = document.getElementById("cv-out"), go = document.getElementById("cv-go");
   inp.addEventListener("input", () => {
     const v = parseInt(inp.value, 10);
     const ok = Number.isFinite(v) && v > 0 && rate > 0;
-    out.innerHTML = `<span class="ric">R</span> ${ok ? Math.floor(v * rate).toLocaleString() : 0}`;
+    out.innerHTML = `<span class="ric">R</span> ${ok ? Math.floor(v / rate).toLocaleString() : 0}`;
     go.disabled = !ok;
   });
   go.addEventListener("click", async () => {
