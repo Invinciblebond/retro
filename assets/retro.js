@@ -1,5 +1,19 @@
 /* UTOPOLY — shared header & footer components */
 (function () {
+  // ---- Single source of truth for the site version ----
+  // Bump this on every release AND update the ?v= stamps in the HTML files
+  // (they must match — a mismatch means the browser served a stale page).
+  const APP_VERSION = "0.06";
+  window.APP_VERSION = APP_VERSION;
+  console.log(`%cUTOPOLY%c v${APP_VERSION}`, "font-weight:900;color:#e2231a;", "color:inherit;");
+  // Stale-cache detector: compare our own <script src="...retro.js?v=N"> tag
+  // against APP_VERSION. If the HTML is an old cached copy, say so loudly.
+  const selfSrc = document.currentScript?.src || "";
+  const htmlV = new URL(selfSrc, location.href).searchParams.get("v");
+  if (htmlV !== null && htmlV !== APP_VERSION) {
+    console.warn(`[UTOPOLY] Stale page: HTML references retro.js?v=${htmlV} but the script is v${APP_VERSION}. Hard-refresh (Ctrl/Cmd+Shift+R) to update.`);
+  }
+
   const page = document.body.dataset.page || "";
 
   // Apply saved theme (Settings → Appearance) before anything renders
@@ -90,7 +104,7 @@
       <a href="privacy.html">Data Usage Policy</a>
     </div>
     <p class="foot-fine">© 2026 Utopoly.com. All Rights Reserved. Utopoly is an independent project and is not affiliated with, endorsed by, or sponsored by any other gaming platform.</p>
-    <p class="foot-version">V0.06</p>
+    <p class="foot-version">V${APP_VERSION}</p>
   </footer>`;
 
   document.querySelectorAll("[data-include]").forEach((el) => {

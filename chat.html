@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chat — Utopoly</title>
-<link rel="stylesheet" href="assets/retro.css">
+<link rel="stylesheet" href="assets/retro.css?v=0.06">
 <style>
   .chat-grid { display:flex; gap:0; margin:22px 28px 40px; max-width:1200px; height:calc(100vh - 190px); min-height:440px;
     background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
@@ -54,13 +55,13 @@
 <div data-include="tabbar"></div>
 <div data-include="footer"></div>
 
-<script src="assets/retro.js"></script>
+<script src="assets/retro.js?v=0.06"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="assets/env.js"></script>
-<script src="assets/supabaseClient.js"></script>
-<script src="assets/auth.js"></script>
-<script src="assets/social.js"></script>
-<script src="assets/i18n.js"></script>
+<script src="assets/env.js?v=0.06"></script>
+<script src="assets/supabaseClient.js?v=0.06"></script>
+<script src="assets/auth.js?v=0.06"></script>
+<script src="assets/social.js?v=0.06"></script>
+<script src="assets/i18n.js?v=0.06"></script>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const sb = window.supabaseClient;

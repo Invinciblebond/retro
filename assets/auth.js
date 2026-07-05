@@ -592,9 +592,21 @@ supabase.auth.onAuthStateChange((event) => {
 });
 
 // Keep UI in sync across tabs / token refresh / sign-out
+let redirected = false;
 supabase.auth.onAuthStateChange((_event, newSession) => {
   applyAuthUI(newSession);
   if (!isLanding && !newSession) location.replace("index.html?auth=required");
+  // Landing auto-login: covers the session-restore race where getSession()
+  // resolves before the stored session is hydrated, plus OAuth callbacks.
+  if (isLanding && newSession && !redirected) { redirected = true; goDest(); }
+});
+
+// Back/forward cache: if the landing page is restored from bfcache while a
+// session exists (e.g. user logged in, then pressed Back), re-run the redirect.
+window.addEventListener("pageshow", async (e) => {
+  if (!e.persisted || !isLanding) return;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session && !redirected) { redirected = true; goDest(); }
 });
 
 window.retroAuth = { supabase, logIn, logOut, signUp, updateProfile, toast, friendly };
