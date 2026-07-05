@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiki — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .wwrap { max-width:920px; margin:24px auto; padding:0 20px 60px; display:flex; gap:26px; align-items:flex-start; }
+  .wtoc { width:210px; flex-shrink:0; position:sticky; top:80px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .wtoc h5 { font-size:10.5px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+  .wtoc a { display:block; font-size:12.5px; font-weight:700; color:var(--muted); padding:5px 0; text-decoration:none; }
+  .wtoc a:hover { color:var(--txt); }
+  .wbody { flex:1; min-width:0; }
+  .wbody h1 { font-size:26px; font-weight:900; margin-bottom:6px; }
+  .wbody .sub { color:var(--muted); font-size:13.5px; margin-bottom:24px; }
+  .wbody h2 { font-size:18px; font-weight:900; margin:34px 0 10px; padding-top:12px; border-top:1px solid var(--line); }
+  .wbody h3 { font-size:14.5px; font-weight:900; margin:18px 0 6px; }
+  .wbody p, .wbody li { font-size:13.5px; color:var(--txt); line-height:1.75; }
+  .wbody p { margin-bottom:10px; }
+  .wbody ul { margin:8px 0 12px 20px; }
+  .wbody .note { background:var(--card); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; padding:12px 14px; font-size:13px; color:var(--muted); margin:12px 0; line-height:1.65; }
+  .wbody code { background:var(--input); border:1px solid var(--line); border-radius:5px; padding:1px 6px; font-size:12px; }
+  @media (max-width:820px){ .wwrap { flex-direction:column; } .wtoc { position:static; width:100%; } }
+</style>
+</head>
+<body class="theme-1" data-page="wiki">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="wwrap">
+      <nav class="wtoc">
+        <h5>Contents</h5>
+        <a href="#currencies">Currencies</a>
+        <a href="#catalog">Catalog &amp; items</a>
+        <a href="#limiteds">Limiteds &amp; serials</a>
+        <a href="#offsale">Off-sale &amp; collectibles</a>
+        <a href="#market">Player market &amp; RAP</a>
+        <a href="#trading">Trading &amp; trade tax</a>
+        <a href="#avatar">Avatar &amp; try-on</a>
+        <a href="#games">Games &amp; creators</a>
+        <a href="#ads">Sponsored placements</a>
+        <a href="#groups">Groups</a>
+        <a href="#social">Friends, chat &amp; notifications</a>
+        <a href="#giftcards">Gift cards &amp; codes</a>
+        <a href="#account">Account, privacy &amp; safety</a>
+      </nav>
+
+      <div class="wbody">
+        <h1>📖 Utopoly Wiki</h1>
+        <div class="sub">How everything on Utopoly works — the economy, items, trading, games, and your account.</div>
+
+        <h2 id="currencies">Currencies: Retrobux &amp; Rix</h2>
+        <p>Utopoly runs on two virtual currencies. <b>Retrobux (R)</b> is the primary currency — used for catalog items, the player market, game passes, private servers, sponsored ads, and trades. <b>Rix (X)</b> is the secondary currency: every new account starts with 500 Rix, group creation costs 50 Rix, and Rix can be added to trades.</p>
+        <p>Rix converts <b>one way</b> into Retrobux on the Shop page at a rate set by staff. Once converted, it can't be converted back. Neither currency has real-world value and neither can be cashed out.</p>
+        <div class="note">Every single balance change — purchases, sales, payouts, conversions, trades, gift cards, staff adjustments — is written to your <b>transaction history</b>, viewable in Settings → Trading &amp; Economy.</div>
+
+        <h2 id="catalog">Catalog &amp; items</h2>
+        <p>Catalog items come in three types:</p>
+        <ul>
+          <li><b>Normal</b> — always purchasable while on sale, unlimited copies.</li>
+          <li><b>Limited</b> — a finite stock. Once it sells out, owned copies become resellable on the player market at any price.</li>
+          <li><b>ULimited</b> — serialized limiteds: each copy is numbered (#1, #2, …) out of a fixed total, and can be resold immediately.</li>
+        </ul>
+        <p>Every item page shows its <b>creator</b> (a user, or Utopoly for official items), price, stock, your owned copies and serials, and — for limiteds — the reseller list and price history. You can <b>♡ wishlist</b> any item to buy later, and <b>👤 try on</b> wearable items to preview them on your avatar before buying.</p>
+
+        <h2 id="limiteds">Limiteds &amp; serial numbers</h2>
+        <p>ULimited copies carry a <b>serial number</b> assigned in purchase order — #1 of 100 is the first copy ever sold. Serials show on item pages, in your inventory, and in trades. Low serials don't change the item mechanically, but collectors care about them.</p>
+
+        <h2 id="offsale">Off-sale items &amp; collectibles</h2>
+        <p>Staff can take any item <b>off-sale</b>: it disappears from the catalog's buy button and can no longer be purchased directly. Off-sale limiteds become pure collectibles — the only way to get one is the player market or a trade. Staff can also <b>convert a normal item into a Limited or ULimited</b>; when an item becomes ULimited, every existing copy is assigned a serial number by acquisition date, and all copies become tradeable and resellable.</p>
+
+        <h2 id="market">Player market, price history &amp; RAP</h2>
+        <p>Resellable copies can be listed at any price. When a copy sells, the seller receives <b>85%</b> — the platform keeps a 15% fee. Each item page shows every current reseller and their asking price, plus a chart of past sales.</p>
+        <p><b>RAP (Recent Average Price)</b> is the rolling average of an item's last 10 sales. Your profile shows your total RAP — the estimated value of your limited collection.</p>
+
+        <h2 id="trading">Trading &amp; the 15% trade tax</h2>
+        <p>Trades happen on the Trade page, with <b>Inbound</b>, <b>Outbound</b>, and <b>Completed</b> tabs. A trade can include multiple limiteds on each side, plus optional Retrobux and/or Rix. You can accept, decline, cancel, or send a <b>counter-offer</b> (which replaces the original).</p>
+        <ul>
+          <li>Only limiteds and ULimiteds are tradeable.</li>
+          <li>Currency added to a trade carries a <b>15% trade tax</b>: the recipient receives 85% of what the other side puts in. The trade window shows exactly what each side will receive before you send.</li>
+          <li>Ownership is re-checked at the moment of acceptance. If a copy sold on the market while the trade was pending, the trade is automatically invalidated — trades never partially execute.</li>
+          <li>Who can send you trades is controlled in Settings → Privacy (Everyone / Friends / No one).</li>
+        </ul>
+
+        <h2 id="avatar">Avatar &amp; try-on</h2>
+        <p>The Avatar editor equips items you own into slots: hat, face, shirt, t-shirt, pants, gear, and accessory, plus a body color. On any wearable item page, <b>Try on</b> shows the item on your current avatar before you buy — preview only; you still need to own it to equip it.</p>
+
+        <h2 id="games">Games, creators &amp; the Creator Dashboard</h2>
+        <p>Anyone can create games on the Create page and attach <b>game passes</b> (one-time purchases), <b>private servers</b> (rentals), and <b>badges</b>. When someone buys a pass or rents a server, the creator receives <b>85%</b> of the price.</p>
+        <p>The <b>Creator Dashboard</b> (📊 in the sidebar) shows per-game analytics: visits, play sessions, unique players, average session length, day-1/day-7 retention, and revenue split by source.</p>
+
+        <h2 id="ads">Sponsored placements (ads)</h2>
+        <p>Creators can bid Retrobux on the Dashboard to sponsor a game for <b>24 hours</b> on the <b>homepage</b> or in <b>search</b>. Higher bids rank higher. Sponsored games are always labeled <b>Ad / Paid placement</b>. Minimum bid: R 10; the bid is spent when the campaign starts.</p>
+
+        <h2 id="groups">Groups</h2>
+        <p>Creating a group costs <b>50 Rix</b>. Groups have ranked members (owners can create custom ranks with wall-posting and member-management permissions), a wall, and <b>shouts</b> — announcements from group leadership that notify every member.</p>
+
+        <h2 id="social">Friends, chat &amp; notifications</h2>
+        <p>Send friend requests from search results or hover cards. The 🔔 bell has two tabs: <b>Inbox</b> (pending friend requests with accept/decline) and <b>Activity</b> (purchases, item sales, trades, group shouts, group joins, and updates from games you follow). Fine-tune which categories notify you in Settings → Notifications.</p>
+
+        <h2 id="giftcards">Gift cards &amp; promo codes</h2>
+        <p>Codes can grant Retrobux, Rix, or a catalog item. Redeem them on the <b>Shop</b> page or in <b>Settings → Billing</b>. Each code has a maximum number of uses and can expire; a given account can redeem a code only once.</p>
+
+        <h2 id="account">Account, privacy &amp; safety</h2>
+        <ul>
+          <li><b>Username changes</b> cost R 1 with no cooldown (Settings → Account).</li>
+          <li><b>Email is optional</b> — accounts without one log in by username. Changing email only requires your password.</li>
+          <li><b>Two-factor authentication</b> via authenticator app, plus a "log out all other sessions" button and recent login history (Settings → Security).</li>
+          <li><b>Account PIN</b> locks the settings page — useful for younger players. Forgot it? Contact an admin on Discord.</li>
+          <li><b>Privacy controls</b>: who can message you, who can trade with you, what shows on your profile, and a block list. Blocking someone stops their messages, trades, and friend requests.</li>
+          <li><b>Moderation</b>: bans and mutes are enforced server-side. Deactivation and deletion requests are submitted from Settings and reviewed by staff.</li>
+        </ul>
+        <div class="note">Something not covered here? Ask in the community Discord — staff and helpers are around.</div>
+      </div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+</body>
+</html>

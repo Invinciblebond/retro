@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .pwrap { max-width:980px; margin:24px auto; padding:0 20px; }
+  .phead { display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap; margin-bottom:8px; }
+  .pav { width:180px; height:225px; background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; flex-shrink:0; }
+  .pinfo { flex:1; min-width:260px; }
+  .pinfo h1 { font-size:24px; font-weight:900; }
+  .pinfo .st { font-size:13px; color:var(--accent2,#6cf); font-weight:700; margin:4px 0; }
+  .pinfo .ds { font-size:13.5px; color:var(--muted); line-height:1.7; margin:8px 0 12px; white-space:pre-wrap; }
+  .pstats { display:flex; gap:22px; font-size:12.5px; font-weight:800; flex-wrap:wrap; }
+  .pstats b { display:block; font-size:16px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-top:18px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .chipset { display:flex; gap:10px; flex-wrap:wrap; }
+  .chip-i { display:flex; align-items:center; gap:8px; background:var(--input); border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:12.5px; font-weight:700; color:var(--txt); text-decoration:none; }
+  .chip-i .cic { font-size:18px; width:26px; height:26px; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:5px; }
+  .chip-i img { width:100%; height:100%; object-fit:cover; }
+</style>
+</head>
+<body class="theme-1" data-page="profile">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="pwrap">
+      <div class="phead">
+        <div class="pav" id="pav"></div>
+        <div class="pinfo">
+          <h1 id="pname">…</h1>
+          <div class="st" id="pstatus"></div>
+          <div class="ds" id="pdesc"></div>
+          <div class="pstats">
+            <span><b id="s-rap">0</b>Collection RAP</span>
+            <span><b id="s-friends">0</b>Friends</span>
+            <span><b id="s-groups">0</b>Groups</span>
+            <span><b id="s-joined">—</b>Joined</span>
+          </div>
+          <div id="pactions" style="margin-top:14px;"></div>
+        </div>
+      </div>
+      <div class="panel" id="badges-p" style="display:none;"><h4>Badges</h4><div class="chipset" id="badges"></div></div>
+      <div class="panel" id="limiteds-p" style="display:none;"><h4>Limited collection</h4><div class="chipset" id="limiteds"></div></div>
+      <div class="panel" id="groups-p" style="display:none;"><h4>Groups</h4><div class="chipset" id="groups"></div></div>
+      <div class="panel" id="favs-p" style="display:none;"><h4>Favorite games</h4><div class="chipset" id="favs"></div></div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script src="assets/avatar-render.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const me = session.user.id;
+
+  let uname = new URLSearchParams(location.search).get("u");
+  if (!uname) {
+    const { data: myp } = await sb.from("profiles").select("username").eq("id", me).single();
+    uname = myp?.username;
+  }
+  const { data: p } = await sb.rpc("get_public_profile", { p_username: uname });
+  if (!p) { toast("User not found.", "err"); return; }
+  const uid = p.id;
+  document.title = `${p.username} — Utopoly`;
+  document.getElementById("pname").textContent = p.display_name || p.username;
+  document.getElementById("pstatus").textContent = p.status || "";
+  document.getElementById("pdesc").textContent = p.description || "";
+  document.getElementById("s-rap").innerHTML = `<span class="ric">R</span> ${(p.rap || 0).toLocaleString()}`;
+  document.getElementById("s-joined").textContent = new Date(p.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short" });
+
+  /* avatar: layered config if present, else avatar_url image */
+  const pav = document.getElementById("pav");
+  const { data: inv } = await sb.from("inventory")
+    .select("catalog_items(id, name, icon, image_url, category, rap, item_type)").eq("user_id", uid);
+  const ownedItems = (inv || []).map((r) => r.catalog_items).filter(Boolean);
+  if (p.avatar_config && Object.keys(p.avatar_config.equipped || {}).length)
+    pav.innerHTML = window.renderAvatarSVG(p.avatar_config, ownedItems);
+  else if (p.avatar_url) pav.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
+
+  /* actions */
+  if (uid !== me) {
+    document.getElementById("pactions").innerHTML = `
+      <a class="btn primary" href="chat.html?u=${p.username}">Message</a>
+      <a class="btn ghost" href="trade.html">Trade</a>
+      <button class="btn ghost" id="follow-u">Follow</button>`;
+    const fb = document.getElementById("follow-u");
+    const { data: f } = await sb.from("follows").select("target_id").eq("follower_id", me).eq("target_type", "user").eq("target_id", uid).maybeSingle();
+    let on = !!f;
+    const paint = () => fb.textContent = on ? "Following" : "Follow";
+    paint();
+    fb.addEventListener("click", async () => {
+      const q = on ? sb.from("follows").delete().eq("follower_id", me).eq("target_type", "user").eq("target_id", uid)
+                   : sb.from("follows").insert({ follower_id: me, target_type: "user", target_id: uid });
+      const { error } = await q;
+      if (!error) { on = !on; paint(); }
+    });
+  } else {
+    document.getElementById("pactions").innerHTML = `
+      <a class="btn primary" href="avatar.html">Edit Avatar</a>
+      <a class="btn ghost" href="settings.html">Edit Profile</a>`;
+  }
+
+  /* friends count */
+  const { count: fc } = await sb.from("friendships").select("id", { count: "exact", head: true })
+    .eq("status", "accepted").or(`requester.eq.${uid},addressee.eq.${uid}`);
+  document.getElementById("s-friends").textContent = (fc || 0).toLocaleString();
+
+  /* badges */
+  const { data: ub } = await sb.from("user_badges").select("badges(id, name, icon, image_url, description)").eq("user_id", uid);
+  if (ub?.length) {
+    document.getElementById("badges-p").style.display = "block";
+    document.getElementById("badges").innerHTML = ub.map((b) => `
+      <span class="chip-i" title="${b.badges?.description || ""}"><span class="cic">${b.badges?.image_url ? `<img src="${b.badges.image_url}">` : (b.badges?.icon || "🏅")}</span>${b.badges?.name}</span>`).join("");
+  }
+
+  /* limiteds */
+  const lims = ownedItems.filter((i) => ["limited","limited_u"].includes(i.item_type));
+  if (lims.length) {
+    document.getElementById("limiteds-p").style.display = "block";
+    document.getElementById("limiteds").innerHTML = lims.map((i) => `
+      <a class="chip-i" href="item.html?id=${i.id}"><span class="cic">${i.image_url ? `<img src="${i.image_url}">` : (i.icon || "📦")}</span>${i.name}<span style="color:var(--muted);font-size:11px;">RAP ${(i.rap||0).toLocaleString()}</span></a>`).join("");
+  }
+
+  /* groups */
+  const { data: gms } = await sb.from("group_members").select("groups(id, name, emblem, member_count)").eq("user_id", uid);
+  document.getElementById("s-groups").textContent = (gms?.length || 0).toLocaleString();
+  if (gms?.length) {
+    document.getElementById("groups-p").style.display = "block";
+    document.getElementById("groups").innerHTML = gms.map((m) => `
+      <a class="chip-i" href="group.html?id=${m.groups?.id}"><span class="cic">${m.groups?.emblem || "⭐"}</span>${m.groups?.name}</a>`).join("");
+  }
+
+  /* favorite games */
+  const { data: gf } = await sb.from("game_favorites").select("games(id, title, thumbnail_url)").eq("user_id", uid).limit(12);
+  if (gf?.length) {
+    document.getElementById("favs-p").style.display = "block";
+    document.getElementById("favs").innerHTML = gf.map((f) => `
+      <a class="chip-i" href="game.html?id=${f.games?.id}"><span class="cic">${f.games?.thumbnail_url ? `<img src="${f.games.thumbnail_url}">` : "🎮"}</span>${f.games?.title}</a>`).join("");
+  }
+});
+</script>
+</body>
+</html>

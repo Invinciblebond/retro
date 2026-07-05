@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Group — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .gwrap { max-width:980px; margin:24px auto; padding:0 20px; }
+  .ghead { display:flex; gap:18px; align-items:center; margin-bottom:20px; flex-wrap:wrap; }
+  .ghead .em { font-size:44px; width:84px; height:84px; display:flex; align-items:center; justify-content:center; background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .ghead h1 { font-size:24px; font-weight:900; }
+  .ghead p { font-size:13px; color:var(--muted); margin-top:4px; max-width:520px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .wpost { padding:12px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .wpost:last-child { border-bottom:none; }
+  .wpost .wa { font-weight:800; }
+  .wpost .wt { font-size:11px; color:var(--muted); margin-left:8px; }
+  .wform { display:flex; gap:10px; margin-bottom:12px; }
+  .wform input { flex:1; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:13.5px; }
+  .mrow { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; font-weight:700; }
+  .mrow:last-child { border-bottom:none; }
+  .rank-head { font-size:12px; font-weight:900; color:var(--accent); margin:14px 0 4px; letter-spacing:1px; text-transform:uppercase; }
+  .rrow { display:flex; gap:8px; align-items:center; padding:6px 0; flex-wrap:wrap; }
+  .rrow input[type=text] { width:130px; } .rrow input[type=number] { width:70px; }
+  .rrow input { padding:7px 9px; border-radius:7px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:12.5px; }
+  .rrow label { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+  select.rank-sel { padding:5px 8px; border-radius:7px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:12px; }
+</style>
+</head>
+<body class="theme-1" data-page="group">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="gwrap">
+      <div class="ghead">
+        <span class="em" id="em">⭐</span>
+        <div style="flex:1;">
+          <h1 id="name">…</h1>
+          <p id="desc"></p>
+          <p style="font-size:12px;color:var(--muted);" id="meta"></p>
+        </div>
+        <div id="joinbox"></div>
+      </div>
+
+      <div class="panel" id="shout-panel" style="display:none;">
+        <h4>Group shout 📣</h4>
+        <p id="shout-current" style="font-size:13.5px;line-height:1.5;margin-bottom:10px;color:var(--muted);"></p>
+        <div class="wform" id="shout-form" style="display:none;margin-bottom:0;">
+          <input type="text" id="shout-input" maxlength="255" placeholder="Shout to all members (they get a notification)…">
+          <button class="btn primary small" id="shout-post">Shout</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h4>Group wall</h4>
+        <div class="wform" id="wform" style="display:none;">
+          <input type="text" id="wall-input" maxlength="1000" placeholder="Write something to the group…">
+          <button class="btn primary small" id="wall-post">Post</button>
+        </div>
+        <div id="wall"></div>
+      </div>
+
+      <div class="panel">
+        <h4>Members by rank</h4>
+        <div id="members"></div>
+      </div>
+
+      <div class="panel" id="rank-admin" style="display:none;">
+        <h4>Manage ranks (owner)</h4>
+        <div id="ranks"></div>
+        <div class="rrow" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px;">
+          <input type="text" id="nr-name" placeholder="New rank name">
+          <input type="number" id="nr-num" min="1" max="254" placeholder="#">
+          <label><input type="checkbox" id="nr-post" checked> wall</label>
+          <label><input type="checkbox" id="nr-manage"> manage</label>
+          <button class="btn ghost small" id="nr-add">Add rank</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const me = session.user.id;
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id) { location.replace("groups.html"); return; }
+
+  const { data: g, error } = await sb.from("groups").select("*, owner:profiles(username)").eq("id", id).single();
+  if (error || !g) { toast("Group not found.", "err"); setTimeout(()=>location.replace("groups.html"), 900); return; }
+  document.title = `${g.name} — Utopoly`;
+  document.getElementById("name").textContent = g.name;
+  document.getElementById("desc").textContent = g.description || "";
+  document.getElementById("meta").textContent = `Owned by ${g.owner?.username || "?"} · ${g.member_count.toLocaleString()} members · created ${new Date(g.created_at).toLocaleDateString()}`;
+  const em = document.getElementById("em");
+  em.innerHTML = g.emblem_url ? `<img src="${g.emblem_url}" style="width:100%;height:100%;object-fit:cover;">` : (g.emblem || "⭐");
+  const isOwner = g.owner_id === me;
+
+  const [{ data: ranks }, { data: members }] = await Promise.all([
+    sb.from("group_ranks").select("*").eq("group_id", id).order("rank_number", { ascending: false }),
+    sb.from("group_members").select("user_id, rank_id, profiles(username, avatar_url)").eq("group_id", id),
+  ]);
+  const myMembership = (members || []).find((m) => m.user_id === me);
+  const myRank = myMembership ? ranks.find((r) => r.id === myMembership.rank_id) : null;
+
+  /* join / leave */
+  const joinbox = document.getElementById("joinbox");
+  if (!myMembership) {
+    joinbox.innerHTML = '<button class="btn primary" id="join">Join Group</button>';
+    document.getElementById("join").addEventListener("click", async (e) => {
+      e.target.disabled = true;
+      const { error } = await sb.rpc("join_group", { p_group: id });
+      if (error) { toast(friendly(error.message), "err"); e.target.disabled = false; }
+      else { toast("Welcome to the group!", "ok"); setTimeout(()=>location.reload(), 900); }
+    });
+  } else if (!isOwner) {
+    joinbox.innerHTML = '<button class="btn ghost" id="leave">Leave Group</button>';
+    document.getElementById("leave").addEventListener("click", async (e) => {
+      e.target.disabled = true;
+      const { error } = await sb.rpc("leave_group", { p_group: id });
+      if (error) { toast(friendly(error.message), "err"); e.target.disabled = false; }
+      else { toast("You left the group.", "ok"); setTimeout(()=>location.reload(), 900); }
+    });
+  }
+
+  /* shout */
+  const canShout = isOwner || myRank?.can_manage_members;
+  if (g.shout || canShout) {
+    document.getElementById("shout-panel").style.display = "block";
+    document.getElementById("shout-current").innerHTML = g.shout
+      ? `“${g.shout.replace(/</g,"&lt;")}” <span style="font-size:11px;">— ${g.shout_at ? new Date(g.shout_at).toLocaleString() : ""}</span>`
+      : "No shout yet.";
+    if (canShout) {
+      document.getElementById("shout-form").style.display = "flex";
+      document.getElementById("shout-post").addEventListener("click", async () => {
+        const text = document.getElementById("shout-input").value.trim();
+        if (!text) return;
+        const { error } = await sb.rpc("post_group_shout", { p_group: id, p_text: text });
+        if (error) toast(friendly(error.message), "err");
+        else { toast("Shout posted — members have been notified!", "ok"); setTimeout(()=>location.reload(), 900); }
+      });
+    }
+  }
+
+  /* wall */
+  if (myRank?.can_post_wall) document.getElementById("wform").style.display = "flex";
+  async function loadWall() {
+    const { data: posts } = await sb.from("group_wall_posts")
+      .select("*, author:profiles(username)").eq("group_id", id).order("created_at", { ascending: false }).limit(50);
+    const canModerate = isOwner || window.retroProfile?.is_admin;
+    document.getElementById("wall").innerHTML = (posts || []).map((p) => `
+      <div class="wpost"><span class="wa">${p.author?.username || "?"}</span><span class="wt">${new Date(p.created_at).toLocaleString()}</span>
+        ${(canModerate || p.author_id === me) ? `<button class="btn ghost small" style="float:right;" data-del="${p.id}">✕</button>` : ""}
+        <div style="margin-top:4px;">${p.body.replace(/</g,"&lt;")}</div>
+      </div>`).join("") || '<div style="color:var(--muted);font-size:13px;">Nothing on the wall yet.</div>';
+    document.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
+      const { error } = await sb.from("group_wall_posts").delete().eq("id", b.dataset.del);
+      if (error) toast(friendly(error.message), "err"); else loadWall();
+    }));
+  }
+  loadWall();
+  document.getElementById("wall-post")?.addEventListener("click", async () => {
+    const body = document.getElementById("wall-input").value.trim();
+    if (!body) return;
+    const { error } = await sb.rpc("post_group_wall", { p_group: id, p_body: body });
+    if (error) toast(friendly(error.message), "err");
+    else { document.getElementById("wall-input").value = ""; loadWall(); }
+  });
+
+  /* members grouped by rank */
+  const canManage = myRank?.can_manage_members || window.retroProfile?.is_admin;
+  const mbox = document.getElementById("members");
+  mbox.innerHTML = "";
+  (ranks || []).forEach((r) => {
+    const rm = (members || []).filter((m) => m.rank_id === r.id);
+    if (!rm.length) return;
+    const h = document.createElement("div");
+    h.className = "rank-head";
+    h.textContent = `${r.name} (${rm.length})`;
+    mbox.appendChild(h);
+    rm.forEach((m) => {
+      const row = document.createElement("div");
+      row.className = "mrow";
+      row.innerHTML = `<img src="${m.profiles?.avatar_url || ""}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--thumb);" onerror="this.style.visibility='hidden'">
+        <a href="profile.html?u=${m.profiles?.username}">${m.profiles?.username || "?"}</a>`;
+      if (canManage && m.user_id !== g.owner_id) {
+        const sel = document.createElement("select");
+        sel.className = "rank-sel";
+        sel.style.marginLeft = "auto";
+        sel.innerHTML = ranks.filter((x) => x.rank_number < 255).map((x) =>
+          `<option value="${x.id}" ${x.id === m.rank_id ? "selected" : ""}>${x.name}</option>`).join("");
+        sel.addEventListener("change", async () => {
+          const { error } = await sb.rpc("set_member_rank", { p_group: id, p_user: m.user_id, p_rank: sel.value });
+          if (error) toast(friendly(error.message), "err"); else toast("Rank updated.", "ok");
+        });
+        row.appendChild(sel);
+      }
+      mbox.appendChild(row);
+    });
+  });
+
+  /* rank admin (owner) */
+  if (isOwner || window.retroProfile?.is_admin) {
+    document.getElementById("rank-admin").style.display = "block";
+    const rbox = document.getElementById("ranks");
+    rbox.innerHTML = (ranks || []).map((r) => `
+      <div class="rrow" data-rank="${r.id}">
+        <input type="text" value="${r.name}" ${r.rank_number === 255 ? "disabled" : ""} class="rn">
+        <input type="number" value="${r.rank_number}" min="1" max="254" ${r.rank_number === 255 ? "disabled" : ""} class="rnum">
+        <label><input type="checkbox" class="rp" ${r.can_post_wall ? "checked" : ""} ${r.rank_number === 255 ? "disabled" : ""}> wall</label>
+        <label><input type="checkbox" class="rm2" ${r.can_manage_members ? "checked" : ""} ${r.rank_number === 255 ? "disabled" : ""}> manage</label>
+        ${r.rank_number === 255 ? '<span style="font-size:11px;color:var(--muted);">owner rank</span>'
+          : `<button class="btn ghost small" data-save>Save</button><button class="btn ghost small" data-remove>Delete</button>`}
+      </div>`).join("");
+    rbox.querySelectorAll("[data-save]").forEach((b) => b.addEventListener("click", async () => {
+      const row = b.closest(".rrow");
+      const { error } = await sb.rpc("manage_group_rank", { p_group: id, p_action: "update", p_rank: row.dataset.rank,
+        p_name: row.querySelector(".rn").value.trim(), p_rank_number: parseInt(row.querySelector(".rnum").value, 10),
+        p_can_post: row.querySelector(".rp").checked, p_can_manage: row.querySelector(".rm2").checked });
+      if (error) toast(friendly(error.message), "err"); else toast("Rank saved.", "ok");
+    }));
+    rbox.querySelectorAll("[data-remove]").forEach((b) => b.addEventListener("click", async () => {
+      const { error } = await sb.rpc("manage_group_rank", { p_group: id, p_action: "delete", p_rank: b.closest(".rrow").dataset.rank });
+      if (error) toast(friendly(error.message), "err"); else { toast("Rank deleted.", "ok"); setTimeout(()=>location.reload(), 800); }
+    }));
+    document.getElementById("nr-add").addEventListener("click", async () => {
+      const name = document.getElementById("nr-name").value.trim();
+      const num = parseInt(document.getElementById("nr-num").value, 10);
+      if (!name || !Number.isFinite(num)) return toast("Rank needs a name and number.", "err");
+      const { error } = await sb.rpc("manage_group_rank", { p_group: id, p_action: "create", p_name: name, p_rank_number: num,
+        p_can_post: document.getElementById("nr-post").checked, p_can_manage: document.getElementById("nr-manage").checked });
+      if (error) toast(friendly(error.message), "err"); else { toast("Rank created.", "ok"); setTimeout(()=>location.reload(), 800); }
+    });
+  }
+});
+</script>
+</body>
+</html>

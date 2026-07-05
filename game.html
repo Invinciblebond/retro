@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .gwrap { max-width:980px; margin:24px auto; padding:0 20px; }
+  .ghead { display:flex; gap:24px; flex-wrap:wrap; }
+  .gthumb { width:380px; max-width:100%; height:214px; border-radius:14px; background:var(--thumb,#2a2a32); display:flex; align-items:center; justify-content:center; font-size:64px; overflow:hidden; flex-shrink:0; }
+  .gthumb img { width:100%; height:100%; object-fit:cover; }
+  .ginfo { flex:1; min-width:260px; }
+  .ginfo h1 { font-size:24px; font-weight:900; }
+  .ginfo .by { font-size:13px; color:var(--muted); margin:6px 0 12px; }
+  .stats { display:flex; gap:20px; font-size:13px; font-weight:800; margin-bottom:16px; }
+  .stats span b { display:block; font-size:16px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-top:22px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .prow { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px; font-weight:700; }
+  .prow:last-child { border-bottom:none; }
+  .prow .ico { font-size:22px; }
+  .prow .right { margin-left:auto; display:flex; gap:10px; align-items:center; }
+</style>
+</head>
+<body class="theme-1" data-page="game">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="gwrap">
+      <div class="ghead">
+        <div class="gthumb" id="thumb">🎮</div>
+        <div class="ginfo">
+          <h1 id="title">…</h1>
+          <div class="by" id="by"></div>
+          <div class="stats">
+            <span><b id="visits">0</b>Visits</span>
+            <span><b id="favs">0</b>Favorites</span>
+            <span><b id="genre"></b>Genre</span>
+          </div>
+          <button class="btn primary" id="play" style="font-size:16px;padding:12px 42px;">▶ Play</button>
+          <button class="btn ghost" id="fav">♥ Favorite</button>
+          <button class="btn ghost" id="follow-game">Follow Game</button>
+          <button class="btn ghost" id="follow-creator">Follow Creator</button>
+          <p id="desc" style="font-size:13.5px;color:var(--muted);line-height:1.7;margin-top:14px;"></p>
+        </div>
+      </div>
+      <div class="panel" id="passes-panel" style="display:none;"><h4>Game passes</h4><div id="passes"></div></div>
+      <div class="panel" id="ps-panel" style="display:none;"><h4>Private servers</h4><div id="ps"></div></div>
+      <div class="panel" id="badges-panel" style="display:none;"><h4>Badges</h4><div id="badges"></div></div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const me = session.user.id;
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id) { location.replace("discover.html"); return; }
+
+  const { data: g, error } = await sb.from("games")
+    .select("*, creator:profiles(id, username)").eq("id", id).single();
+  if (error || !g) { toast("Game not found.", "err"); setTimeout(()=>location.replace("discover.html"), 900); return; }
+  document.title = `${g.title} — Utopoly`;
+  document.getElementById("title").textContent = g.title;
+  document.getElementById("by").innerHTML = `by <a href="profile.html?u=${g.creator?.username}"><b>${g.creator?.username || "?"}</b></a>`;
+  document.getElementById("visits").textContent = g.visits.toLocaleString();
+  document.getElementById("favs").textContent = g.favorites_count.toLocaleString();
+  document.getElementById("genre").textContent = g.genre;
+  document.getElementById("desc").textContent = g.description || "";
+  if (g.thumbnail_url) document.getElementById("thumb").innerHTML = `<img src="${g.thumbnail_url}">`;
+
+  /* play — placeholder, but records the visit */
+  document.getElementById("play").addEventListener("click", async () => {
+    const { data: v } = await sb.rpc("record_visit", { p_game: id });
+    if (v) document.getElementById("visits").textContent = v.toLocaleString();
+    // analytics: open a play session, close it when the tab is hidden/closed
+    const { data: sid } = await sb.rpc("start_game_session", { p_game: id });
+    if (sid) {
+      let ended = false;
+      const end = () => { if (!ended) { ended = true; sb.rpc("end_game_session", { p_session: sid }); } };
+      addEventListener("pagehide", end);
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") end(); });
+    }
+    toast("🚧 Playing isn't live yet — but your visit counted!", "info");
+  });
+
+  /* favorite */
+  const favBtn = document.getElementById("fav");
+  const { data: myFav } = await sb.from("game_favorites").select("game_id").eq("user_id", me).eq("game_id", id).maybeSingle();
+  let faved = !!myFav;
+  const setFav = () => favBtn.textContent = faved ? "♥ Favorited" : "♥ Favorite";
+  setFav();
+  favBtn.addEventListener("click", async () => {
+    const q = faved ? sb.from("game_favorites").delete().eq("user_id", me).eq("game_id", id)
+                    : sb.from("game_favorites").insert({ user_id: me, game_id: id });
+    const { error } = await q;
+    if (error) return toast(friendly(error.message), "err");
+    faved = !faved; setFav();
+  });
+
+  /* follows */
+  async function wireFollow(btnId, type, target, label) {
+    const btn = document.getElementById(btnId);
+    if (type === "user" && target === me) { btn.style.display = "none"; return; }
+    const { data: f } = await sb.from("follows").select("target_id").eq("follower_id", me)
+      .eq("target_type", type).eq("target_id", target).maybeSingle();
+    let on = !!f;
+    const paint = () => btn.textContent = on ? `Following ${label}` : `Follow ${label}`;
+    paint();
+    btn.addEventListener("click", async () => {
+      const q = on ? sb.from("follows").delete().eq("follower_id", me).eq("target_type", type).eq("target_id", target)
+                   : sb.from("follows").insert({ follower_id: me, target_type: type, target_id: target });
+      const { error } = await q;
+      if (error) return toast(friendly(error.message), "err");
+      on = !on; paint();
+    });
+  }
+  wireFollow("follow-game", "game", id, "Game");
+  wireFollow("follow-creator", "user", g.creator_id, "Creator");
+
+  /* game passes */
+  const { data: passes } = await sb.from("game_passes").select("*").eq("game_id", id).eq("active", true);
+  if (passes?.length) {
+    document.getElementById("passes-panel").style.display = "block";
+    const { data: owned } = await sb.from("game_pass_ownership").select("pass_id").eq("user_id", me);
+    const ownedSet = new Set((owned || []).map((o) => o.pass_id));
+    document.getElementById("passes").innerHTML = passes.map((p) => `
+      <div class="prow"><span class="ico">${p.icon || "🎟️"}</span>${p.name}
+        <span class="right">${ownedSet.has(p.id) ? '<span style="color:#4caf50;font-size:12px;">✓ Owned</span>'
+          : `<span><span class="ric">R</span> ${p.price.toLocaleString()}</span><button class="btn primary small" data-pass="${p.id}">Buy</button>`}</span>
+      </div>`).join("");
+    document.querySelectorAll("[data-pass]").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true;
+      const { error } = await sb.rpc("buy_game_pass", { p_pass: b.dataset.pass });
+      if (error) { toast(friendly(error.message), "err"); b.disabled = false; }
+      else { toast("Game pass purchased!", "ok"); setTimeout(()=>location.reload(), 1000); }
+    }));
+  }
+
+  /* private servers */
+  const { data: ps } = await sb.from("private_server_options").select("*").eq("game_id", id).maybeSingle();
+  if (ps?.enabled) {
+    document.getElementById("ps-panel").style.display = "block";
+    const { data: myRentals } = await sb.from("private_server_rentals").select("id").eq("user_id", me).eq("game_id", id).eq("active", true);
+    document.getElementById("ps").innerHTML = `
+      <div class="prow"><span class="ico">🖥️</span>Private server
+        <span class="right">${myRentals?.length ? '<span style="color:#4caf50;font-size:12px;">✓ Rented</span>'
+          : `<span><span class="ric">R</span> ${ps.price.toLocaleString()}</span><button class="btn primary small" id="rent">Rent</button>`}</span>
+      </div>`;
+    document.getElementById("rent")?.addEventListener("click", async (e) => {
+      e.target.disabled = true;
+      const { error } = await sb.rpc("rent_private_server", { p_game: id });
+      if (error) { toast(friendly(error.message), "err"); e.target.disabled = false; }
+      else { toast("Private server rented!", "ok"); setTimeout(()=>location.reload(), 1000); }
+    });
+  }
+
+  /* badges */
+  const { data: badges } = await sb.from("badges").select("*").eq("game_id", id);
+  if (badges?.length) {
+    document.getElementById("badges-panel").style.display = "block";
+    const { data: mine } = await sb.from("user_badges").select("badge_id").eq("user_id", me);
+    const mset = new Set((mine || []).map((b) => b.badge_id));
+    document.getElementById("badges").innerHTML = badges.map((b) => `
+      <div class="prow"><span class="ico">${b.icon || "🏅"}</span>${b.name}
+        <span style="font-size:12px;color:var(--muted);">${b.description || ""}</span>
+        <span class="right">${mset.has(b.id) ? '<span style="color:#4caf50;font-size:12px;">✓ Earned</span>' : ""}</span>
+      </div>`).join("");
+  }
+});
+</script>
+</body>
+</html>

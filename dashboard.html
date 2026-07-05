@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creator Dashboard — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .dwrap { max-width:1100px; margin:24px auto; padding:0 20px; }
+  .dwrap h1 { font-size:24px; font-weight:900; margin-bottom:4px; }
+  .dwrap .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:18px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+  .totals { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
+  .totals .stat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .totals .num { font-size:20px; font-weight:900; }
+  .totals .lbl { font-size:10.5px; letter-spacing:1.2px; color:var(--muted); text-transform:uppercase; margin-top:3px; }
+  table.dtable { width:100%; border-collapse:collapse; font-size:13px; }
+  .dtable th { text-align:left; font-size:10.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--line); }
+  .dtable td { padding:10px; border-bottom:1px solid var(--line); font-weight:600; }
+  .dtable tr:last-child td { border-bottom:none; }
+  .dtable .gname { font-weight:800; }
+  .frm { display:grid; gap:10px; grid-template-columns:1fr 1fr 1fr auto; align-items:center; }
+  .frm select, .frm input { padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:14px; font-family:inherit; min-width:0; }
+  @media (max-width:760px){ .frm { grid-template-columns:1fr; } .dtable-scroll { overflow-x:auto; } }
+  .camp { display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); font-size:13px; flex-wrap:wrap; }
+  .camp:last-child { border-bottom:none; }
+  .camp .st { font-size:10.5px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:12px; border:1px solid var(--line); }
+  .camp .st.live { color:var(--good); } .camp .st.done { color:var(--muted); }
+  .muted { color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body class="theme-1" data-page="dashboard">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="dwrap">
+      <h1>Creator Dashboard</h1>
+      <div class="sub">Retention, session time, and revenue for your games — plus sponsored placements.</div>
+
+      <div class="totals" id="totals"></div>
+
+      <div class="panel">
+        <h4>Per-game analytics</h4>
+        <div class="dtable-scroll" id="stats"><div class="muted">Loading…</div></div>
+        <p class="muted" style="margin-top:10px;">Retention: % of players whose first play was over a day ago who came back on day 1 / day 7. Revenue is your 85% creator share.</p>
+      </div>
+
+      <div class="panel">
+        <h4>Sponsored placement — bid with Retrobux</h4>
+        <p class="muted" style="margin-bottom:12px;">Buy 24 hours of homepage or search placement. Higher bids rank higher. Minimum bid: <span class="ric">R</span> 10.</p>
+        <div class="frm">
+          <select id="ad-game"></select>
+          <select id="ad-placement">
+            <option value="homepage">Homepage placement</option>
+            <option value="search">Search placement</option>
+          </select>
+          <input type="number" id="ad-bid" min="10" placeholder="Bid (Retrobux)">
+          <button class="btn primary" id="ad-go">Start Campaign</button>
+        </div>
+        <div id="campaigns" style="margin-top:14px;"><div class="muted">Loading campaigns…</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  const fmt = (n) => Number(n ?? 0).toLocaleString();
+  const mins = (s) => { s = Number(s ?? 0); return s >= 60 ? `${Math.floor(s/60)}m ${Math.round(s%60)}s` : `${Math.round(s)}s`; };
+
+  async function loadStats() {
+    const { data, error } = await sb.rpc("creator_game_stats");
+    const box = document.getElementById("stats");
+    if (error) { box.innerHTML = `<div class="muted">${friendly(error.message)}</div>`; return []; }
+    if (!data?.length) { box.innerHTML = '<div class="muted">No games yet — <a href="create.html">create one</a> to see analytics.</div>'; return []; }
+    const t = { visits:0, sess:0, players:0, rev:0 };
+    box.innerHTML = `<table class="dtable"><thead><tr>
+      <th>Game</th><th>Visits</th><th>Sessions (7d)</th><th>Players (7d)</th>
+      <th>Avg session</th><th>D1 ret.</th><th>D7 ret.</th>
+      <th>Pass rev.</th><th>Server rev.</th><th>Total rev.</th></tr></thead><tbody>` +
+      data.map((g) => {
+        t.visits += g.visits; t.sess += Number(g.sessions_7d); t.players += Number(g.unique_players_7d); t.rev += Number(g.revenue_total);
+        return `<tr>
+          <td class="gname"><a href="game.html?id=${g.game_id}" style="color:var(--txt);">${g.title}</a></td>
+          <td>${fmt(g.visits)}</td><td>${fmt(g.sessions_7d)}</td><td>${fmt(g.unique_players_7d)}</td>
+          <td>${mins(g.avg_session_seconds)}</td><td>${g.d1_retention_pct}%</td><td>${g.d7_retention_pct}%</td>
+          <td><span class="ric">R</span> ${fmt(g.revenue_passes)}</td>
+          <td><span class="ric">R</span> ${fmt(g.revenue_servers)}</td>
+          <td><b><span class="ric">R</span> ${fmt(g.revenue_total)}</b></td></tr>`;
+      }).join("") + "</tbody></table>";
+    document.getElementById("totals").innerHTML = `
+      <div class="stat"><div class="num">${fmt(data.length)}</div><div class="lbl">Games</div></div>
+      <div class="stat"><div class="num">${fmt(t.visits)}</div><div class="lbl">Total visits</div></div>
+      <div class="stat"><div class="num">${fmt(t.sess)}</div><div class="lbl">Sessions (7d)</div></div>
+      <div class="stat"><div class="num">${fmt(t.players)}</div><div class="lbl">Players (7d)</div></div>
+      <div class="stat"><div class="num"><span class="ric">R</span> ${fmt(t.rev)}</div><div class="lbl">Lifetime revenue</div></div>`;
+    return data;
+  }
+
+  async function loadAdForm(games) {
+    const sel = document.getElementById("ad-game");
+    sel.innerHTML = games.length
+      ? games.map((g) => `<option value="${g.game_id}">${g.title}</option>`).join("")
+      : '<option value="">No games to sponsor</option>';
+  }
+
+  async function loadCampaigns() {
+    const box = document.getElementById("campaigns");
+    const { data } = await sb.from("ad_campaigns")
+      .select("id, placement, bid, starts_at, ends_at, active, game_id, games(title)")
+      .order("created_at", { ascending: false }).limit(20);
+    if (!data?.length) { box.innerHTML = '<div class="muted">No campaigns yet.</div>'; return; }
+    const now = Date.now();
+    box.innerHTML = data.map((c) => {
+      const live = c.active && now >= Date.parse(c.starts_at) && now <= Date.parse(c.ends_at);
+      return `<div class="camp">
+        <b>${c.games?.title ?? "Game"}</b>
+        <span>${c.placement === "homepage" ? "🏠 Homepage" : "🔎 Search"}</span>
+        <span><span class="ric">R</span> ${fmt(c.bid)} bid</span>
+        <span class="muted">ends ${new Date(c.ends_at).toLocaleString()}</span>
+        <span class="st ${live ? "live" : "done"}">${live ? "● Live" : "Ended"}</span>
+      </div>`;
+    }).join("");
+  }
+
+  document.getElementById("ad-go").addEventListener("click", async () => {
+    const game = document.getElementById("ad-game").value;
+    const placement = document.getElementById("ad-placement").value;
+    const bid = parseInt(document.getElementById("ad-bid").value, 10);
+    if (!game) return toast("Create a game first.", "err");
+    if (!Number.isFinite(bid) || bid < 10) return toast("Minimum bid is 10 Retrobux.", "err");
+    const btn = document.getElementById("ad-go");
+    btn.disabled = true; btn.textContent = "Starting…";
+    const { error } = await sb.rpc("create_ad_campaign", { p_game: game, p_placement: placement, p_bid: bid });
+    btn.disabled = false; btn.textContent = "Start Campaign";
+    if (error) toast(friendly(error.message), "err");
+    else { toast(`Campaign live! Your game is sponsored on the ${placement} for 24 hours.`, "ok"); document.getElementById("ad-bid").value = ""; loadCampaigns(); window.retroAuth?.refreshBalances?.(); }
+  });
+
+  const games = await loadStats();
+  loadAdForm(games);
+  loadCampaigns();
+});
+</script>
+</body>
+</html>

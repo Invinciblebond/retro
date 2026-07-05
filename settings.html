@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .swrap { max-width:980px; margin:24px auto; padding:0 20px; display:flex; gap:22px; align-items:flex-start; }
+  .snav { width:200px; flex-shrink:0; position:sticky; top:80px; }
+  .snav button { display:block; width:100%; text-align:left; padding:10px 14px; border-radius:9px; border:none; background:none;
+    color:var(--muted); font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .snav button.on { background:var(--card); color:var(--txt); border:1px solid var(--line); }
+  .scol { flex:1; min-width:0; }
+  .scol h1 { font-size:24px; font-weight:900; margin-bottom:16px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:18px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+  .frm { display:grid; gap:12px; }
+  .frm label { font-size:12px; font-weight:800; color:var(--muted); }
+  .frm input, .frm textarea, .frm select { padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:14px; font-family:inherit; width:100%; }
+  .frm textarea { min-height:90px; resize:vertical; }
+  .tgl { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13.5px; font-weight:700; padding:10px 0; border-bottom:1px solid var(--line); }
+  .tgl:last-child { border-bottom:none; }
+  .tgl .hint { display:block; font-size:11px; color:var(--muted); font-weight:600; margin-top:2px; }
+  .sec { display:none; }
+  .sec.on { display:block; }
+  .muted { color:var(--muted); font-size:13px; line-height:1.6; }
+  .inline { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .inline input { flex:1; min-width:140px; }
+  table.tx { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .tx th { text-align:left; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); padding:7px 8px; border-bottom:1px solid var(--line); }
+  .tx td { padding:8px; border-bottom:1px solid var(--line); font-weight:600; }
+  .tx .pos { color:var(--good,#4caf50); } .tx .neg { color:#e2231a; }
+  .pill { font-size:9.5px; font-weight:900; letter-spacing:1px; padding:3px 9px; border-radius:10px; border:1px solid var(--line); color:var(--muted); }
+  .pill.ok { color:var(--good,#4caf50); }
+  .danger { border-color:#e2231a55; }
+  .blk-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; font-weight:700; }
+  .blk-row:last-child { border-bottom:none; }
+  .theme-pick { display:flex; gap:10px; flex-wrap:wrap; }
+  .theme-chip { width:110px; border-radius:10px; border:2px solid var(--line); padding:12px; cursor:pointer; text-align:center; font-size:12px; font-weight:800; background:var(--bg); color:var(--txt); }
+  .theme-chip.on { border-color:var(--accent); }
+  .pin-ov { position:fixed; inset:0; z-index:9700; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; }
+  .pin-box { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:32px; width:340px; max-width:92vw; text-align:center; }
+  .pin-box input { width:100%; text-align:center; letter-spacing:8px; font-size:22px; font-weight:900; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--input); color:var(--txt); margin:14px 0; }
+  @media (max-width:820px){ .swrap { flex-direction:column; } .snav { width:100%; position:static; display:flex; flex-wrap:wrap; gap:4px; } .snav button { width:auto; } }
+</style>
+</head>
+<body class="theme-1" data-page="settings">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="swrap">
+      <nav class="snav" id="snav">
+        <button data-sec="account" class="on" data-i18n="settings.account">Account Info</button>
+        <button data-sec="billing" data-i18n="settings.billing">Billing</button>
+        <button data-sec="security" data-i18n="settings.security">Security</button>
+        <button data-sec="privacy" data-i18n="settings.privacy">Privacy</button>
+        <button data-sec="notifications" data-i18n="settings.notifications">Notifications</button>
+        <button data-sec="trading" data-i18n="settings.trading">Trading &amp; Economy</button>
+        <button data-sec="appearance" data-i18n="settings.appearance">Appearance</button>
+      </nav>
+
+      <div class="scol">
+        <h1 data-i18n="settings.title">Settings</h1>
+
+        <!-- ========== ACCOUNT ========== -->
+        <section class="sec on" id="sec-account">
+          <div class="panel">
+            <h4>Username</h4>
+            <p class="muted" style="margin-bottom:10px;">Changing your username costs <b><span class="ric">R</span> 1</b>. No cooldown — change it whenever you like.</p>
+            <div class="inline">
+              <input type="text" id="un-new" maxlength="20" placeholder="New username">
+              <button class="btn primary" id="un-go">Change (R 1)</button>
+            </div>
+            <p class="muted" style="margin-top:8px;">Current: <b id="un-cur"></b></p>
+          </div>
+
+          <div class="panel">
+            <h4>Email</h4>
+            <p class="muted" style="margin-bottom:10px;" id="em-status"></p>
+            <div class="frm">
+              <div><label>New email</label><input type="email" id="em-new" placeholder="you@example.com"></div>
+              <div><label>Confirm with your password</label><input type="password" id="em-pass" placeholder="Current password"></div>
+              <button class="btn primary" id="em-go" style="justify-self:start;">Change Email</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h4>Password</h4>
+            <div class="frm">
+              <div><label>Current password</label><input type="password" id="pw-cur" autocomplete="current-password"></div>
+              <div><label>New password (min 8 characters)</label><input type="password" id="pw-new" autocomplete="new-password"></div>
+              <button class="btn primary" id="pw-go" style="justify-self:start;">Change Password</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h4>About you</h4>
+            <div class="frm">
+              <div><label>Gender (optional — used for default avatar)</label>
+                <select id="ab-gender">
+                  <option value="">Prefer not to say</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select></div>
+              <div><label>Display name</label><input type="text" id="s-display" maxlength="40" placeholder="How your name appears"></div>
+              <div><label>Status</label><input type="text" id="s-status" maxlength="80" placeholder="What are you up to?"></div>
+              <div><label>Personal blurb / description</label><textarea id="s-desc" maxlength="1000" placeholder="Tell people about yourself"></textarea></div>
+              <button class="btn primary" id="ab-save" style="justify-self:start;">Save</button>
+            </div>
+          </div>
+
+          <div class="panel danger">
+            <h4 style="color:#e2231a;">Danger zone</h4>
+            <div id="del-box">
+              <p class="muted" style="margin-bottom:12px;">Request deactivation (temporary, staff can restore) or permanent deletion. Requests are reviewed by staff.</p>
+              <div class="inline">
+                <select id="del-kind" style="padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+                  <option value="deactivation">Deactivate my account</option>
+                  <option value="deletion">Delete my account permanently</option>
+                </select>
+                <input type="text" id="del-reason" maxlength="500" placeholder="Reason (optional)">
+                <button class="btn ghost" id="del-go" style="border-color:#e2231a55;color:#e2231a;">Submit request</button>
+              </div>
+            </div>
+            <div id="del-pending" style="display:none;">
+              <p class="muted">⏳ You have a pending <b id="del-pkind"></b> request. Staff will process it soon.</p>
+              <button class="btn ghost small" id="del-cancel" style="margin-top:10px;">Cancel request</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========== BILLING ========== -->
+        <section class="sec" id="sec-billing">
+          <div class="panel">
+            <h4>🎁 Redeem gift card / promo code</h4>
+            <div class="inline">
+              <input type="text" id="gc-code" maxlength="40" placeholder="Enter code" style="text-transform:uppercase;letter-spacing:1px;">
+              <button class="btn primary" id="gc-go">Redeem</button>
+            </div>
+            <p class="muted" id="gc-msg" style="margin-top:8px;"></p>
+          </div>
+          <div class="panel">
+            <h4>Membership</h4>
+            <p class="muted" id="mem-line"></p>
+            <a class="btn ghost" href="shop.html" style="margin-top:12px;display:inline-block;">Manage in Shop</a>
+          </div>
+          <div class="panel">
+            <h4>Redemption history</h4>
+            <div id="gc-history" class="muted">Loading…</div>
+          </div>
+        </section>
+
+        <!-- ========== SECURITY ========== -->
+        <section class="sec" id="sec-security">
+          <div class="panel">
+            <h4>Two-factor authentication</h4>
+            <div class="tgl"><span>Authenticator app (TOTP)<span class="hint">Scan a QR code with Google Authenticator, 1Password, etc.</span></span><span id="mfa-state" class="pill">…</span></div>
+            <div id="mfa-box" style="margin-top:12px;"></div>
+            <div class="tgl" style="margin-top:8px;"><span>Email 2FA<span class="hint">One-time codes by email</span></span><span class="tag soon">SOON</span></div>
+          </div>
+
+          <div class="panel">
+            <h4>Sessions</h4>
+            <p class="muted" style="margin-bottom:12px;">You're signed in on this device. If you've logged in elsewhere, you can revoke every other session.</p>
+            <button class="btn ghost" id="sess-out">Log out of all other sessions</button>
+          </div>
+
+          <div class="panel">
+            <h4>Account PIN</h4>
+            <p class="muted" style="margin-bottom:12px;">Locks your settings behind a PIN — good for younger users. Off by default. Forgot your PIN? <a href="https://discord.gg/QJyffYR63" target="_blank" rel="noopener">Contact an admin on Discord</a>.</p>
+            <div id="pin-box"></div>
+          </div>
+
+          <div class="panel">
+            <h4>Recent login activity</h4>
+            <div id="login-history" class="muted">Loading…</div>
+          </div>
+        </section>
+
+        <!-- ========== PRIVACY ========== -->
+        <section class="sec" id="sec-privacy">
+          <div class="panel">
+            <h4>Who can contact me</h4>
+            <div class="tgl"><span>Who can message me</span>
+              <select id="pv-msg" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+                <option value="everyone">Everyone</option><option value="friends">Friends</option><option value="none">No one</option>
+              </select></div>
+            <div class="tgl"><span>Who can send me trade requests</span>
+              <select id="pv-trade" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+                <option value="everyone">Everyone</option><option value="friends">Friends</option><option value="none">No one</option>
+              </select></div>
+          </div>
+          <div class="panel">
+            <h4>Profile visibility</h4>
+            <div class="tgl"><span>Show my limited collection on my profile</span><input type="checkbox" id="pv-limiteds" checked></div>
+            <div class="tgl"><span>Show my groups on my profile</span><input type="checkbox" id="pv-groups" checked></div>
+            <div class="tgl"><span>Show my favorite games</span><input type="checkbox" id="pv-favs" checked></div>
+          </div>
+          <div class="panel">
+            <h4>Blocked users</h4>
+            <div class="inline" style="margin-bottom:12px;">
+              <input type="text" id="blk-name" placeholder="Username to block">
+              <button class="btn ghost" id="blk-go">Block</button>
+            </div>
+            <div id="blk-list" class="muted">Loading…</div>
+          </div>
+          <button class="btn primary" id="pv-save">Save Privacy</button>
+        </section>
+
+        <!-- ========== NOTIFICATIONS ========== -->
+        <section class="sec" id="sec-notifications">
+          <div class="panel">
+            <h4>In-site notifications</h4>
+            <div class="tgl"><span>Friend requests</span><input type="checkbox" data-np="friend" checked></div>
+            <div class="tgl"><span>Messages</span><input type="checkbox" data-np="message" checked></div>
+            <div class="tgl"><span>Group shouts</span><input type="checkbox" data-np="shout" checked></div>
+            <div class="tgl"><span>Item sold</span><input type="checkbox" data-np="sale" checked></div>
+            <div class="tgl"><span>Trade activity</span><input type="checkbox" data-np="trade" checked></div>
+            <div class="tgl"><span>Game updates from followed games</span><input type="checkbox" data-np="game" checked></div>
+          </div>
+          <div class="panel">
+            <h4>Email notifications</h4>
+            <div class="tgl"><span>Send me email notifications<span class="hint">Only important account events — never marketing.</span></span><input type="checkbox" id="np-email"></div>
+          </div>
+          <button class="btn primary" id="np-save">Save Notifications</button>
+        </section>
+
+        <!-- ========== TRADING & ECONOMY ========== -->
+        <section class="sec" id="sec-trading">
+          <div class="panel">
+            <h4>Trading</h4>
+            <p class="muted" style="margin-bottom:10px;">Trade privacy is in the <a href="#" data-jump="privacy">Privacy tab</a>. Currency added to trades carries a <b>15% trade tax</b> withheld by the platform.</p>
+            <div class="tgl"><span>Notify me about trade activity</span><input type="checkbox" data-np2="trade" checked></div>
+            <a class="btn ghost" href="trade.html" style="margin-top:12px;display:inline-block;">Open Trades</a>
+          </div>
+          <div class="panel">
+            <h4>Transaction history</h4>
+            <p class="muted" style="margin-bottom:10px;">Every purchase, sale, payout, conversion, trade, gift card, and adjustment on your account.</p>
+            <div class="inline" style="margin-bottom:10px;">
+              <select id="tx-filter" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+                <option value="">All types</option>
+              </select>
+            </div>
+            <div id="tx-table" class="muted">Loading…</div>
+            <button class="btn ghost small" id="tx-more" style="margin-top:10px;display:none;">Load more</button>
+          </div>
+        </section>
+
+        <!-- ========== APPEARANCE ========== -->
+        <section class="sec" id="sec-appearance">
+          <div class="panel">
+            <h4>Theme</h4>
+            <div class="theme-pick" id="theme-pick">
+              <div class="theme-chip theme-1" data-theme="theme-1">Classic</div>
+              <div class="theme-chip theme-2" data-theme="theme-2">Scheme 2</div>
+              <div class="theme-chip theme-3" data-theme="theme-3">Scheme 3</div>
+              <div class="theme-chip theme-4" data-theme="theme-4">Scheme 4</div>
+            </div>
+            <p class="muted" style="margin-top:10px;">Preview all schemes on the <a href="color-schemes.html">Color Schemes page</a>.</p>
+          </div>
+          <div class="panel">
+            <h4>Language</h4>
+            <select id="lang-sel" style="padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);max-width:260px;">
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+            </select>
+            <p class="muted" style="margin-top:10px;">Applies to site menus and buttons. Player-created content stays in its original language.</p>
+          </div>
+          <button class="btn primary" id="ap-save">Save Appearance</button>
+        </section>
+
+        <div class="panel" style="margin-top:6px;">
+          <h4>Session</h4>
+          <p class="muted" style="margin-bottom:12px;">Signed in as <b id="acct-name"></b></p>
+          <button class="btn ghost" id="logout-btn">Log out</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const me = session.user.id;
+  const $ = (id) => document.getElementById(id);
+
+  /* ---------- PIN gate ---------- */
+  const { data: hasPin } = await sb.rpc("has_account_pin");
+  if (hasPin) {
+    await new Promise((resolve) => {
+      const ov = document.createElement("div");
+      ov.className = "pin-ov";
+      ov.innerHTML = `<div class="pin-box">
+        <div style="font-size:34px;">🔒</div>
+        <h3 style="font-weight:900;margin:10px 0 4px;">Settings are PIN-locked</h3>
+        <p class="muted">Enter your account PIN to continue.</p>
+        <input type="password" inputmode="numeric" maxlength="8" id="pin-in" placeholder="••••">
+        <div style="display:flex;gap:8px;">
+          <button class="btn ghost" style="flex:1;" id="pin-back">Go back</button>
+          <button class="btn primary" style="flex:1;" id="pin-ok">Unlock</button>
+        </div>
+        <p class="muted" style="margin-top:12px;font-size:11.5px;">Forgot it? <a href="https://discord.gg/QJyffYR63" target="_blank" rel="noopener">Contact an admin on Discord</a>.</p>
+      </div>`;
+      document.body.appendChild(ov);
+      const tryPin = async () => {
+        const { data: ok } = await sb.rpc("verify_account_pin", { p_pin: ov.querySelector("#pin-in").value });
+        if (ok) { ov.remove(); resolve(); }
+        else { toast("Wrong PIN — try again.", "err"); ov.querySelector("#pin-in").value = ""; }
+      };
+      ov.querySelector("#pin-ok").addEventListener("click", tryPin);
+      ov.querySelector("#pin-in").addEventListener("keydown", (e) => { if (e.key === "Enter") tryPin(); });
+      ov.querySelector("#pin-back").addEventListener("click", () => history.length > 1 ? history.back() : location.href = "home.html");
+    });
+  }
+
+  /* ---------- nav ---------- */
+  const showSec = (s) => {
+    document.querySelectorAll(".snav button").forEach((b) => b.classList.toggle("on", b.dataset.sec === s));
+    document.querySelectorAll(".sec").forEach((el) => el.classList.toggle("on", el.id === "sec-" + s));
+    if (s === "trading") loadTx(true);
+    if (s === "security") { loadMfa(); loadLogins(); renderPinBox(); }
+    if (s === "billing") loadRedemptions();
+    if (s === "privacy") loadBlocked();
+  };
+  document.querySelectorAll(".snav button").forEach((b) => b.addEventListener("click", () => showSec(b.dataset.sec)));
+  document.addEventListener("click", (e) => { const j = e.target.closest("[data-jump]"); if (j) { e.preventDefault(); showSec(j.dataset.jump); } });
+  if (location.hash) showSec(location.hash.slice(1));
+
+  /* ---------- load profile ---------- */
+  const { data: p } = await sb.from("profiles")
+    .select("username, display_name, status, description, privacy, gender, settings, subscribed, subscription_type")
+    .eq("id", me).single();
+  const S = p?.settings || {};
+  $("acct-name").textContent = p?.username || "";
+  $("un-cur").textContent = p?.username || "";
+  $("s-display").value = p?.display_name || "";
+  $("s-status").value = p?.status || "";
+  $("s-desc").value = p?.description || "";
+  $("ab-gender").value = p?.gender || "";
+  const pv = p?.privacy || {};
+  $("pv-limiteds").checked = pv.show_limiteds !== false;
+  $("pv-groups").checked = pv.show_groups !== false;
+  $("pv-favs").checked = pv.show_favorites !== false;
+  $("pv-msg").value = S.msg_privacy || "everyone";
+  $("pv-trade").value = S.trade_privacy || "everyone";
+  document.querySelectorAll("[data-np]").forEach((c) => c.checked = (S.notif?.[c.dataset.np]) !== false);
+  document.querySelectorAll("[data-np2]").forEach((c) => c.checked = (S.notif?.trade) !== false);
+  $("np-email").checked = S.email_notifications === true;
+  $("lang-sel").value = S.language || localStorage.getItem("retro:lang") || "en";
+  const curTheme = S.theme || localStorage.getItem("retro:theme") || "theme-1";
+  document.querySelectorAll(".theme-chip").forEach((c) => c.classList.toggle("on", c.dataset.theme === curTheme));
+
+  const email = session.user.email || "";
+  const isFiller = email.endsWith("@users.utopoly.com");
+  $("em-status").innerHTML = isFiller
+    ? "No email on file — you log in with your username. Add one below for account recovery (no verification needed)."
+    : `Current: <b>${email}</b> <span class="pill ${session.user.email_confirmed_at ? "ok" : ""}">${session.user.email_confirmed_at ? "VERIFIED" : "UNVERIFIED"}</span>`;
+
+  const saveSettings = async (patch) => {
+    Object.assign(S, patch);
+    const { error } = await sb.from("profiles").update({ settings: S, updated_at: new Date().toISOString() }).eq("id", me);
+    if (error) { toast(friendly(error.message), "err"); return false; }
+    return true;
+  };
+
+  /* ---------- ACCOUNT ---------- */
+  $("un-go").addEventListener("click", async () => {
+    const v = $("un-new").value.trim();
+    if (!v) return;
+    $("un-go").disabled = true;
+    const { error } = await sb.rpc("change_username", { p_new: v });
+    $("un-go").disabled = false;
+    if (error) return toast(friendly(error.message), "err");
+    toast(`You are now ${v}! (−R 1)`, "ok");
+    $("un-cur").textContent = v; $("acct-name").textContent = v; $("un-new").value = "";
+  });
+
+  $("em-go").addEventListener("click", async () => {
+    const newEmail = $("em-new").value.trim(), pass = $("em-pass").value;
+    if (!newEmail || !pass) return toast("Enter the new email and your password.", "err");
+    $("em-go").disabled = true;
+    // verify password first — email changes only need your password, never email verification
+    const { error: authErr } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (authErr) { $("em-go").disabled = false; return toast("Wrong password.", "err"); }
+    const { error } = await sb.auth.updateUser({ email: newEmail });
+    $("em-go").disabled = false;
+    if (error) return toast(friendly(error.message), "err");
+    await sb.from("profiles").update({ email: newEmail, updated_at: new Date().toISOString() }).eq("id", me);
+    toast("Email updated!", "ok");
+    $("em-new").value = ""; $("em-pass").value = "";
+  });
+
+  $("pw-go").addEventListener("click", async () => {
+    const cur = $("pw-cur").value, nw = $("pw-new").value;
+    if (nw.length < 8) return toast("New password needs at least 8 characters.", "err");
+    $("pw-go").disabled = true;
+    const { error: authErr } = await sb.auth.signInWithPassword({ email, password: cur });
+    if (authErr) { $("pw-go").disabled = false; return toast("Current password is wrong.", "err"); }
+    const { error } = await sb.auth.updateUser({ password: nw });
+    $("pw-go").disabled = false;
+    if (error) return toast(friendly(error.message), "err");
+    toast("Password changed!", "ok");
+    $("pw-cur").value = ""; $("pw-new").value = "";
+  });
+
+  $("ab-save").addEventListener("click", async () => {
+    const { error } = await sb.from("profiles").update({
+      display_name: $("s-display").value.trim() || null,
+      status: $("s-status").value.trim(),
+      description: $("s-desc").value.trim(),
+      gender: $("ab-gender").value || null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", me);
+    toast(error ? friendly(error.message) : "Saved!", error ? "err" : "ok");
+  });
+
+  /* deletion */
+  async function loadDelState() {
+    const { data } = await sb.from("account_requests").select("kind,status").eq("user_id", me).eq("status", "pending").maybeSingle();
+    $("del-box").style.display = data ? "none" : "";
+    $("del-pending").style.display = data ? "" : "none";
+    if (data) $("del-pkind").textContent = data.kind;
+  }
+  loadDelState();
+  $("del-go").addEventListener("click", async () => {
+    if (!confirm("Submit this request? Staff will review it.")) return;
+    const { error } = await sb.rpc("request_account_removal", { p_kind: $("del-kind").value, p_reason: $("del-reason").value.trim() || null });
+    if (error) return toast(friendly(error.message), "err");
+    toast("Request submitted.", "ok"); loadDelState();
+  });
+  $("del-cancel").addEventListener("click", async () => {
+    await sb.rpc("cancel_account_removal");
+    toast("Request cancelled.", "ok"); loadDelState();
+  });
+
+  /* ---------- BILLING ---------- */
+  $("mem-line").innerHTML = p?.subscribed
+    ? `Active membership: <b>${(p.subscription_type || "member").toUpperCase()}</b>`
+    : "No active membership.";
+  $("gc-go").addEventListener("click", async () => {
+    const code = $("gc-code").value.trim();
+    if (!code) return;
+    $("gc-go").disabled = true;
+    const { data, error } = await sb.rpc("redeem_code", { p_code: code });
+    $("gc-go").disabled = false;
+    if (error) { $("gc-msg").textContent = friendly(error.message); $("gc-msg").style.color = "#e2231a"; return; }
+    const what = data.kind === "item" ? `you received ${data.item}!` : `+${Number(data.amount).toLocaleString()} ${data.kind === "rix" ? "Rix" : "Retrobux"}!`;
+    $("gc-msg").textContent = `Redeemed — ${what}`; $("gc-msg").style.color = "var(--good,#4caf50)";
+    $("gc-code").value = ""; loadRedemptions();
+  });
+  async function loadRedemptions() {
+    const { data } = await sb.from("gift_card_redemptions").select("redeemed_at, card_id").order("redeemed_at", { ascending: false }).limit(20);
+    $("gc-history").innerHTML = (data || []).length
+      ? data.map((r) => `<div class="blk-row">🎁 Code redeemed <span style="margin-left:auto;color:var(--muted);font-weight:600;">${new Date(r.redeemed_at).toLocaleString()}</span></div>`).join("")
+      : "No codes redeemed yet.";
+  }
+
+  /* ---------- SECURITY ---------- */
+  async function loadMfa() {
+    const box = $("mfa-box"), st = $("mfa-state");
+    const { data } = await sb.auth.mfa.listFactors();
+    const totp = (data?.totp || []).filter((f) => f.status === "verified");
+    if (totp.length) {
+      st.textContent = "ENABLED"; st.classList.add("ok");
+      box.innerHTML = `<button class="btn ghost small" id="mfa-off">Disable 2FA</button>`;
+      $("mfa-off").addEventListener("click", async () => {
+        await sb.auth.mfa.unenroll({ factorId: totp[0].id });
+        toast("Two-factor disabled.", "ok"); loadMfa();
+      });
+    } else {
+      st.textContent = "OFF"; st.classList.remove("ok");
+      box.innerHTML = `<button class="btn primary small" id="mfa-on">Set up authenticator app</button>`;
+      $("mfa-on").addEventListener("click", async () => {
+        const { data: enr, error } = await sb.auth.mfa.enroll({ factorType: "totp" });
+        if (error) return toast(friendly(error.message), "err");
+        box.innerHTML = `
+          <p class="muted" style="margin-bottom:10px;">Scan this QR code with your authenticator app, then enter the 6-digit code:</p>
+          <img src="${enr.totp.qr_code}" alt="QR" style="width:170px;height:170px;border-radius:10px;background:#fff;padding:8px;">
+          <p class="muted" style="margin:8px 0;font-size:11px;">Or enter manually: <code>${enr.totp.secret}</code></p>
+          <div class="inline"><input type="text" id="mfa-code" inputmode="numeric" maxlength="6" placeholder="123456" style="max-width:140px;">
+          <button class="btn primary small" id="mfa-verify">Verify</button></div>`;
+        $("mfa-verify").addEventListener("click", async () => {
+          const code = $("mfa-code").value.trim();
+          const { data: ch, error: e1 } = await sb.auth.mfa.challenge({ factorId: enr.id });
+          if (e1) return toast(friendly(e1.message), "err");
+          const { error: e2 } = await sb.auth.mfa.verify({ factorId: enr.id, challengeId: ch.id, code });
+          if (e2) return toast("Wrong code — try again.", "err");
+          toast("Two-factor enabled! 🎉", "ok"); loadMfa();
+        });
+      });
+    }
+  }
+
+  $("sess-out").addEventListener("click", async () => {
+    const { error } = await sb.auth.signOut({ scope: "others" });
+    toast(error ? friendly(error.message) : "All other sessions logged out.", error ? "err" : "ok");
+  });
+
+  async function renderPinBox() {
+    const { data: on } = await sb.rpc("has_account_pin");
+    const box = $("pin-box");
+    box.innerHTML = on
+      ? `<div class="inline"><input type="password" inputmode="numeric" maxlength="8" id="pin-cur2" placeholder="Current PIN" style="max-width:130px;">
+         <input type="password" inputmode="numeric" maxlength="8" id="pin-new2" placeholder="New PIN (blank = off)" style="max-width:170px;">
+         <button class="btn ghost" id="pin-save2">Update PIN</button></div>`
+      : `<div class="inline"><input type="password" inputmode="numeric" maxlength="8" id="pin-new2" placeholder="4–8 digit PIN" style="max-width:150px;">
+         <button class="btn primary" id="pin-save2">Enable PIN</button></div>`;
+    $("pin-save2").addEventListener("click", async () => {
+      const nw = $("pin-new2").value || null;
+      const cur = $("pin-cur2")?.value || null;
+      const { error } = await sb.rpc("set_account_pin", { p_new: nw, p_current: cur });
+      if (error) return toast(friendly(error.message), "err");
+      toast(nw ? "PIN saved." : "PIN turned off.", "ok"); renderPinBox();
+    });
+  }
+
+  async function loadLogins() {
+    const { data } = await sb.from("login_activity").select("user_agent, created_at").order("created_at", { ascending: false }).limit(15);
+    $("login-history").innerHTML = (data || []).length
+      ? data.map((l) => {
+          const ua = l.user_agent || "";
+          const dev = /mobile|android|iphone/i.test(ua) ? "📱 Mobile" : "💻 Desktop";
+          const br = /firefox/i.test(ua) ? "Firefox" : /edg/i.test(ua) ? "Edge" : /chrome/i.test(ua) ? "Chrome" : /safari/i.test(ua) ? "Safari" : "Browser";
+          return `<div class="blk-row">${dev} · ${br}<span style="margin-left:auto;color:var(--muted);font-weight:600;">${new Date(l.created_at).toLocaleString()}</span></div>`;
+        }).join("")
+      : "No logins recorded yet — history starts from your next sign-in.";
+  }
+
+  /* ---------- PRIVACY ---------- */
+  async function loadBlocked() {
+    const { data } = await sb.rpc("my_blocked_list");
+    $("blk-list").innerHTML = (data || []).length
+      ? data.map((b) => `<div class="blk-row">🚫 ${b.username}
+          <button class="btn ghost small" style="margin-left:auto;" data-unblk="${b.username}">Unblock</button></div>`).join("")
+      : "You haven't blocked anyone.";
+    document.querySelectorAll("[data-unblk]").forEach((btn) => btn.addEventListener("click", async () => {
+      await sb.rpc("unblock_user", { p_username: btn.dataset.unblk });
+      toast(`${btn.dataset.unblk} unblocked.`, "ok"); loadBlocked();
+    }));
+  }
+  $("blk-go").addEventListener("click", async () => {
+    const name = $("blk-name").value.trim();
+    if (!name) return;
+    const { error } = await sb.rpc("block_user", { p_username: name });
+    if (error) return toast(friendly(error.message), "err");
+    toast(`${name} blocked. They can't message or trade with you.`, "ok");
+    $("blk-name").value = ""; loadBlocked();
+  });
+  $("pv-save").addEventListener("click", async () => {
+    const { error } = await sb.from("profiles").update({
+      privacy: { show_limiteds: $("pv-limiteds").checked, show_groups: $("pv-groups").checked, show_favorites: $("pv-favs").checked },
+      updated_at: new Date().toISOString(),
+    }).eq("id", me);
+    if (error) return toast(friendly(error.message), "err");
+    if (await saveSettings({ msg_privacy: $("pv-msg").value, trade_privacy: $("pv-trade").value })) toast("Privacy saved!", "ok");
+  });
+
+  /* ---------- NOTIFICATIONS ---------- */
+  $("np-save").addEventListener("click", async () => {
+    const notif = {};
+    document.querySelectorAll("[data-np]").forEach((c) => notif[c.dataset.np] = c.checked);
+    if (await saveSettings({ notif, email_notifications: $("np-email").checked })) toast("Notification preferences saved!", "ok");
+  });
+
+  /* ---------- TRANSACTION HISTORY ---------- */
+  let txOffset = 0, txDone = false;
+  const TX_LABELS = { purchase: "Purchase", sale: "Sale payout", trade: "Trade", conversion_debit: "Rix conversion (spent)", conversion_credit: "Conversion (received)", admin_adjustment: "Staff adjustment", gift_card: "Gift card", username_change: "Username change", ad_campaign: "Sponsored ad", group_creation: "Group creation" };
+  async function loadTx(reset) {
+    if (reset) { txOffset = 0; txDone = false; $("tx-table").innerHTML = "Loading…"; }
+    if (txDone) return;
+    let qy = sb.from("currency_transactions").select("currency, amount, kind, note, created_at")
+      .order("created_at", { ascending: false }).range(txOffset, txOffset + 39);
+    const f = $("tx-filter").value;
+    if (f) qy = qy.eq("kind", f);
+    const { data } = await qy;
+    const rows = data || [];
+    txDone = rows.length < 40;
+    const html = rows.map((t) => `<tr>
+      <td>${new Date(t.created_at).toLocaleString()}</td>
+      <td>${TX_LABELS[t.kind] || t.kind}${t.note ? `<div style="font-size:10.5px;color:var(--muted);">${t.note}</div>` : ""}</td>
+      <td class="${t.amount >= 0 ? "pos" : "neg"}">${t.amount >= 0 ? "+" : ""}${t.amount.toLocaleString()} ${t.currency === "rix" ? "Rix" : "R"}</td>
+    </tr>`).join("");
+    if (reset) {
+      $("tx-table").innerHTML = rows.length
+        ? `<table class="tx"><thead><tr><th>When</th><th>Type</th><th>Amount</th></tr></thead><tbody>${html}</tbody></table>`
+        : "No transactions yet.";
+      // populate filter once
+      if (!$("tx-filter").dataset.filled) {
+        const { data: kinds } = await sb.from("currency_transactions").select("kind").limit(500);
+        [...new Set((kinds || []).map((k) => k.kind))].forEach((k) => {
+          $("tx-filter").insertAdjacentHTML("beforeend", `<option value="${k}">${TX_LABELS[k] || k}</option>`);
+        });
+        $("tx-filter").dataset.filled = "1";
+        $("tx-filter").addEventListener("change", () => loadTx(true));
+      }
+    } else {
+      $("tx-table").querySelector("tbody")?.insertAdjacentHTML("beforeend", html);
+    }
+    txOffset += rows.length;
+    $("tx-more").style.display = txDone ? "none" : "";
+  }
+  $("tx-more").addEventListener("click", () => loadTx(false));
+
+  /* ---------- APPEARANCE ---------- */
+  document.querySelectorAll(".theme-chip").forEach((c) => c.addEventListener("click", () => {
+    document.querySelectorAll(".theme-chip").forEach((x) => x.classList.toggle("on", x === c));
+    document.body.className = document.body.className.replace(/theme-\d/, c.dataset.theme);
+  }));
+  $("ap-save").addEventListener("click", async () => {
+    const theme = document.querySelector(".theme-chip.on")?.dataset.theme || "theme-1";
+    const lang = $("lang-sel").value;
+    localStorage.setItem("retro:theme", theme);
+    localStorage.setItem("retro:lang", lang);
+    if (await saveSettings({ theme, language: lang })) {
+      toast("Appearance saved!", "ok");
+      window.retroI18n?.setLanguage?.(lang);
+    }
+  });
+});
+</script>
+</body>
+</html>

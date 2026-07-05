@@ -60,6 +60,7 @@
 <script src="assets/supabaseClient.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const sb = window.supabaseClient;
@@ -96,7 +97,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function loadMsgs(fid) {
     const { data: msgs } = await sb.from("messages")
-      .select("id, sender, body, created_at")
+      .select("id, sender, body, created_at, read_at")
       .or(`and(sender.eq.${me},recipient.eq.${fid}),and(sender.eq.${fid},recipient.eq.${me})`)
       .order("created_at", { ascending: true })
       .limit(200);
@@ -136,8 +137,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       msgsEl.innerHTML = msgs.map(msgHtml).join("");
       msgsEl.scrollTop = msgsEl.scrollHeight;
     }
+    document.addEventListener("chat:refresh", () => { lastId = 0; refresh(); });
     await refresh();
-    pollTimer = setInterval(refresh, 5000);
+    // mark inbound messages read
+    sb.from("messages").update({ read_at: new Date().toISOString() })
+      .eq("recipient", me).eq("sender", fid).is("read_at", null).then(() => {});
+    pollTimer = setInterval(refresh, 30000); // slow fallback; realtime below is primary
 
     document.getElementById("composer").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -145,13 +150,49 @@ document.addEventListener("DOMContentLoaded", async () => {
       const body = input.value.trim();
       if (!body) return;
       input.value = "";
-      const { error } = await sb.from("messages").insert({ sender: me, recipient: fid, body });
+      const { error } = await sb.rpc("send_chat_message", { p_recipient: fid, p_body: body });
       if (error) { toast(window.retroAuth.friendly(error.message), "err"); input.value = body; return; }
       lastId = 0; await refresh();
     });
   }
 
   renderConvos();
+  loadUnread();
+
+  /* unread badges on conversation list */
+  async function loadUnread() {
+    const { data: unread } = await sb.from("messages").select("sender").eq("recipient", me).is("read_at", null);
+    const counts = {};
+    (unread || []).forEach((m) => counts[m.sender] = (counts[m.sender] || 0) + 1);
+    convos.querySelectorAll(".convo").forEach((el) => {
+      el.querySelector(".unread-b")?.remove();
+      const n = counts[el.dataset.id];
+      if (n && el.dataset.id !== current) {
+        const b = document.createElement("span");
+        b.className = "unread-b";
+        b.style.cssText = "margin-left:auto;background:var(--accent);color:#fff;font-size:10px;font-weight:900;border-radius:10px;padding:2px 7px;";
+        b.textContent = n;
+        el.appendChild(b);
+      }
+    });
+  }
+
+  /* Supabase Realtime: live message delivery */
+  sb.channel("chat-" + me)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `recipient=eq.${me}` }, (payload) => {
+      if (payload.new.sender === current) {
+        document.dispatchEvent(new CustomEvent("chat:refresh"));
+        sb.from("messages").update({ read_at: new Date().toISOString() }).eq("id", payload.new.id).then(() => {});
+      } else {
+        loadUnread();
+        toast("💬 New message", "info", 2500);
+      }
+    })
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `sender=eq.${me}` }, () => {
+      if (current) document.dispatchEvent(new CustomEvent("chat:refresh"));
+    })
+    .subscribe();
+
   const want = new URLSearchParams(location.search).get("u");
   if (want) {
     const f = friends.find((x) => x.username.toLowerCase() === want.toLowerCase());

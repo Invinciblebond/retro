@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trade — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .trade-wrap { max-width:1080px; margin:24px auto; padding:0 20px; }
+  .trade-wrap h1 { font-size:24px; font-weight:900; margin-bottom:16px; }
+  .ttabs { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .ttabs button { padding:9px 18px; border-radius:20px; border:1px solid var(--line); background:var(--card); color:var(--txt); font-size:13px; font-weight:800; cursor:pointer; }
+  .ttabs button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .offer-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:760px) { .offer-grid { grid-template-columns:1fr; } }
+  .offer-col { background:var(--input); border:1px solid var(--line); border-radius:10px; padding:14px; min-height:180px; }
+  .offer-col h5 { font-size:13px; font-weight:900; margin-bottom:10px; }
+  .titem { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:var(--card); border:1px solid var(--line); margin-bottom:8px; font-size:13px; font-weight:700; cursor:pointer; }
+  .titem.sel { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .titem .tic { width:34px; height:34px; border-radius:6px; background:var(--thumb,#2a2a32); display:flex; align-items:center; justify-content:center; font-size:18px; overflow:hidden; flex-shrink:0; }
+  .titem img { width:100%; height:100%; object-fit:cover; }
+  .titem .rap { margin-left:auto; font-size:11px; color:var(--muted); }
+  .cur-row { display:flex; gap:8px; margin-top:10px; }
+  .cur-row input { flex:1; min-width:0; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--txt); font-size:13px; }
+  .trow { display:flex; align-items:center; gap:12px; padding:14px; border-bottom:1px solid var(--line); font-size:13.5px; flex-wrap:wrap; }
+  .trow:last-child { border-bottom:none; }
+  .trow .st { font-size:10.5px; font-weight:900; letter-spacing:1px; padding:3px 10px; border-radius:10px; }
+  .st.pending { background:#f1c40f22; color:#f1c40f; } .st.accepted { background:#2ecc4022; color:#2ecc40; }
+  .st.declined,.st.cancelled,.st.invalidated { background:#e2231a22; color:#e2231a; }
+  .st.countered { background:#6cf2; color:var(--accent2,#6cf); }
+  .usearch { position:relative; }
+  .usearch input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:14px; }
+  .usearch .drop { position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:50; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; display:none; }
+  .usearch .drop.open { display:block; }
+  .usearch .drop div { padding:9px 12px; font-size:13px; font-weight:700; cursor:pointer; }
+  .usearch .drop div:hover { background:rgba(255,255,255,.06); }
+  .sum { font-size:12px; color:var(--muted); font-weight:700; margin-top:8px; }
+</style>
+</head>
+<body class="theme-1" data-page="trade">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="trade-wrap">
+      <h1>Trades</h1>
+      <div class="ttabs">
+        <button data-tab="new" class="active">New Trade</button>
+        <button data-tab="inbound">Inbound</button>
+        <button data-tab="outbound">Outbound</button>
+        <button data-tab="completed">Completed</button>
+      </div>
+
+      <section id="tab-new">
+        <div class="panel">
+          <h4>Trade with</h4>
+          <div class="usearch">
+            <input type="text" id="partner-q" placeholder="Search username…" autocomplete="off">
+            <div class="drop" id="partner-drop"></div>
+          </div>
+          <div class="sum" id="partner-line"></div>
+        </div>
+        <div class="offer-grid">
+          <div class="offer-col">
+            <h5>You are offering</h5>
+            <div id="my-items"><div style="color:var(--muted);font-size:12.5px;">Loading your tradeable items…</div></div>
+            <div class="cur-row">
+              <input type="number" min="0" id="my-rbx" placeholder="Retrobux (optional)">
+              <input type="number" min="0" id="my-rix" placeholder="Rix (optional)">
+            </div>
+            <div class="sum" id="my-sum"></div>
+          </div>
+          <div class="offer-col">
+            <h5>You will receive</h5>
+            <div id="their-items"><div style="color:var(--muted);font-size:12.5px;">Pick a partner to see their limiteds.</div></div>
+            <div class="cur-row">
+              <input type="number" min="0" id="their-rbx" placeholder="Their Retrobux (optional)">
+              <input type="number" min="0" id="their-rix" placeholder="Their Rix (optional)">
+            </div>
+            <div class="sum" id="their-sum"></div>
+          </div>
+        </div>
+        <div class="sum" id="tax-note" style="margin-top:12px;"></div>
+        <div style="margin-top:10px;text-align:right;">
+          <button class="btn primary" id="send-trade" disabled>Send Trade</button>
+        </div>
+      </section>
+
+      <section id="tab-inbound" style="display:none;"><div class="panel"><div id="list-inbound"></div></div></section>
+      <section id="tab-outbound" style="display:none;"><div class="panel"><div id="list-outbound"></div></div></section>
+      <section id="tab-completed" style="display:none;"><div class="panel"><div id="list-completed"></div></div></section>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const me = session.user.id;
+
+  /* tabs */
+  document.querySelectorAll(".ttabs button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".ttabs button").forEach((x) => x.classList.toggle("active", x === b));
+    ["new","inbound","outbound","completed"].forEach((t) =>
+      document.getElementById("tab-" + t).style.display = t === b.dataset.tab ? "" : "none");
+    if (b.dataset.tab !== "new") loadLists();
+  }));
+
+  const state = { partner: null, mySel: new Set(), theirSel: new Set() };
+
+  function itemRow(inv, selSet) {
+    const el = document.createElement("div");
+    el.className = "titem";
+    el.innerHTML = `<span class="tic">${inv.image_url ? `<img src="${inv.image_url}">` : (inv.icon || "📦")}</span>
+      <span>${inv.name}${inv.serial ? ` <span style="color:var(--muted);">#${inv.serial}</span>` : ""}</span>
+      <span class="rap">RAP ${(inv.rap ?? 0).toLocaleString()}</span>`;
+    el.addEventListener("click", () => {
+      if (selSet.has(inv.inv_id)) selSet.delete(inv.inv_id); else selSet.add(inv.inv_id);
+      el.classList.toggle("sel");
+      refreshSend();
+    });
+    return el;
+  }
+
+  async function loadLimiteds(uid) {
+    const { data } = await sb.from("inventory")
+      .select("id, serial, catalog_items!inner(id, name, icon, image_url, rap, item_type)")
+      .eq("user_id", uid).in("catalog_items.item_type", ["limited","limited_u"]);
+    return (data || []).map((r) => ({ inv_id: r.id, serial: r.serial, name: r.catalog_items.name,
+      icon: r.catalog_items.icon, image_url: r.catalog_items.image_url, rap: r.catalog_items.rap }));
+  }
+
+  /* my items */
+  const myBox = document.getElementById("my-items");
+  const myInv = await loadLimiteds(me);
+  myBox.innerHTML = myInv.length ? "" : '<div style="color:var(--muted);font-size:12.5px;">You have no tradeable limiteds yet.</div>';
+  myInv.forEach((i) => myBox.appendChild(itemRow(i, state.mySel)));
+
+  /* partner search */
+  const q = document.getElementById("partner-q");
+  const drop = document.getElementById("partner-drop");
+  let deb;
+  q.addEventListener("input", () => {
+    clearTimeout(deb);
+    const v = q.value.trim();
+    if (v.length < 2) { drop.classList.remove("open"); return; }
+    deb = setTimeout(async () => {
+      const { data } = await sb.from("profiles").select("id, username").ilike("username", `%${v}%`).neq("id", me).limit(6);
+      drop.innerHTML = (data || []).map((u) => `<div data-id="${u.id}" data-name="${u.username}">${u.username}</div>`).join("") || '<div style="color:var(--muted);">No users found</div>';
+      drop.classList.add("open");
+      drop.querySelectorAll("[data-id]").forEach((d) => d.addEventListener("click", async () => {
+        state.partner = { id: d.dataset.id, username: d.dataset.name };
+        state.theirSel.clear();
+        q.value = d.dataset.name;
+        drop.classList.remove("open");
+        document.getElementById("partner-line").textContent = `Trading with ${d.dataset.name}`;
+        const box = document.getElementById("their-items");
+        box.innerHTML = "Loading…";
+        const inv = await loadLimiteds(state.partner.id);
+        box.innerHTML = inv.length ? "" : '<div style="color:var(--muted);font-size:12.5px;">They have no tradeable limiteds.</div>';
+        inv.forEach((i) => box.appendChild(itemRow(i, state.theirSel)));
+        refreshSend();
+      }));
+    }, 250);
+  });
+
+  function refreshSend() {
+    const any = state.mySel.size + state.theirSel.size > 0;
+    document.getElementById("send-trade").disabled = !(state.partner && any);
+    document.getElementById("my-sum").textContent = `${state.mySel.size} item(s) selected`;
+    document.getElementById("their-sum").textContent = `${state.theirSel.size} item(s) selected`;
+    // 15% trade tax preview on any currency in the trade
+    const num = (id) => Math.max(0, parseInt(document.getElementById(id).value, 10) || 0);
+    const parts = [];
+    if (num("my-rbx")) parts.push(`they receive <b>R ${Math.floor(num("my-rbx") * 0.85).toLocaleString()}</b> of your R ${num("my-rbx").toLocaleString()}`);
+    if (num("their-rbx")) parts.push(`you receive <b>R ${Math.floor(num("their-rbx") * 0.85).toLocaleString()}</b> of their R ${num("their-rbx").toLocaleString()}`);
+    if (num("my-rix")) parts.push(`they receive <b>X ${Math.floor(num("my-rix") * 0.85).toLocaleString()}</b> of your X ${num("my-rix").toLocaleString()}`);
+    if (num("their-rix")) parts.push(`you receive <b>X ${Math.floor(num("their-rix") * 0.85).toLocaleString()}</b> of their X ${num("their-rix").toLocaleString()}`);
+    document.getElementById("tax-note").innerHTML = parts.length
+      ? `⚠️ 15% trade tax on currency: ${parts.join("; ")}.` : "";
+  }
+  ["my-rbx","my-rix","their-rbx","their-rix"].forEach((id) =>
+    document.getElementById(id).addEventListener("input", refreshSend));
+
+  document.getElementById("send-trade").addEventListener("click", async () => {
+    const btn = document.getElementById("send-trade");
+    btn.disabled = true; btn.textContent = "Sending…";
+    const num = (id) => Math.max(0, parseInt(document.getElementById(id).value, 10) || 0);
+    const { data, error } = await sb.rpc("send_trade", {
+      p_receiver: state.partner.id,
+      p_sender_items: [...state.mySel], p_receiver_items: [...state.theirSel],
+      p_sender_retrobux: num("my-rbx"), p_sender_rix: num("my-rix"),
+      p_receiver_retrobux: num("their-rbx"), p_receiver_rix: num("their-rix"),
+      p_counter_of: state.counterOf || null,
+    });
+    btn.textContent = "Send Trade";
+    if (error) { toast(friendly(error.message), "err"); btn.disabled = false; }
+    else { toast("Trade sent!", "ok"); setTimeout(() => location.reload(), 1000); }
+  });
+
+  /* ---- trade lists ---- */
+  async function loadLists() {
+    const { data: trades } = await sb.from("trades")
+      .select("*, sender:profiles!trades_sender_id_fkey(username), receiver:profiles!trades_receiver_id_fkey(username)")
+      .or(`sender_id.eq.${me},receiver_id.eq.${me}`).order("created_at", { ascending: false }).limit(100);
+    const all = trades || [];
+    const ids = all.map((t) => t.id);
+    let itemsByTrade = {};
+    if (ids.length) {
+      const { data: tis } = await sb.from("trade_items")
+        .select("trade_id, side, inventory:inventory(id, serial, catalog_items(name, icon, rap))")
+        .in("trade_id", ids);
+      (tis || []).forEach((ti) => {
+        (itemsByTrade[ti.trade_id] ||= { sender: [], receiver: [] })[ti.side].push(ti);
+      });
+    }
+    const fmtSide = (t, side) => {
+      const items = (itemsByTrade[t.id]?.[side] || []).map((ti) =>
+        `${ti.inventory?.catalog_items?.name || "?"}${ti.inventory?.serial ? " #" + ti.inventory.serial : ""}`);
+      const cur = [];
+      const rbx = side === "sender" ? t.sender_retrobux : t.receiver_retrobux;
+      const rix = side === "sender" ? t.sender_rix : t.receiver_rix;
+      if (rbx) cur.push(`R ${rbx.toLocaleString()}`);
+      if (rix) cur.push(`X ${rix.toLocaleString()}`);
+      return [...items, ...cur].join(", ") || "nothing";
+    };
+    const row = (t) => {
+      const inbound = t.receiver_id === me && t.status === "pending";
+      const outbound = t.sender_id === me && t.status === "pending";
+      const other = t.sender_id === me ? t.receiver?.username : t.sender?.username;
+      return `<div class="trow" data-tid="${t.id}">
+        <div style="flex:1;min-width:220px;">
+          <b>${t.sender_id === me ? "You → " + (other || "?") : (other || "?") + " → You"}</b>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+            They give: ${fmtSide(t, t.sender_id === me ? "receiver" : "sender")}<br>
+            You give: ${fmtSide(t, t.sender_id === me ? "sender" : "receiver")}
+          </div>
+        </div>
+        <span class="st ${t.status}">${t.status.toUpperCase()}</span>
+        ${inbound ? `<button class="btn primary small" data-act="accept">Accept</button>
+                     <button class="btn ghost small" data-act="decline">Decline</button>
+                     <button class="btn ghost small" data-counter="${t.id}" data-partner="${t.sender_id}" data-pname="${other || ""}">Counter</button>` : ""}
+        ${outbound ? `<button class="btn ghost small" data-act="cancel">Cancel</button>` : ""}
+      </div>`;
+    };
+    const fill = (id, arr) => {
+      document.getElementById(id).innerHTML = arr.length ? arr.map(row).join("")
+        : '<div style="text-align:center;padding:22px;color:var(--muted);font-size:13px;">Nothing here yet.</div>';
+    };
+    fill("list-inbound", all.filter((t) => t.receiver_id === me && t.status === "pending"));
+    fill("list-outbound", all.filter((t) => t.sender_id === me && t.status === "pending"));
+    fill("list-completed", all.filter((t) => t.status !== "pending"));
+    document.querySelectorAll("[data-counter]").forEach((b) => b.addEventListener("click", async () => {
+      state.counterOf = b.dataset.counter;
+      state.partner = { id: b.dataset.partner, username: b.dataset.pname };
+      state.theirSel.clear();
+      q.value = b.dataset.pname;
+      document.getElementById("partner-line").textContent = `Countering a trade from ${b.dataset.pname}`;
+      const box = document.getElementById("their-items");
+      box.innerHTML = "Loading…";
+      const inv = await loadLimiteds(state.partner.id);
+      box.innerHTML = inv.length ? "" : '<div style="color:var(--muted);font-size:12.5px;">They have no tradeable limiteds.</div>';
+      inv.forEach((i) => box.appendChild(itemRow(i, state.theirSel)));
+      refreshSend();
+      document.querySelector('.ttabs button[data-tab="new"]').click();
+    }));
+    document.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true;
+      const { error } = await sb.rpc("respond_trade", { p_trade: b.closest(".trow").dataset.tid, p_action: b.dataset.act });
+      if (error) { toast(friendly(error.message), "err"); b.disabled = false; }
+      else { toast(`Trade ${b.dataset.act === "accept" ? "accepted — items and currency transferred" : b.dataset.act + "ed"}!`, "ok"); loadLists(); }
+    }));
+  }
+});
+</script>
+</body>
+</html>

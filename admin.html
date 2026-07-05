@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .awrap { max-width:1080px; margin:24px auto; padding:0 20px; }
+  .awrap h1 { font-size:24px; font-weight:900; margin-bottom:16px; }
+  .atabs { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .atabs button { padding:9px 16px; border-radius:20px; border:1px solid var(--line); background:var(--card); color:var(--txt); font-size:12.5px; font-weight:800; cursor:pointer; }
+  .atabs button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .frm { display:grid; gap:10px; }
+  .frm input, .frm textarea, .frm select { padding:9px 11px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:13px; font-family:inherit; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .lst { font-size:12.5px; }
+  .lrow { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .lrow:last-child { border-bottom:none; }
+  .lrow .mut { color:var(--muted); font-size:11.5px; }
+  .lrow .sp { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
+  .flag { font-size:9.5px; font-weight:900; letter-spacing:1px; padding:2px 8px; border-radius:8px; }
+  .flag.ban { background:#e2231a22; color:#e2231a; } .flag.mute { background:#f1c40f22; color:#f1c40f; } .flag.adm { background:#6cf2; color:var(--accent2,#6cf); }
+</style>
+</head>
+<body class="theme-1" data-page="admin">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="awrap" id="gate" style="display:none;">
+      <h1>🛡 Admin Panel</h1>
+      <div class="atabs">
+        <button data-t="users" class="active">Users</button>
+        <button data-t="catalog">Catalog</button>
+        <button data-t="economy">Economy</button>
+        <button data-t="content">Content</button>
+        <button data-t="events">Events</button>
+        <button data-t="log">Mod Log</button>
+      </div>
+
+      <section id="t-users">
+        <div class="panel">
+          <h4>Search users</h4>
+          <input type="text" id="u-q" placeholder="Username / email…" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+          <div class="lst" id="u-list" style="margin-top:12px;"></div>
+        </div>
+      </section>
+
+      <section id="t-catalog" style="display:none;">
+        <div class="panel">
+          <h4>Publish catalog item</h4>
+          <div class="frm">
+            <input type="hidden" id="c-id">
+            <div class="row2"><input id="c-name" placeholder="Name"><input id="c-price" type="number" min="0" placeholder="Price (Retrobux)"></div>
+            <div class="row3">
+              <select id="c-cat"><option>Hats</option><option>Shirts</option><option>Pants</option><option>T-Shirts</option><option>Faces</option><option>Gear</option><option>Accessories</option><option>Bundles</option></select>
+              <select id="c-type"><option value="normal">normal</option><option value="limited">limited</option><option value="limited_u">limited_u</option></select>
+              <input id="c-stock" type="number" min="1" placeholder="Stock/quantity (limiteds)">
+            </div>
+            <div class="row2"><input id="c-icon" placeholder="Icon emoji (fallback)"><input id="c-img" type="url" placeholder="Image URL"></div>
+            <textarea id="c-desc" placeholder="Description"></textarea>
+            <label style="font-size:12.5px;font-weight:700;"><input type="checkbox" id="c-sale" checked> On sale</label>
+            <div><button class="btn primary" id="c-save">Save Item</button> <button class="btn ghost" id="c-clear">Clear</button></div>
+          </div>
+        </div>
+        <div class="panel"><h4>Existing items</h4><div class="lst" id="c-list"></div></div>
+      </section>
+
+      <section id="t-economy" style="display:none;">
+        <div class="panel">
+          <h4>Rix → Retrobux exchange rate</h4>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <input id="e-rate" type="number" step="0.1" min="0.1" style="width:120px;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+            <button class="btn primary small" id="e-rate-save">Set rate</button>
+            <span class="mut" id="e-rate-now" style="font-size:12px;color:var(--muted);"></span>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>🎁 Gift cards &amp; promo codes</h4>
+          <div class="frm">
+            <div class="row2">
+              <input id="gc-code" placeholder="CODE (e.g. SUMMER2026)" style="text-transform:uppercase;">
+              <select id="gc-kind" style="padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+                <option value="retrobux">Retrobux</option><option value="rix">Rix</option><option value="item">Catalog item</option>
+              </select>
+            </div>
+            <div class="row2">
+              <input id="gc-amount" type="number" min="1" placeholder="Amount (currency codes)">
+              <input id="gc-item" placeholder="Item ID (item codes only)">
+            </div>
+            <div class="row2">
+              <input id="gc-uses" type="number" min="1" value="1" placeholder="Max uses">
+              <input id="gc-expires" type="datetime-local" title="Expiry (optional)">
+            </div>
+            <button class="btn primary" id="gc-create" style="justify-self:start;">Create Code</button>
+          </div>
+          <div class="lst" id="gc-list" style="margin-top:12px;"></div>
+        </div>
+        <div class="panel">
+          <h4>Item lifecycle — off-sale &amp; limited conversion</h4>
+          <div class="frm">
+            <input id="il-item" placeholder="Catalog item ID">
+            <div class="row2">
+              <select id="il-action" style="padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+                <option value="off_sale">Take off-sale (collectible)</option>
+                <option value="on_sale">Put back on sale</option>
+                <option value="make_limited">Convert normal → Limited</option>
+                <option value="make_limited_u">Convert → ULimited (serials assigned)</option>
+              </select>
+              <input id="il-stock" type="number" min="0" placeholder="Remaining stock (conversions)">
+            </div>
+            <button class="btn primary" id="il-go" style="justify-self:start;">Apply</button>
+          </div>
+          <p style="font-size:11.5px;color:var(--muted);margin-top:8px;">ULimited conversion numbers every existing copy (#1, #2, … by acquisition date) and makes them tradeable/resellable between users.</p>
+        </div>
+        <div class="panel"><h4>Active resale listings</h4><div class="lst" id="e-listings"></div></div>
+        <div class="panel"><h4>Pending trades</h4><div class="lst" id="e-trades"></div></div>
+      </section>
+
+      <section id="t-content" style="display:none;">
+        <div class="panel"><h4>Games</h4><div class="lst" id="ct-games"></div></div>
+        <div class="panel"><h4>Groups</h4><div class="lst" id="ct-groups"></div></div>
+        <div class="panel"><h4>Recent wall posts</h4><div class="lst" id="ct-walls"></div></div>
+      </section>
+
+      <section id="t-events" style="display:none;">
+        <div class="panel">
+          <h4>Create event</h4>
+          <div class="frm">
+            <input id="ev-name" placeholder="Event name">
+            <input id="ev-banner" type="url" placeholder="Banner URL (optional)">
+            <textarea id="ev-desc" placeholder="Description"></textarea>
+            <div class="row2"><input id="ev-start" type="datetime-local"><input id="ev-end" type="datetime-local"></div>
+            <input id="ev-items" placeholder="Linked catalog item IDs (comma-separated, optional)">
+            <button class="btn primary" id="ev-save" style="justify-self:start;">Create Event</button>
+          </div>
+        </div>
+        <div class="panel"><h4>All events</h4><div class="lst" id="ev-list"></div></div>
+      </section>
+
+      <section id="t-log" style="display:none;">
+        <div class="panel"><h4>Moderation log</h4><div class="lst" id="log-list"></div></div>
+      </section>
+    </div>
+    <div class="awrap" id="nogate" style="display:none;text-align:center;padding:80px 20px;">
+      <div style="font-size:48px;">⛔</div>
+      <h2 style="font-weight:900;margin-top:12px;">Admins only</h2>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  const { data: isAdmin } = await sb.rpc("is_admin");
+  document.getElementById(isAdmin ? "gate" : "nogate").style.display = "block";
+  if (!isAdmin) return;
+
+  /* tabs */
+  document.querySelectorAll(".atabs button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".atabs button").forEach((x) => x.classList.toggle("active", x === b));
+    ["users","catalog","economy","content","events","log"].forEach((t) =>
+      document.getElementById("t-" + t).style.display = t === b.dataset.t ? "" : "none");
+    ({ catalog: loadCatalog, economy: () => { loadEconomy(); loadGiftCards(); }, content: loadContent, events: loadEvents, log: loadLog })[b.dataset.t]?.();
+  }));
+
+  const esc = (s) => String(s || "").replace(/</g, "&lt;");
+  const act = async (fn, args, ok, reload) => {
+    const { error } = await sb.rpc(fn, args);
+    if (error) toast(friendly(error.message), "err");
+    else { toast(ok, "ok"); reload?.(); }
+  };
+
+  /* ===== Users ===== */
+  let udeb;
+  document.getElementById("u-q").addEventListener("input", (e) => {
+    clearTimeout(udeb);
+    udeb = setTimeout(() => searchUsers(e.target.value.trim()), 300);
+  });
+  async function searchUsers(q) {
+    if (q.length < 2) return;
+    const { data: users, error } = await sb.rpc("admin_search_users", { p_q: q });
+    if (error) return toast(friendly(error.message), "err");
+    document.getElementById("u-list").innerHTML = (users || []).map((u) => `
+      <div class="lrow" data-uid="${u.id}">
+        <b>${esc(u.username)}</b>
+        ${u.is_admin ? '<span class="flag adm">ADMIN</span>' : ""}
+        ${(u.ban_permanent || (u.banned_until && new Date(u.banned_until) > new Date())) ? '<span class="flag ban">BANNED</span>' : ""}
+        ${(u.mute_permanent || (u.muted_until && new Date(u.muted_until) > new Date())) ? '<span class="flag mute">MUTED</span>' : ""}
+        <span class="mut">R ${u.retrobux?.toLocaleString?.() ?? 0} · X ${u.rix?.toLocaleString?.() ?? 0} · joined ${new Date(u.created_at).toLocaleDateString()}</span>
+        <span class="sp">
+          <button class="btn ghost small" data-a="ban">Ban</button>
+          <button class="btn ghost small" data-a="tempban">Ban 7d</button>
+          <button class="btn ghost small" data-a="unban">Unban</button>
+          <button class="btn ghost small" data-a="mute">Mute</button>
+          <button class="btn ghost small" data-a="tempmute">Mute 24h</button>
+          <button class="btn ghost small" data-a="unmute">Unmute</button>
+          <button class="btn ghost small" data-a="rbx">± Retrobux</button>
+          <button class="btn ghost small" data-a="rix">± Rix</button>
+          <button class="btn ghost small" data-a="badge">Grant badge</button>
+          <button class="btn ghost small" data-a="history">History</button>
+        </span>
+        <div class="mut" style="width:100%;" data-hist></div>
+      </div>`).join("") || '<div class="mut">No matches.</div>';
+    document.querySelectorAll("#u-list [data-a]").forEach((b) => b.addEventListener("click", async () => {
+      const uid = b.closest(".lrow").dataset.uid;
+      const a = b.dataset.a;
+      const reason = ["ban","tempban","mute","tempmute"].includes(a) ? prompt("Reason?") : null;
+      if (["ban","tempban","mute","tempmute"].includes(a) && reason === null) return;
+      if (a === "ban") act("admin_moderate_user", { p_user: uid, p_action: "ban", p_reason: reason, p_permanent: true }, "User banned.", () => searchUsers(q));
+      else if (a === "tempban") act("admin_moderate_user", { p_user: uid, p_action: "ban", p_reason: reason, p_until: new Date(Date.now() + 7*864e5).toISOString() }, "User banned for 7 days.", () => searchUsers(q));
+      else if (a === "unban") act("admin_moderate_user", { p_user: uid, p_action: "unban" }, "User unbanned.", () => searchUsers(q));
+      else if (a === "mute") act("admin_moderate_user", { p_user: uid, p_action: "mute", p_reason: reason, p_permanent: true }, "User muted.", () => searchUsers(q));
+      else if (a === "tempmute") act("admin_moderate_user", { p_user: uid, p_action: "mute", p_reason: reason, p_until: new Date(Date.now() + 864e5).toISOString() }, "User muted for 24h.", () => searchUsers(q));
+      else if (a === "unmute") act("admin_moderate_user", { p_user: uid, p_action: "unmute" }, "User unmuted.", () => searchUsers(q));
+      else if (a === "rbx" || a === "rix") {
+        const amt = parseInt(prompt(`Amount of ${a === "rbx" ? "Retrobux" : "Rix"} to add (negative to remove):`), 10);
+        if (!Number.isFinite(amt) || !amt) return;
+        const why = prompt("Reason (logged):") || "manual adjustment";
+        act("admin_adjust_balance", { p_user: uid, p_currency: a === "rbx" ? "retrobux" : "rix", p_amount: amt, p_reason: why }, "Balance adjusted.", () => searchUsers(q));
+      }
+      else if (a === "badge") {
+        const { data: bs } = await sb.from("badges").select("id, name, games(title)").limit(50);
+        if (!bs?.length) return toast("No badges exist yet.", "err");
+        const pick = prompt("Badge number:\n" + bs.map((x, i) => `${i+1}. ${x.name} (${x.games?.title})`).join("\n"));
+        const idx = parseInt(pick, 10) - 1;
+        if (!bs[idx]) return;
+        act("admin_grant_badge", { p_user: uid, p_badge: bs[idx].id }, "Badge granted.");
+      }
+      else if (a === "history") {
+        const hist = b.closest(".lrow").querySelector("[data-hist]");
+        const [{ data: tx }, { data: invd }, { data: trs }] = await Promise.all([
+          sb.from("currency_transactions").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(15),
+          sb.from("inventory").select("serial, catalog_items(name)").eq("user_id", uid).limit(30),
+          sb.from("trades").select("id, status, created_at").or(`sender_id.eq.${uid},receiver_id.eq.${uid}`).order("created_at", { ascending: false }).limit(10),
+        ]);
+        hist.innerHTML = `<b>Inventory:</b> ${ (invd||[]).map((i)=>esc(i.catalog_items?.name)+(i.serial?` #${i.serial}`:"")).join(", ") || "empty" }<br>
+          <b>Transactions:</b> ${(tx||[]).map((t)=>`${t.currency==="rix"?"X":"R"}${t.amount>0?"+":""}${t.amount} (${t.kind})`).join(", ") || "none"}<br>
+          <b>Trades:</b> ${(trs||[]).map((t)=>`${t.status} ${new Date(t.created_at).toLocaleDateString()}`).join(", ") || "none"}`;
+      }
+    }));
+  }
+
+  /* ===== Catalog ===== */
+  async function loadCatalog() {
+    const { data: items } = await sb.from("catalog_items").select("*").order("created_at", { ascending: false }).limit(100);
+    document.getElementById("c-list").innerHTML = (items || []).map((i) => `
+      <div class="lrow"><b>${esc(i.name)}</b><span class="mut">${i.item_type} · R ${i.price} · stock ${i.stock ?? "∞"} · RAP ${i.rap}</span>
+        <span class="sp"><button class="btn ghost small" data-edit='${JSON.stringify({id:i.id,name:i.name,price:i.price,category:i.category,item_type:i.item_type,stock:i.stock,icon:i.icon,image_url:i.image_url,description:i.description,on_sale:i.on_sale}).replace(/'/g,"&#39;")}'>Edit</button></span>
+      </div>`).join("");
+    document.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => {
+      const i = JSON.parse(b.dataset.edit.replace(/&#39;/g, "'"));
+      document.getElementById("c-id").value = i.id;
+      document.getElementById("c-name").value = i.name;
+      document.getElementById("c-price").value = i.price;
+      document.getElementById("c-cat").value = i.category;
+      document.getElementById("c-type").value = i.item_type;
+      document.getElementById("c-stock").value = i.stock ?? "";
+      document.getElementById("c-icon").value = i.icon || "";
+      document.getElementById("c-img").value = i.image_url || "";
+      document.getElementById("c-desc").value = i.description || "";
+      document.getElementById("c-sale").checked = !!i.on_sale;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }));
+  }
+  document.getElementById("c-clear").addEventListener("click", () => {
+    ["c-id","c-name","c-price","c-stock","c-icon","c-img","c-desc"].forEach((i) => document.getElementById(i).value = "");
+  });
+  document.getElementById("c-save").addEventListener("click", async () => {
+    const type = document.getElementById("c-type").value;
+    const stock = parseInt(document.getElementById("c-stock").value, 10);
+    const p = {
+      id: document.getElementById("c-id").value || null,
+      name: document.getElementById("c-name").value.trim(),
+      price: parseInt(document.getElementById("c-price").value, 10) || 0,
+      category: document.getElementById("c-cat").value,
+      item_type: type,
+      stock: type === "normal" ? "" : (Number.isFinite(stock) ? stock : ""),
+      total_quantity: type === "limited_u" && Number.isFinite(stock) ? stock : "",
+      icon: document.getElementById("c-icon").value.trim() || "📦",
+      image_url: document.getElementById("c-img").value.trim() || null,
+      description: document.getElementById("c-desc").value.trim(),
+      on_sale: document.getElementById("c-sale").checked,
+    };
+    if (!p.name) return toast("Item needs a name.", "err");
+    if (type !== "normal" && !Number.isFinite(stock)) return toast("Limiteds need a stock/quantity.", "err");
+    act("admin_upsert_catalog_item", { p }, "Item saved.", loadCatalog);
+  });
+
+  /* ===== Economy ===== */
+  async function loadEconomy() {
+    const { data: cfg } = await sb.from("app_config").select("value").eq("key", "rix_to_retrobux_rate").single();
+    document.getElementById("e-rate").value = cfg?.value?.rate ?? "";
+    document.getElementById("e-rate-now").textContent = `current: 1 Rix = ${cfg?.value?.rate} Retrobux`;
+    const { data: ls } = await sb.from("listings").select("id, price, catalog_items(name), profiles(username)").eq("active", true).limit(50);
+    document.getElementById("e-listings").innerHTML = (ls || []).map((l) => `
+      <div class="lrow"><b>${esc(l.catalog_items?.name)}</b><span class="mut">R ${l.price} by ${esc(l.profiles?.username)}</span>
+        <span class="sp"><button class="btn ghost small" data-rml="${l.id}">Remove</button></span></div>`).join("") || '<div class="mut">No active listings.</div>';
+    document.querySelectorAll("[data-rml]").forEach((b) => b.addEventListener("click", () =>
+      act("admin_remove_listing", { p_listing: b.dataset.rml, p_reason: prompt("Reason?") || null }, "Listing removed.", loadEconomy)));
+    const { data: trs } = await sb.from("trades").select("id, created_at, sender:profiles!trades_sender_id_fkey(username), receiver:profiles!trades_receiver_id_fkey(username)").eq("status", "pending").limit(50);
+    document.getElementById("e-trades").innerHTML = (trs || []).map((t) => `
+      <div class="lrow"><b>${esc(t.sender?.username)} → ${esc(t.receiver?.username)}</b><span class="mut">${new Date(t.created_at).toLocaleString()}</span>
+        <span class="sp"><button class="btn ghost small" data-ct="${t.id}">Cancel</button></span></div>`).join("") || '<div class="mut">No pending trades.</div>';
+    document.querySelectorAll("[data-ct]").forEach((b) => b.addEventListener("click", () =>
+      act("admin_cancel_trade", { p_trade: b.dataset.ct, p_reason: prompt("Reason?") || null }, "Trade cancelled.", loadEconomy)));
+  }
+  document.getElementById("e-rate-save").addEventListener("click", () => {
+    const r = parseFloat(document.getElementById("e-rate").value);
+    if (!Number.isFinite(r) || r <= 0) return toast("Invalid rate.", "err");
+    act("admin_set_exchange_rate", { p_rate: r }, "Exchange rate updated.", loadEconomy);
+  });
+
+  /* ===== Gift cards ===== */
+  async function loadGiftCards() {
+    const { data } = await sb.from("gift_cards").select("code, kind, amount, max_uses, uses, expires_at, active").order("created_at", { ascending: false }).limit(30);
+    document.getElementById("gc-list").innerHTML = (data || []).map((g) => `
+      <div class="lrow"><b>${esc(g.code)}</b>
+        <span class="mut">${g.kind}${g.amount ? " " + g.amount : ""} · ${g.uses}/${g.max_uses} used${g.expires_at ? " · expires " + new Date(g.expires_at).toLocaleDateString() : ""}${g.active ? "" : " · INACTIVE"}</span>
+      </div>`).join("") || '<div class="mut">No codes yet.</div>';
+  }
+  document.getElementById("gc-create").addEventListener("click", async () => {
+    const code = document.getElementById("gc-code").value.trim();
+    const kind = document.getElementById("gc-kind").value;
+    const amount = parseInt(document.getElementById("gc-amount").value, 10);
+    const itemId = document.getElementById("gc-item").value.trim();
+    const uses = parseInt(document.getElementById("gc-uses").value, 10) || 1;
+    const exp = document.getElementById("gc-expires").value;
+    if (!code || code.length < 4) return toast("Code needs at least 4 characters.", "err");
+    if (kind !== "item" && (!Number.isFinite(amount) || amount < 1)) return toast("Currency codes need an amount.", "err");
+    if (kind === "item" && !itemId) return toast("Item codes need a catalog item ID.", "err");
+    act("admin_create_gift_card", {
+      p_code: code, p_kind: kind,
+      p_amount: kind === "item" ? null : amount,
+      p_item: kind === "item" ? itemId : null,
+      p_max_uses: uses,
+      p_expires: exp ? new Date(exp).toISOString() : null,
+    }, "Gift card created!", loadGiftCards);
+  });
+
+  /* ===== Item lifecycle ===== */
+  document.getElementById("il-go").addEventListener("click", () => {
+    const item = document.getElementById("il-item").value.trim();
+    const action = document.getElementById("il-action").value;
+    const stock = parseInt(document.getElementById("il-stock").value, 10);
+    if (!item) return toast("Enter a catalog item ID.", "err");
+    if (["make_limited","make_limited_u"].includes(action) && !Number.isFinite(stock)) return toast("Conversions need a remaining stock number (0 = instantly sold out & tradeable).", "err");
+    act("admin_set_item_lifecycle", { p_item: item, p_action: action, p_stock: Number.isFinite(stock) ? stock : null, p_total: null }, "Item updated.", loadCatalog);
+  });
+
+  /* ===== Content ===== */
+  async function loadContent() {
+    const { data: gs } = await sb.from("games").select("id, title, active, visits, profiles(username)").order("created_at", { ascending: false }).limit(50);
+    document.getElementById("ct-games").innerHTML = (gs || []).map((g) => `
+      <div class="lrow"><b>${esc(g.title)}</b><span class="mut">by ${esc(g.profiles?.username)} · ${g.visits} visits${g.active ? "" : " · TAKEN DOWN"}</span>
+        <span class="sp"><button class="btn ghost small" data-tg="${g.id}" data-on="${g.active}">${g.active ? "Take down" : "Restore"}</button></span></div>`).join("") || '<div class="mut">No games.</div>';
+    document.querySelectorAll("[data-tg]").forEach((b) => b.addEventListener("click", () =>
+      act("admin_set_game_active", { p_game: b.dataset.tg, p_active: b.dataset.on !== "true", p_reason: prompt("Reason?") || null }, "Game updated.", loadContent)));
+    const { data: grs } = await sb.from("groups").select("id, name, member_count, profiles(username)").limit(50);
+    document.getElementById("ct-groups").innerHTML = (grs || []).map((g) => `
+      <div class="lrow"><b>${esc(g.name)}</b><span class="mut">owner ${esc(g.profiles?.username)} · ${g.member_count} members</span>
+        <span class="sp"><button class="btn ghost small" data-dg="${g.id}">Delete</button></span></div>`).join("") || '<div class="mut">No groups.</div>';
+    document.querySelectorAll("[data-dg]").forEach((b) => b.addEventListener("click", () => {
+      if (!confirm("Delete this group permanently?")) return;
+      act("admin_delete_group", { p_group: b.dataset.dg, p_reason: prompt("Reason?") || null }, "Group deleted.", loadContent);
+    }));
+    const { data: ws } = await sb.from("group_wall_posts").select("id, body, created_at, profiles(username), groups(name)").order("created_at", { ascending: false }).limit(30);
+    document.getElementById("ct-walls").innerHTML = (ws || []).map((w) => `
+      <div class="lrow"><span>${esc(w.body).slice(0,120)}</span><span class="mut">${esc(w.profiles?.username)} in ${esc(w.groups?.name)}</span>
+        <span class="sp"><button class="btn ghost small" data-dw="${w.id}">Delete</button></span></div>`).join("") || '<div class="mut">No wall posts.</div>';
+    document.querySelectorAll("[data-dw]").forEach((b) => b.addEventListener("click", () =>
+      act("admin_delete_wall_post", { p_post: parseInt(b.dataset.dw, 10), p_reason: prompt("Reason?") || null }, "Post deleted.", loadContent)));
+  }
+
+  /* ===== Events ===== */
+  async function loadEvents() {
+    const { data: evs } = await sb.from("events").select("*").order("starts_at", { ascending: false }).limit(50);
+    document.getElementById("ev-list").innerHTML = (evs || []).map((e) => `
+      <div class="lrow"><b>${esc(e.name)}</b><span class="mut">${new Date(e.starts_at).toLocaleDateString()} – ${new Date(e.ends_at).toLocaleDateString()}</span>
+        <span class="sp"><button class="btn ghost small" data-de="${e.id}">Delete</button></span></div>`).join("") || '<div class="mut">No events.</div>';
+    document.querySelectorAll("[data-de]").forEach((b) => b.addEventListener("click", () =>
+      act("admin_delete_event", { p_event: b.dataset.de }, "Event deleted.", loadEvents)));
+  }
+  document.getElementById("ev-save").addEventListener("click", () => {
+    const name = document.getElementById("ev-name").value.trim();
+    const s = document.getElementById("ev-start").value, e = document.getElementById("ev-end").value;
+    if (!name || !s || !e) return toast("Event needs a name, start, and end.", "err");
+    const item_ids = document.getElementById("ev-items").value.split(",").map((x) => x.trim()).filter(Boolean);
+    act("admin_upsert_event", { p: {
+      name, banner_url: document.getElementById("ev-banner").value.trim() || null,
+      description: document.getElementById("ev-desc").value.trim(),
+      starts_at: new Date(s).toISOString(), ends_at: new Date(e).toISOString(), item_ids,
+    }}, "Event created.", loadEvents);
+  });
+
+  /* ===== Log ===== */
+  async function loadLog() {
+    const { data: logs } = await sb.from("moderation_log")
+      .select("*, admin:profiles!moderation_log_admin_id_fkey(username), target:profiles!moderation_log_target_user_fkey(username)")
+      .order("created_at", { ascending: false }).limit(100);
+    document.getElementById("log-list").innerHTML = (logs || []).map((l) => `
+      <div class="lrow"><b>${l.action}</b><span class="mut">${esc(l.admin?.username)}${l.target ? " → " + esc(l.target?.username) : ""}
+        ${l.reason ? " · " + esc(l.reason) : ""} · ${new Date(l.created_at).toLocaleString()}</span></div>`).join("") || '<div class="mut">No actions logged yet.</div>';
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+## Code Search
+ALWAYS use the Semble MCP tools (`search`, `find_related`) to find code instead of grep, find, or reading files — pass `repo` as the project path. Only use grep when you need every literal occurrence of an exact string.

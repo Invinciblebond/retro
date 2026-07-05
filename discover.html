@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discover — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .dwrap { max-width:1120px; margin:24px auto; padding:0 20px; }
+  .dwrap h1 { font-size:24px; font-weight:900; margin-bottom:14px; }
+  .evt { display:flex; align-items:center; gap:16px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 20px; margin-bottom:12px; overflow:hidden; }
+  .evt img { width:120px; height:60px; object-fit:cover; border-radius:8px; }
+  .sec { margin:26px 0 8px; }
+  .sec h2 { font-size:17px; font-weight:900; margin-bottom:12px; }
+  .grow-strip { display:flex; gap:14px; overflow-x:auto; padding-bottom:8px; }
+  .gcard { width:170px; flex-shrink:0; text-decoration:none; color:var(--txt); }
+  .gcard .gt { width:170px; height:100px; border-radius:10px; background:var(--thumb,#2a2a32); display:flex; align-items:center; justify-content:center; font-size:34px; overflow:hidden; }
+  .gcard .gt img { width:100%; height:100%; object-fit:cover; }
+  .gcard b { display:block; font-size:13px; margin-top:7px; }
+  .gcard span { font-size:11px; color:var(--muted); }
+  .notif-panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:16px; }
+  .notif-panel h4 { font-size:12px; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .nrow { font-size:12.5px; padding:7px 0; border-bottom:1px solid var(--line); }
+  .nrow:last-child { border-bottom:none; }
+</style>
+</head>
+<body class="theme-1" data-page="discover">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="dwrap">
+      <h1>Discover</h1>
+      <div id="events"></div>
+      <div class="notif-panel" id="feed" style="display:none;">
+        <h4>From creators you follow</h4>
+        <div id="feed-list"></div>
+      </div>
+      <div id="sections"></div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  /* events */
+  const now = new Date().toISOString();
+  const { data: events } = await sb.from("events").select("*").lte("starts_at", now).gte("ends_at", now).order("starts_at");
+  if (events?.length) document.getElementById("events").innerHTML = events.map((e) => `
+    <div class="evt">${e.banner_url ? `<img src="${e.banner_url}">` : "🎉"}
+      <div><b style="font-size:15px;">${e.name}</b>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px;">${e.description || ""} · ends ${new Date(e.ends_at).toLocaleDateString()}</div>
+      ${(e.item_ids?.length) ? `<a class="btn ghost small" style="margin-top:6px;" href="catalog.html">Event items in catalog</a>` : ""}</div>
+    </div>`).join("");
+
+  /* followed-creator feed */
+  const { data: notifs } = await sb.from("notifications").select("*")
+    .eq("user_id", session.user.id).in("type", ["new_game","new_badge","new_pass"])
+    .order("created_at", { ascending: false }).limit(8);
+  if (notifs?.length) {
+    document.getElementById("feed").style.display = "block";
+    document.getElementById("feed-list").innerHTML = notifs.map((n) =>
+      `<div class="nrow">🎮 New game: <a href="game.html?id=${n.payload.game_id}"><b>${n.payload.title || "a game"}</b></a> — ${new Date(n.created_at).toLocaleDateString()}</div>`).join("");
+  }
+
+  /* sections */
+  const card = (g) => `
+    <a class="gcard" href="game.html?id=${g.id}">
+      <span class="gt">${g.thumbnail_url ? `<img src="${g.thumbnail_url}" loading="lazy">` : "🎮"}</span>
+      <b>${g.title}</b>
+      <span>${g.visits.toLocaleString()} visits · ♥ ${g.favorites_count}</span>
+    </a>`;
+  const secBox = document.getElementById("sections");
+  function section(title, games) {
+    if (!games?.length) return;
+    const d = document.createElement("div");
+    d.className = "sec";
+    d.innerHTML = `<h2>${title}</h2><div class="grow-strip">${games.map(card).join("")}</div>`;
+    secBox.appendChild(d);
+  }
+  const base = () => sb.from("games").select("*").eq("active", true).limit(12);
+  const [pop, top, recent] = await Promise.all([
+    base().order("visits", { ascending: false }),
+    base().order("favorites_count", { ascending: false }),
+    base().order("created_at", { ascending: false }),
+  ]);
+  section("Popular", pop.data);
+  section("Top Rated", top.data);
+  section("Recently Created", recent.data);
+  const genres = ["Adventure","Simulator","Tycoon","Roleplay","Horror","Obstacle Course"];
+  for (const g of genres) {
+    const { data } = await base().eq("genre", g).order("visits", { ascending: false });
+    section(g, data);
+  }
+  if (!secBox.children.length) secBox.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">No games yet — be the first to <a href="create.html">create one</a>!</div>';
+});
+</script>
+</body>
+</html>

@@ -172,10 +172,25 @@ function setAvatarImg(el, url, username) {
 async function loadProfile(user) {
   let { data: profile, error } = await supabase
     .from("profiles")
-    .select("username, retrobux, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
+    .select("username, retrobux, rix, is_admin, display_name, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
     .eq("id", user.id)
     .single();
   if (error || !profile) return;
+
+  // Session-level ban gate
+  try {
+    const { data: ban } = await supabase.rpc("check_my_ban");
+    if (ban?.banned) {
+      document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+        <div style="max-width:420px;text-align:center;background:var(--card,#1c1c22);border:1px solid var(--line,#333);border-radius:16px;padding:36px;">
+          <div style="font-size:42px;">🚫</div>
+          <h2 style="font-weight:900;margin:12px 0 6px;">Account suspended</h2>
+          <p style="font-size:13.5px;color:var(--muted,#9aa);line-height:1.6;">${ban.permanent ? "This suspension is permanent." : `Suspended until ${new Date(ban.until).toLocaleString()}.`}${ban.reason ? `<br>Reason: ${ban.reason}` : ""}</p>
+          <button class="btn primary" style="margin-top:18px;" onclick="window.retroAuth.logOut()">Log out</button>
+        </div></div>`;
+      return;
+    }
+  } catch {}
 
   if (!profile.avatar_url) {
     const { data: updated } = await supabase
@@ -187,6 +202,7 @@ async function loadProfile(user) {
     profile = updated || { ...profile, avatar_url: DEFAULT_AVATAR };
   }
   window.retroProfile = profile;
+  if (profile.is_admin) document.querySelectorAll(".admin-only").forEach((el) => { el.style.display = ""; });
 
   const uname = profile.username || user.email?.split("@")[0] || "";
   document.querySelectorAll(".avatar-head").forEach((el) => setAvatarImg(el, profile.avatar_url || DEFAULT_AVATAR, uname));
@@ -194,22 +210,27 @@ async function loadProfile(user) {
   const rbx = document.querySelector(".rbx");
   if (rbx) {
     const ric = '<span class="ric">R</span>';
-    rbx.innerHTML = `${ric}${(profile.retrobux ?? 0).toLocaleString()} <a class="getmore" href="shop.html">Get More</a>`;
-    // Wallet balance chip (custom SVG icon), next to Retrobux
+    rbx.innerHTML = `${ric}${(profile.retrobux ?? 0).toLocaleString()} <span title="Rix" style="margin-left:10px;font-weight:800;"><span style="color:var(--accent2,#6cf);font-weight:900;">X</span> ${(profile.rix ?? 0).toLocaleString()}</span> <a class="getmore" href="shop.html">Get More</a>`;
+    // Wallet balance chip — only shown when the user actually has a balance
     let wal = document.getElementById("wallet-chip");
-    if (!wal) {
-      wal = document.createElement("a");
-      wal.id = "wallet-chip";
-      wal.href = "deposit.html";
-      wal.title = "Wallet — deposit funds";
-      wal.style.cssText = "display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:12.5px;font-weight:800;color:var(--txt);text-decoration:none;";
-      rbx.after(wal);
+    const bal = Number(profile.wallet_balance ?? 0);
+    if (bal > 0) {
+      if (!wal) {
+        wal = document.createElement("a");
+        wal.id = "wallet-chip";
+        wal.href = "deposit.html";
+        wal.title = "Wallet — deposit funds";
+        wal.style.cssText = "display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:12.5px;font-weight:800;color:var(--txt);text-decoration:none;";
+        rbx.after(wal);
+      }
+      wal.innerHTML = `<svg width="16" height="14" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M2 3.5C2 2.12 3.12 1 4.5 1H16a2 2 0 0 1 2 2v1H4.5A1.5 1.5 0 0 1 3 2.5" stroke="var(--accent2,#6cf)" stroke-width="1.6"/>
+          <rect x="2" y="4" width="16" height="11.5" rx="2" stroke="var(--accent2,#6cf)" stroke-width="1.6"/>
+          <circle cx="14.2" cy="9.8" r="1.4" fill="var(--accent2,#6cf)"/>
+        </svg>$${bal.toFixed(2)}`;
+    } else if (wal) {
+      wal.remove();
     }
-    wal.innerHTML = `<svg width="16" height="14" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M2 3.5C2 2.12 3.12 1 4.5 1H16a2 2 0 0 1 2 2v1H4.5A1.5 1.5 0 0 1 3 2.5" stroke="var(--accent2,#6cf)" stroke-width="1.6"/>
-        <rect x="2" y="4" width="16" height="11.5" rx="2" stroke="var(--accent2,#6cf)" stroke-width="1.6"/>
-        <circle cx="14.2" cy="9.8" r="1.4" fill="var(--accent2,#6cf)"/>
-      </svg>$${Number(profile.wallet_balance ?? 0).toFixed(2)}`;
   }
 
   if (profile.subscribed && profile.subscription_type && !document.getElementById("sub-badge")) {
@@ -338,7 +359,9 @@ function wireLanding() {
         toast(friendly(err.message), "err");
       }
     });
-    headPass.addEventListener("keydown", (e) => { if (e.key === "Enter") btn.click(); });
+    // Enter anywhere in the quick-login = click Log In
+    [headEmail, headPass].forEach((inp) =>
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); btn.click(); } }));
   }
 
   /* ----- Signup card ----- */
@@ -365,6 +388,11 @@ function wireLanding() {
     const submit = form.querySelector('button[type="submit"]');
     submit.before(det);
   }
+
+  // Enter in any signup field (including selects) submits the form
+  form.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.tagName !== "BUTTON") { e.preventDefault(); form.requestSubmit(); }
+  });
 
   const emailIn = form.querySelector('input[type="email"]');
   const userIn = form.querySelector('input[type="text"]');
@@ -517,6 +545,50 @@ async function verifyNudge(session) {
 // Logout (header is injected by retro.js — use delegation)
 document.addEventListener("click", (e) => {
   if (e.target?.id === "logout-btn") logOut();
+});
+
+/* ---------- Avatar dropdown menu (Settings / Buy Retrobux / Convert Rix) ---------- */
+const avStyle = document.createElement("style");
+avStyle.textContent = `
+  .av-menu { position:fixed; z-index:9600; width:200px; background:var(--card,#1c1c22); border:1px solid var(--line,#333);
+    border-radius:12px; box-shadow:0 16px 44px rgba(0,0,0,.55); overflow:hidden; display:none; }
+  .av-menu.open { display:block; }
+  .av-menu a { display:flex; align-items:center; gap:10px; padding:11px 14px; font-size:13px; font-weight:700;
+    color:var(--txt,#eee); text-decoration:none; border-bottom:1px solid var(--line,#333); }
+  .av-menu a:last-child { border-bottom:none; }
+  .av-menu a:hover { background:rgba(255,255,255,.06); }
+  .av-menu .mi { width:20px; text-align:center; }`;
+document.head.appendChild(avStyle);
+let avMenu = null;
+function buildAvMenu() {
+  avMenu = document.createElement("div");
+  avMenu.className = "av-menu";
+  avMenu.innerHTML = `
+    <a href="profile.html"><span class="mi">◉</span><span data-i18n="menu.profile">My Profile</span></a>
+    <a href="settings.html"><span class="mi">⚙</span><span data-i18n="menu.settings">Settings</span></a>
+    <a href="shop.html#retrobux"><span class="mi">💰</span><span data-i18n="menu.buyRetrobux">Buy Retrobux</span></a>
+    <a href="shop.html#convert"><span class="mi">⇄</span><span data-i18n="menu.convertRix">Convert Rix</span></a>`;
+  document.body.appendChild(avMenu);
+}
+document.addEventListener("click", (e) => {
+  const head = e.target.closest?.(".avatar-head");
+  if (head) {
+    e.preventDefault();
+    if (!avMenu) buildAvMenu();
+    const open = avMenu.classList.toggle("open");
+    if (open) {
+      const r = head.getBoundingClientRect();
+      avMenu.style.top = `${r.bottom + 8}px`;
+      avMenu.style.right = `${Math.max(8, innerWidth - r.right - 10)}px`;
+    }
+  } else if (avMenu && !avMenu.contains(e.target)) {
+    avMenu.classList.remove("open");
+  }
+});
+
+/* ---------- Login history: record sign-ins ---------- */
+supabase.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_IN") supabase.rpc("record_login", { p_agent: navigator.userAgent }).then(() => {});
 });
 
 // Keep UI in sync across tabs / token refresh / sign-out

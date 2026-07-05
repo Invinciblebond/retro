@@ -68,6 +68,10 @@
           </div>
         </div>
 
+        <!-- Sponsored games (paid placement via Creator Dashboard) -->
+        <div class="microlabel" id="sponsored-label" style="display:none;">Sponsored <span class="see" style="font-size:9px;">PAID PLACEMENT</span></div>
+        <div class="carousel" id="sponsored-row"></div>
+
         <!-- Recently Viewed (catalog items) -->
         <div class="microlabel">Recently Viewed <span class="see"><a href="catalog.html" style="color:inherit;text-decoration:none;">See All</a></span></div>
         <div class="carousel" id="recent-viewed"></div>
@@ -125,5 +129,24 @@
 <script src="assets/supabaseClient.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const { data } = await sb.rpc("get_sponsored_games", { p_placement: "homepage", max_rows: 6 });
+  if (!data?.length) return;
+  document.getElementById("sponsored-label").style.display = "";
+  document.getElementById("sponsored-row").innerHTML = data.map((g) => `
+    <a class="exp-card" href="game.html?id=${g.game_id}" style="text-decoration:none;">
+      <div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;">
+        ${g.thumbnail_url ? `<img src="${g.thumbnail_url}" alt="" style="width:100%;height:100%;object-fit:cover;">` : "🎮"}
+      </div>
+      <div class="meta">
+        <div class="ename">${g.title}</div>
+        <div class="estats">${g.genre} · ${Number(g.visits).toLocaleString()} visits · <span style="color:var(--accent2);font-weight:700;">Ad</span></div>
+      </div>
+    </a>`).join("");
+});
+</script>
 </body>
 </html>

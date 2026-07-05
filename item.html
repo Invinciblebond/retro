@@ -61,6 +61,17 @@
         <h4>Resellers — player market</h4>
         <div id="listings"></div>
       </div>
+      <div class="panel" id="history-panel" style="display:none;">
+        <h4>Price history &amp; RAP</h4>
+        <div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:12px;">
+          <div><div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:1px;">RECENT AVERAGE PRICE</div>
+            <div style="font-size:20px;font-weight:900;" id="rap-val"></div></div>
+          <div><div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:1px;">TOTAL SALES</div>
+            <div style="font-size:20px;font-weight:900;" id="sales-count"></div></div>
+        </div>
+        <svg id="ph-chart" viewBox="0 0 600 180" width="100%" preserveAspectRatio="none" style="background:var(--input);border-radius:8px;"></svg>
+        <div id="ph-empty" style="display:none;text-align:center;padding:18px;color:var(--muted);font-size:13px;">No sales yet.</div>
+      </div>
     </div>
   </main>
 </div>
@@ -76,6 +87,8 @@
 <script src="assets/supabaseClient.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script src="assets/avatar-render.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const sb = window.supabaseClient;
@@ -91,10 +104,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   ov.addEventListener("click", (e) => { if (e.target === ov) closeModal(); });
 
   const { data: item, error } = await sb.from("catalog_items")
-    .select("id, name, price, category, icon, image_url, on_sale, sale_percent, item_type, stock, created_at")
+    .select("id, name, price, category, icon, image_url, on_sale, sale_percent, item_type, stock, total_quantity, rap, description, created_at, creator_id, creator:profiles(username)")
     .eq("id", id).single();
   if (error || !item) { toast("Item not found.", "err"); setTimeout(()=>location.replace("catalog.html"), 900); return; }
   document.title = `${item.name} — Utopoly`;
+  const IS_LIMITED = ["limited","limited_u"].includes(item.item_type);
+  const SOLD_OUT = IS_LIMITED && (item.stock ?? 0) <= 0;
+  const RESELLABLE = item.item_type === "limited_u" || (item.item_type === "limited" && SOLD_OUT);
   window.retroViewed?.record({ id: item.id, n: item.name, p: item.price, ic: item.icon, img: item.image_url });
 
   // visual + name
@@ -107,17 +123,30 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // type tag — ULimited: green U + gold Limited
   const typeEl = document.getElementById("itype");
-  if (item.item_type === "ulimited") typeEl.innerHTML = '<span class="type-tag"><span class="u">U</span><span class="lim">Limited</span></span>';
+  if (item.item_type === "limited_u") typeEl.innerHTML = '<span class="type-tag"><span class="u">U</span><span class="lim">Limited</span></span>';
   else if (item.item_type === "limited") typeEl.innerHTML = '<span class="type-tag limited">LIMITED</span>';
   else typeEl.innerHTML = `<span class="type-tag normal">${item.category?.toUpperCase() || "ITEM"}</span>`;
 
   const salePrice = item.sale_percent ? Math.floor(item.price * (100 - item.sale_percent) / 100) : item.price;
-  document.getElementById("iprice").innerHTML = item.item_type === "ulimited"
+  document.getElementById("iprice").innerHTML = SOLD_OUT
     ? "" : `<span class="ric">R</span> ${salePrice.toLocaleString()}` +
       (item.sale_percent ? ` <span style="font-size:13px;color:var(--muted);text-decoration:line-through;">R ${item.price.toLocaleString()}</span> <span style="font-size:12px;color:#2ecc40;font-weight:900;">-${item.sale_percent}%</span>` : "");
   document.getElementById("istock").textContent =
-    item.item_type === "limited" ? `${item.stock} left in stock — becomes tradeable when sold out` :
-    item.item_type === "ulimited" ? "Sold out — available only from resellers below" : "";
+    SOLD_OUT ? "Sold out — available only from resellers below" :
+    item.item_type === "limited" ? `${item.stock} left in stock — resellable once sold out` :
+    item.item_type === "limited_u" ? `${item.stock} of ${item.total_quantity ?? item.stock} serialized copies left` : "";
+
+  // creator attribution + off-sale collectible note
+  const creatorName = item.creator?.username;
+  document.getElementById("istock").insertAdjacentHTML("beforebegin",
+    `<div style="font-size:12.5px;color:var(--muted);font-weight:700;margin-bottom:8px;">By ${creatorName
+      ? `<a href="profile.html?u=${encodeURIComponent(creatorName)}" data-hovercard="${creatorName}" style="color:var(--accent2);">${creatorName}</a>`
+      : '<span style="color:var(--accent2);">Utopoly</span>'}</div>`);
+  if (!item.on_sale && !IS_LIMITED) {
+    document.getElementById("istock").textContent = "Off-sale — no longer purchasable from the catalog.";
+  } else if (!item.on_sale && IS_LIMITED && !SOLD_OUT) {
+    document.getElementById("istock").textContent = "Off-sale collectible — only available from resellers.";
+  }
 
   // my copies
   const { data: copies } = await sb.rpc("get_my_copies", { p_item: id });
@@ -140,11 +169,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("m-ok").onclick = onConfirm;
   }
 
-  if (item.item_type !== "ulimited") {
+  if (!SOLD_OUT) {
     const buyBtn = document.createElement("button");
     buyBtn.className = "btn primary";
-    buyBtn.textContent = item.item_type === "limited" && item.stock <= 0 ? "Sold Out" : "Buy";
-    if (item.item_type === "limited" && item.stock <= 0) buyBtn.disabled = true;
+    buyBtn.textContent = "Buy";
     buyBtn.onclick = () => confirmBuy(item.name, salePrice, async () => {
       const b = document.getElementById("m-ok"); b.disabled = true; b.textContent = "Buying…";
       const { error } = await sb.rpc("buy_item", { p_item: id });
@@ -156,7 +184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Sell (owned unlisted ULimited copies)
-  const sellable = item.item_type === "ulimited" ? mine.filter((c) => !c.listed) : [];
+  const sellable = RESELLABLE ? mine.filter((c) => !c.listed) : [];
   if (sellable.length) {
     const sellBtn = document.createElement("button");
     sellBtn.className = "btn ghost";
@@ -197,8 +225,56 @@ document.addEventListener("DOMContentLoaded", async () => {
     actions.appendChild(sellBtn);
   }
 
+  /* ----- wishlist (favorites) ----- */
+  const { data: { session: mySess } } = await sb.auth.getSession();
+  const meId = mySess?.user?.id;
+  if (meId) {
+    const favBtn = document.createElement("button");
+    favBtn.className = "btn ghost";
+    favBtn.style.marginLeft = "8px";
+    const { data: myFav } = await sb.from("favorites").select("item_id").eq("user_id", meId).eq("item_id", id).maybeSingle();
+    let faved = !!myFav;
+    const paint = () => favBtn.innerHTML = faved ? "♥ In wishlist" : "♡ Add to wishlist";
+    paint();
+    favBtn.onclick = async () => {
+      const q = faved ? sb.from("favorites").delete().eq("user_id", meId).eq("item_id", id)
+                      : sb.from("favorites").insert({ user_id: meId, item_id: id });
+      const { error } = await q;
+      if (error) return toast(friendly(error.message), "err");
+      faved = !faved; paint();
+      toast(faved ? "Added to your wishlist!" : "Removed from wishlist.", "ok");
+    };
+    actions.appendChild(favBtn);
+  }
+
+  /* ----- try on (avatar preview) ----- */
+  const SLOTS = { hat: "hat", face: "face", shirt: "shirt", tshirt: "tshirt", pants: "pants", gear: "gear", accessory: "accessory" };
+  const slot = SLOTS[(item.category || "").toLowerCase()];
+  if (slot && meId && window.renderAvatarSVG) {
+    const tryBtn = document.createElement("button");
+    tryBtn.className = "btn ghost";
+    tryBtn.style.marginLeft = "8px";
+    tryBtn.textContent = "👤 Try on";
+    tryBtn.onclick = async () => {
+      const { data: prof } = await sb.from("profiles").select("avatar_config").eq("id", meId).single();
+      const cfg = JSON.parse(JSON.stringify(prof?.avatar_config || {}));
+      cfg.equipped = cfg.equipped || {};
+      cfg.equipped[slot] = item.id;
+      // resolve all equipped items for the renderer
+      const ids = [...new Set(Object.values(cfg.equipped).filter(Boolean))];
+      const { data: eqItems } = await sb.from("catalog_items").select("id, name, icon, image_url, category").in("id", ids);
+      openModal(`
+        <h3>Trying on: ${item.name}</h3>
+        <div style="width:200px;height:260px;margin:0 auto;">${window.renderAvatarSVG(cfg, eqItems || [])}</div>
+        <p style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:8px;">Preview only — buy it to equip it for real in the Avatar editor.</p>
+        <div class="row"><button class="btn primary" id="m-cancel">Close</button></div>`);
+      document.getElementById("m-cancel").onclick = closeModal;
+    };
+    actions.appendChild(tryBtn);
+  }
+
   /* ----- resale listings (ULimited) ----- */
-  if (item.item_type === "ulimited") {
+  if (RESELLABLE) {
     const panel = document.getElementById("resale-panel");
     panel.style.display = "block";
     const box = document.getElementById("listings");
@@ -229,6 +305,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       await sb.rpc("cancel_listing", { p_listing: b.dataset.cancel });
       toast("Listing removed.", "ok"); setTimeout(()=>location.reload(), 800);
     }));
+  }
+
+  /* ----- price history + RAP (limiteds) ----- */
+  if (IS_LIMITED) {
+    const hp = document.getElementById("history-panel");
+    hp.style.display = "block";
+    document.getElementById("rap-val").innerHTML = `<span class="ric">R</span> ${(item.rap ?? 0).toLocaleString()}`;
+    const { data: hist } = await sb.rpc("get_price_history", { p_item: id, p_limit: 60 });
+    const pts = (hist || []).slice().reverse();
+    document.getElementById("sales-count").textContent = pts.length.toLocaleString();
+    const svg = document.getElementById("ph-chart");
+    if (!pts.length) { svg.style.display = "none"; document.getElementById("ph-empty").style.display = "block"; }
+    else {
+      const W = 600, H = 180, P = 14;
+      const max = Math.max(...pts.map(p => p.price)), min = Math.min(...pts.map(p => p.price));
+      const x = i => pts.length === 1 ? W/2 : P + i * (W - 2*P) / (pts.length - 1);
+      const y = v => max === min ? H/2 : H - P - (v - min) * (H - 2*P) / (max - min);
+      const d = pts.map((p,i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.price).toFixed(1)}`).join(" ");
+      svg.innerHTML = `
+        <path d="${d} L${x(pts.length-1).toFixed(1)},${H-2} L${x(0).toFixed(1)},${H-2} Z" fill="var(--accent)" opacity="0.12"/>
+        <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+        ${pts.map((p,i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.price).toFixed(1)}" r="3" fill="var(--accent)"><title>R ${p.price.toLocaleString()} — ${new Date(p.created_at).toLocaleDateString()}</title></circle>`).join("")}
+        <text x="${P}" y="${P+4}" font-size="11" fill="var(--muted)" font-weight="700">R ${max.toLocaleString()}</text>
+        <text x="${P}" y="${H-4}" font-size="11" fill="var(--muted)" font-weight="700">R ${min.toLocaleString()}</text>`;
+    }
   }
 });
 </script>

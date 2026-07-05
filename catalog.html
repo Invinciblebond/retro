@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     else if (s === "Newest") list = list.slice().reverse();
 
     const badge = (it) => {
-      if (it.ty === 'ulimited') return `<span class="ribbon" style="background:#111;"><span style="color:#2ecc40;font-weight:900;">U</span><span style="color:#f1c40f;font-weight:900;">Limited</span></span>`;
+      if (it.ty === 'limited_u') return `<span class="ribbon" style="background:#111;"><span style="color:#2ecc40;font-weight:900;">U</span><span style="color:#f1c40f;font-weight:900;">Limited</span></span>`;
       if (it.ty === 'limited') return `<span class="ribbon" style="background:#f1c40f;color:#111;">LIMITED${(it.st ?? 0) > 0 ? ` · ${it.st} LEFT` : ''}</span>`;
       if (it.sp) return `<span class="ribbon" style="background:#2ecc40;color:#111;">-${it.sp}%</span>`;
       if (it.ca && (Date.now() - new Date(it.ca)) < 7*24*3600*1000) return `<span class="ribbon" style="background:var(--accent2);color:#111;">NEW</span>`;
@@ -203,8 +203,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div class="ithumb">${it.img ? `<img src="${it.img}" alt="${it.n}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;">` : it.ic}</div>
         <div class="imeta">
           <div class="iname">${it.n}</div>
-          <div class="iprice">${it.ty === 'ulimited' ? '<span style="font-size:11px;color:var(--muted);font-weight:700;">From resellers</span>' : `<span class="ric">R</span>${it.sp ? Math.floor(it.p*(100-it.sp)/100) : it.p}`}</div>
-          <a class="btn primary small" href="item.html?id=${it.id}">${it.ty === 'ulimited' ? 'VIEW' : 'BUY'}</a>
+          <div class="iprice">${it.ty === 'limited_u' ? '<span style="font-size:11px;color:var(--muted);font-weight:700;">From resellers</span>' : `<span class="ric">R</span>${it.sp ? Math.floor(it.p*(100-it.sp)/100) : it.p}`}</div>
+          <a class="btn primary small" href="item.html?id=${it.id}">${it.ty === 'limited_u' ? 'VIEW' : 'BUY'}</a>
         </div>
       </div>`).join('')
       : '<p style="color:var(--muted);padding:30px 6px;font-size:14px;">No items match your filters.</p>';
@@ -295,5 +295,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 <script src="assets/supabaseClient.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
 </body>
 </html>

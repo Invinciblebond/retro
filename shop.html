@@ -56,6 +56,36 @@
       <p>Memberships and one-time Retrobux packages — bigger packs come with bonus Retrobux.</p>
     </div>
 
+    <!-- Gift cards & promo codes -->
+    <div style="max-width:520px;margin:18px auto 0;padding:0 24px;">
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;">
+        <h3 style="font-size:15px;font-weight:900;margin-bottom:4px;">🎁 Redeem a gift card or promo code</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Codes can grant Retrobux, Rix, or exclusive items — redeemed instantly to your account.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <input type="text" id="gc-code" maxlength="40" placeholder="Enter code (e.g. WELCOME100)" autocomplete="off"
+            style="flex:1;min-width:160px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);font-size:14px;text-transform:uppercase;letter-spacing:1px;">
+          <button class="btn primary" id="gc-go">Redeem</button>
+        </div>
+        <p id="gc-msg" style="font-size:12px;margin-top:8px;display:none;"></p>
+      </div>
+    </div>
+
+    <!-- Rix → Retrobux conversion -->
+    <div style="max-width:520px;margin:18px auto 0;padding:0 24px;" id="convert">
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;">
+        <h3 style="font-size:15px;font-weight:900;margin-bottom:4px;">Convert Rix → Retrobux</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;" id="cv-rate">Loading exchange rate…</p>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <input type="number" id="cv-amount" min="1" placeholder="Rix amount"
+            style="flex:1;min-width:120px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);font-size:14px;">
+          <span style="font-weight:900;">→</span>
+          <span id="cv-out" style="font-weight:900;font-size:16px;min-width:90px;"><span class="ric">R</span> 0</span>
+          <button class="btn primary" id="cv-go" disabled>Convert</button>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;">One-way conversion — Rix can't be bought back.</p>
+      </div>
+    </div>
+
     <!-- Memberships (subscriptions) -->
     <div class="tiers">
       <!-- Light — Color Scheme 2 -->
@@ -171,5 +201,55 @@
 <script src="assets/supabaseClient.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  // Gift card / promo code redemption
+  const gcInput = document.getElementById("gc-code"), gcBtn = document.getElementById("gc-go"), gcMsg = document.getElementById("gc-msg");
+  gcBtn.addEventListener("click", async () => {
+    const code = gcInput.value.trim();
+    if (!code) return;
+    gcBtn.disabled = true; gcBtn.textContent = "Redeeming…";
+    const { data, error } = await sb.rpc("redeem_code", { p_code: code });
+    gcBtn.disabled = false; gcBtn.textContent = "Redeem";
+    gcMsg.style.display = "block";
+    if (error) {
+      gcMsg.style.color = "var(--bad, #e66)";
+      gcMsg.textContent = window.retroAuth?.friendly?.(error.message) || error.message;
+      toast(gcMsg.textContent, "err");
+    } else {
+      gcMsg.style.color = "var(--good, #4caf50)";
+      const what = data.kind === "item" ? `you received ${data.item}!` : `+${Number(data.amount).toLocaleString()} ${data.kind === "rix" ? "Rix" : "Retrobux"}!`;
+      gcMsg.textContent = `Code redeemed — ${what}`;
+      toast(`🎁 ${gcMsg.textContent}`, "ok");
+      gcInput.value = "";
+      window.retroAuth?.refreshBalances?.();
+    }
+  });
+  gcInput.addEventListener("keydown", (e) => { if (e.key === "Enter") gcBtn.click(); });
+
+  const { data: cfg } = await sb.from("app_config").select("value").eq("key", "rix_to_retrobux_rate").single();
+  const rate = Number(cfg?.value?.rate ?? 0);
+  document.getElementById("cv-rate").textContent = rate
+    ? `Current rate: 1 Rix = ${rate} Retrobux` : "Conversion temporarily unavailable.";
+  const inp = document.getElementById("cv-amount"), out = document.getElementById("cv-out"), go = document.getElementById("cv-go");
+  inp.addEventListener("input", () => {
+    const v = parseInt(inp.value, 10);
+    const ok = Number.isFinite(v) && v > 0 && rate > 0;
+    out.innerHTML = `<span class="ric">R</span> ${ok ? Math.floor(v * rate).toLocaleString() : 0}`;
+    go.disabled = !ok;
+  });
+  go.addEventListener("click", async () => {
+    const v = parseInt(inp.value, 10);
+    go.disabled = true; go.textContent = "Converting…";
+    const { data, error } = await sb.rpc("convert_rix", { p_rix: v });
+    go.textContent = "Convert";
+    if (error) { toast(window.retroAuth?.friendly?.(error.message) || error.message, "err"); go.disabled = false; }
+    else { toast(`Converted ${data.rix_spent.toLocaleString()} Rix into ${data.retrobux_received.toLocaleString()} Retrobux!`, "ok"); setTimeout(() => location.reload(), 1100); }
+  });
+});
+</script>
 </body>
 </html>

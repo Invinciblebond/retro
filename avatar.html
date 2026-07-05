@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avatar — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .awrap { max-width:1000px; margin:24px auto; padding:0 20px; display:flex; gap:24px; flex-wrap:wrap; }
+  .apreview { width:320px; flex-shrink:0; }
+  .stage { width:320px; height:400px; background:var(--card); border:1px solid var(--line); border-radius:14px; position:relative; overflow:hidden; }
+  .aeditor { flex:1; min-width:300px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .slot-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .slot-tabs button { padding:7px 14px; border-radius:16px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:12px; font-weight:800; cursor:pointer; }
+  .slot-tabs button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .igrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:10px; }
+  .icard { background:var(--input); border:1px solid var(--line); border-radius:10px; padding:8px; text-align:center; cursor:pointer; font-size:11px; font-weight:700; }
+  .icard.eq { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .icard .iv { height:56px; display:flex; align-items:center; justify-content:center; font-size:30px; overflow:hidden; border-radius:6px; margin-bottom:6px; }
+  .icard img { width:100%; height:100%; object-fit:cover; }
+  .colors { display:flex; gap:8px; flex-wrap:wrap; }
+  .csw { width:34px; height:34px; border-radius:8px; cursor:pointer; border:2px solid transparent; }
+  .csw.sel { border-color:#fff; box-shadow:0 0 0 2px var(--accent); }
+</style>
+</head>
+<body class="theme-1" data-page="avatar">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="awrap">
+      <div class="apreview">
+        <div class="stage" id="stage"></div>
+        <button class="btn primary block" id="save" style="margin-top:14px;width:100%;">Save Avatar</button>
+      </div>
+      <div class="aeditor">
+        <div class="panel">
+          <h4>Body colors</h4>
+          <div class="colors" id="colors"></div>
+        </div>
+        <div class="panel">
+          <h4>Wardrobe — items you own</h4>
+          <div class="slot-tabs" id="slots"></div>
+          <div class="igrid" id="items"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script src="assets/avatar-render.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const me = session.user.id;
+
+  const SLOTS = { Hats: "hat", Faces: "face", Shirts: "shirt", "T-Shirts": "tshirt", Pants: "pants", Gear: "gear", Accessories: "accessory" };
+  const SLOT_LABELS = { hat: "Hat", face: "Face", shirt: "Shirt", tshirt: "T-Shirt", pants: "Pants", gear: "Gear", accessory: "Accessory" };
+  const COLORS = ["#f5d29a","#e0ac69","#8d5524","#c68642","#ffdbac","#a0c8f0","#f0a0a0","#a8e6a1","#f9e79f","#d7bde2","#aab7b8","#5d6d7e"];
+
+  /* load config + inventory */
+  const { data: prof } = await sb.from("profiles").select("avatar_config").eq("id", me).single();
+  const cfg = Object.assign({ body_color: COLORS[0], equipped: {} }, prof?.avatar_config || {});
+  const { data: inv } = await sb.from("inventory")
+    .select("id, catalog_items(id, name, icon, image_url, category)").eq("user_id", me);
+  const items = (inv || []).map((r) => r.catalog_items).filter(Boolean)
+    .filter((v, i, a) => a.findIndex((x) => x.id === v.id) === i);
+
+  /* preview */
+  const stage = document.getElementById("stage");
+  const render = () => { stage.innerHTML = window.renderAvatarSVG(cfg, items); };
+  render();
+
+  /* colors */
+  const cbox = document.getElementById("colors");
+  COLORS.forEach((c) => {
+    const d = document.createElement("div");
+    d.className = "csw" + (cfg.body_color === c ? " sel" : "");
+    d.style.background = c;
+    d.addEventListener("click", () => {
+      cfg.body_color = c;
+      cbox.querySelectorAll(".csw").forEach((x) => x.classList.toggle("sel", x === d));
+      render();
+    });
+    cbox.appendChild(d);
+  });
+
+  /* slot tabs + item grid */
+  const slotBox = document.getElementById("slots");
+  const grid = document.getElementById("items");
+  let activeSlot = "hat";
+  Object.values(SLOTS).filter((v, i, a) => a.indexOf(v) === i).forEach((s) => {
+    const b = document.createElement("button");
+    b.textContent = SLOT_LABELS[s];
+    b.className = s === activeSlot ? "active" : "";
+    b.addEventListener("click", () => { activeSlot = s; slotBox.querySelectorAll("button").forEach((x) => x.classList.toggle("active", x === b)); paintGrid(); });
+    slotBox.appendChild(b);
+  });
+
+  function slotOf(cat) { return SLOTS[cat] || "accessory"; }
+  function paintGrid() {
+    const pool = items.filter((i) => slotOf(i.category) === activeSlot);
+    grid.innerHTML = pool.length ? "" : '<div style="grid-column:1/-1;color:var(--muted);font-size:12.5px;">You don\'t own any items for this slot yet — check the <a href="catalog.html">catalog</a>.</div>';
+    pool.forEach((it) => {
+      const d = document.createElement("div");
+      d.className = "icard" + (cfg.equipped[activeSlot] === it.id ? " eq" : "");
+      d.innerHTML = `<div class="iv">${it.image_url ? `<img src="${it.image_url}">` : (it.icon || "📦")}</div>${it.name}`;
+      d.addEventListener("click", () => {
+        cfg.equipped[activeSlot] = cfg.equipped[activeSlot] === it.id ? null : it.id;
+        paintGrid(); render();
+      });
+      grid.appendChild(d);
+    });
+  }
+  paintGrid();
+
+  /* save */
+  document.getElementById("save").addEventListener("click", async () => {
+    const btn = document.getElementById("save");
+    btn.disabled = true; btn.textContent = "Saving…";
+    const { error } = await sb.from("profiles").update({ avatar_config: cfg, updated_at: new Date().toISOString() }).eq("id", me);
+    btn.disabled = false; btn.textContent = "Save Avatar";
+    if (error) toast(window.retroAuth.friendly(error.message), "err");
+    else toast("Avatar saved!", "ok");
+  });
+});
+</script>
+</body>
+</html>

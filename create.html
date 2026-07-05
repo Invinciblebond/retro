@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css">
+<style>
+  .cwrap { max-width:900px; margin:24px auto; padding:0 20px; }
+  .cwrap h1 { font-size:24px; font-weight:900; margin-bottom:16px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:18px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+  .frm { display:grid; gap:10px; }
+  .frm input, .frm textarea, .frm select { padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:14px; font-family:inherit; }
+  .frm textarea { min-height:80px; resize:vertical; }
+  .grow { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--line); border-radius:10px; margin-bottom:10px; background:var(--input); flex-wrap:wrap; }
+  .grow .gthumb { width:64px; height:40px; border-radius:6px; background:var(--thumb,#2a2a32); object-fit:cover; display:flex; align-items:center; justify-content:center; font-size:20px; overflow:hidden; flex-shrink:0; }
+  .grow .gthumb img { width:100%; height:100%; object-fit:cover; }
+  .grow b { font-size:14px; }
+  .grow .meta { font-size:11.5px; color:var(--muted); }
+  .subrow { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; width:100%; }
+  .mini { display:grid; gap:8px; grid-template-columns:2fr 1fr auto; align-items:center; }
+  .mini input { padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--txt); font-size:13px; min-width:0; }
+</style>
+</head>
+<body class="theme-1" data-page="create">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="cwrap">
+      <h1>Create</h1>
+
+      <div class="panel">
+        <h4>Create a game</h4>
+        <div class="frm">
+          <input type="text" id="g-title" maxlength="80" placeholder="Game title">
+          <textarea id="g-desc" maxlength="1000" placeholder="Description"></textarea>
+          <input type="url" id="g-thumb" placeholder="Thumbnail image URL (optional)">
+          <select id="g-genre">
+            <option>All</option><option>Adventure</option><option>Fighting</option><option>Obstacle Course</option>
+            <option>Roleplay</option><option>Simulator</option><option>Tycoon</option><option>Horror</option>
+            <option>Sports</option><option>Comedy</option><option>Sci-Fi</option><option>Building</option>
+          </select>
+          <button class="btn primary" id="g-create" style="justify-self:start;">Create Game</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h4>Your games</h4>
+        <div id="my-games"><div style="color:var(--muted);font-size:13px;">Loading…</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/social.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const me = session.user.id;
+
+  document.getElementById("g-create").addEventListener("click", async () => {
+    const title = document.getElementById("g-title").value.trim();
+    if (!title) return toast("Give your game a title first.", "err");
+    const btn = document.getElementById("g-create");
+    btn.disabled = true; btn.textContent = "Creating…";
+    const { error } = await sb.from("games").insert({
+      creator_id: me, title,
+      description: document.getElementById("g-desc").value.trim(),
+      thumbnail_url: document.getElementById("g-thumb").value.trim() || null,
+      genre: document.getElementById("g-genre").value,
+    });
+    btn.disabled = false; btn.textContent = "Create Game";
+    if (error) toast(friendly(error.message), "err");
+    else { toast("Game created!", "ok"); loadGames(); ["g-title","g-desc","g-thumb"].forEach((i)=>document.getElementById(i).value=""); }
+  });
+
+  async function loadGames() {
+    const box = document.getElementById("my-games");
+    const { data: games } = await sb.from("games").select("*").eq("creator_id", me).order("created_at", { ascending: false });
+    if (!games?.length) { box.innerHTML = '<div style="color:var(--muted);font-size:13px;">No games yet — create your first above.</div>'; return; }
+    const ids = games.map((g) => g.id);
+    const [{ data: passes }, { data: badges }, { data: psopts }] = await Promise.all([
+      sb.from("game_passes").select("*").in("game_id", ids).eq("active", true),
+      sb.from("badges").select("*").in("game_id", ids),
+      sb.from("private_server_options").select("*").in("game_id", ids),
+    ]);
+    box.innerHTML = "";
+    games.forEach((g) => {
+      const gp = (passes || []).filter((p) => p.game_id === g.id);
+      const bd = (badges || []).filter((b) => b.game_id === g.id);
+      const ps = (psopts || []).find((p) => p.game_id === g.id);
+      const el = document.createElement("div");
+      el.className = "grow";
+      el.innerHTML = `
+        <span class="gthumb">${g.thumbnail_url ? `<img src="${g.thumbnail_url}">` : "🎮"}</span>
+        <div style="flex:1;min-width:180px;">
+          <b><a href="game.html?id=${g.id}" style="color:var(--txt);">${g.title}</a></b>
+          <div class="meta">${g.genre} · ${g.visits.toLocaleString()} visits · ${g.favorites_count} favorites${g.active ? "" : " · TAKEN DOWN"}</div>
+          <div class="meta">Passes: ${gp.map((p)=>`${p.name} (R ${p.price})`).join(", ") || "none"} · Badges: ${bd.map((b)=>b.name).join(", ") || "none"}
+          · Private servers: ${ps?.enabled ? `enabled (R ${ps.price})` : "off"}</div>
+        </div>
+        <div class="subrow">
+          <div class="mini"><input placeholder="Pass name" id="pn-${g.id}"><input type="number" min="0" placeholder="Price" id="pp-${g.id}"><button class="btn ghost small" data-addpass="${g.id}">+ Pass</button></div>
+          <div class="mini"><input placeholder="Badge name" id="bn-${g.id}"><input placeholder="Description" id="bd-${g.id}"><button class="btn ghost small" data-addbadge="${g.id}">+ Badge</button></div>
+          <div class="mini"><input type="number" min="0" placeholder="Server price (R)" id="sp-${g.id}" value="${ps?.price ?? ""}"><span></span><button class="btn ghost small" data-ps="${g.id}">${ps?.enabled ? "Update / Disable" : "Enable servers"}</button></div>
+        </div>`;
+      box.appendChild(el);
+    });
+    box.querySelectorAll("[data-addpass]").forEach((b) => b.addEventListener("click", async () => {
+      const gid = b.dataset.addpass;
+      const name = document.getElementById("pn-"+gid).value.trim();
+      const price = parseInt(document.getElementById("pp-"+gid).value, 10);
+      if (!name || !Number.isFinite(price) || price < 0) return toast("Pass needs a name and a price.", "err");
+      const { error } = await sb.from("game_passes").insert({ game_id: gid, name, price });
+      if (error) toast(friendly(error.message), "err"); else { toast("Game pass added!", "ok"); loadGames(); }
+    }));
+    box.querySelectorAll("[data-addbadge]").forEach((b) => b.addEventListener("click", async () => {
+      const gid = b.dataset.addbadge;
+      const name = document.getElementById("bn-"+gid).value.trim();
+      if (!name) return toast("Badge needs a name.", "err");
+      const { error } = await sb.from("badges").insert({ game_id: gid, name, description: document.getElementById("bd-"+gid).value.trim() });
+      if (error) toast(friendly(error.message), "err"); else { toast("Badge created!", "ok"); loadGames(); }
+    }));
+    box.querySelectorAll("[data-ps]").forEach((b) => b.addEventListener("click", async () => {
+      const gid = b.dataset.ps;
+      const price = parseInt(document.getElementById("sp-"+gid).value, 10);
+      const { data: existing } = await sb.from("private_server_options").select("enabled").eq("game_id", gid).maybeSingle();
+      const enable = !(existing?.enabled && !Number.isFinite(price));
+      const { error } = await sb.from("private_server_options").upsert({
+        game_id: gid, enabled: Number.isFinite(price), price: Number.isFinite(price) ? price : 0 });
+      if (error) toast(friendly(error.message), "err");
+      else { toast(Number.isFinite(price) ? "Private servers updated!" : "Private servers disabled.", "ok"); loadGames(); }
+    }));
+  }
+  loadGames();
+});
+</script>
+</body>
+</html>

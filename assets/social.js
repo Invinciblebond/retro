@@ -61,29 +61,35 @@ async function heartbeat() {
 heartbeat();
 setInterval(heartbeat, 60_000);
 
-/* ---------- Online friends rail (home page) ---------- */
+/* ---------- New members rail (home page) — most recent signups ---------- */
+function timeAgo(iso) {
+  const s = (Date.now() - Date.parse(iso)) / 1000;
+  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
 async function renderOnlineRail() {
   const panel = document.getElementById("friends-panel");
   if (!panel) return;
   // skeletons in final shape
-  panel.innerHTML = "<h4>Friends</h4>" +
+  panel.innerHTML = "<h4>New Members</h4>" +
     Array.from({ length: 5 }, () => '<div class="skel-fr"><span class="skel c"></span><span class="skel l"></span></div>').join("");
 
   async function refresh() {
-    const { data, error } = await supabase.rpc("online_users", { max_rows: 8 });
+    const { data, error } = await supabase.rpc("recent_signups", { max_rows: 8 });
     if (error || !data) return;
     const rows = data.map((u) => `
       <div class="fr" data-hovercard="${u.username}">
         <span class="fpfp">${u.avatar_url ? `<img class="fav" src="${u.avatar_url}" alt="">` : (u.username || "?").slice(0, 2).toUpperCase()}
           <span class="${u.is_online ? "dot-on" : "dot-off"}"></span></span>
         ${u.username}
-        <span class="st ${u.is_online ? "on" : "off"}">${u.is_online ? "● Online" : "Offline"}</span>
+        <span class="st off">${timeAgo(u.created_at)}</span>
       </div>`).join("");
-    panel.innerHTML = "<h4>Friends</h4>" + (rows ||
+    panel.innerHTML = "<h4>New Members</h4>" + (rows ||
       '<p style="font-size:12.5px;color:var(--muted);line-height:1.5;">No one else is here yet.<br><a class="btn ghost small" href="catalog.html" style="margin-top:8px;display:inline-block;">Browse the catalog</a></p>');
   }
   await refresh();
-  setInterval(refresh, 30_000); // live-ish updates, no page reload
+  setInterval(refresh, 60_000); // live-ish updates, no page reload
 }
 
 /* ---------- Recently Viewed module (home page) ---------- */
@@ -151,11 +157,24 @@ function wireSearch() {
     { ic: "✨", label: "New Arrivals", q: "" },
     { ic: "💸", label: "On Sale", q: "" },
   ];
-  function showSuggestions() {
-    drop.innerHTML = '<div class="sd-head">Try searching</div>' + SUGGESTIONS.map((s, i) =>
+  let sponsoredCache = null;
+  async function sponsoredRows() {
+    if (sponsoredCache === null) {
+      const { data } = await supabase.rpc("get_sponsored_games", { p_placement: "search", max_rows: 3 });
+      sponsoredCache = data || [];
+    }
+    return sponsoredCache.length
+      ? '<div class="sd-head">Sponsored</div>' + sponsoredCache.map((g) =>
+        `<div class="sd-item" data-game="${g.game_id}"><span class="sic">🎮</span>${g.title}<span class="sub off">Ad</span></div>`).join("")
+      : "";
+  }
+  async function showSuggestions() {
+    drop.innerHTML = (await sponsoredRows()) + '<div class="sd-head">Try searching</div>' + SUGGESTIONS.map((s, i) =>
       `<div class="sd-item" data-sug="${i}"><span class="sic">${s.ic}</span>${s.label}</div>`).join("");
     drop.querySelectorAll("[data-sug]").forEach((el) =>
       el.addEventListener("click", () => { location.href = "catalog.html"; }));
+    drop.querySelectorAll("[data-game]").forEach((el) =>
+      el.addEventListener("click", () => { location.href = `game.html?id=${el.dataset.game}`; }));
     open();
   }
 
@@ -236,6 +255,10 @@ hcStyle.textContent = `
   .noti.unread { background:rgba(108,204,255,.05); }
   .noti .n-actions { display:flex; gap:6px; margin-top:6px; }
   .noti-empty { padding:26px 16px; text-align:center; color:var(--muted,#9aa); font-size:12.5px; }
+  .noti-tabs { display:flex; gap:4px; padding:6px 10px 8px; border-bottom:1px solid var(--line,#333); }
+  .noti-tab { flex:1; padding:7px 4px; font-size:11px; font-weight:800; letter-spacing:.6px; border-radius:8px;
+    border:1px solid transparent; background:none; color:var(--muted,#9aa); cursor:pointer; font-family:inherit; }
+  .noti-tab.on { background:var(--input,#222); border-color:var(--line,#333); color:var(--txt,#eee); }
 `;
 document.head.appendChild(hcStyle);
 
@@ -312,66 +335,104 @@ function wireBell() {
   async function unreadCount() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("read", false);
-    if (dot) dot.style.display = count > 0 ? "" : "none";
+    const [{ count }, { data: reqs }] = await Promise.all([
+      supabase.from("notifications").select("id", { count: "exact", head: true }).eq("read", false),
+      supabase.rpc("incoming_friend_requests"),
+    ]);
+    if (dot) dot.style.display = (count > 0 || (reqs || []).length > 0) ? "" : "none";
   }
   unreadCount();
   setInterval(unreadCount, 30_000);
 
   const GROUPS = {
     friend_request: "Friend requests", friend_accept: "Friends",
-    purchase: "Purchases", sale: "Sales", trade: "Trades", system: "Utopoly",
+    purchase: "Purchases", sale: "Item sales", trade: "Trades",
+    group_shout: "Group shouts", group_join: "Group joins", game_update: "Game updates",
+    system: "Utopoly",
   };
   function line(n) {
     const p = n.payload || {};
     switch (n.type) {
-      case "friend_request": return `<b data-hovercard="${p.from}">${p.from}</b> sent you a friend request.
-        <div class="n-actions"><button class="btn primary small" data-fr-accept="${p.from}" data-nid="${n.id}">Accept</button>
-        <button class="btn ghost small" data-fr-decline="${p.from}" data-nid="${n.id}">Decline</button></div>`;
+      case "friend_request": return `<b data-hovercard="${p.from}">${p.from}</b> sent you a friend request — check your <b>Inbox</b> tab.`;
       case "friend_accept": return `<b>${p.by}</b> accepted your friend request. <a href="chat.html?u=${encodeURIComponent(p.by || "")}">Say hi →</a>`;
       case "purchase": return `You bought <b>${p.item}</b> for <span class="ric">R</span>${(p.price ?? 0).toLocaleString()}.`;
       case "sale": return `Your <b>${p.item}</b> sold for <span class="ric">R</span>${(p.price ?? 0).toLocaleString()} — you received <span class="ric">R</span>${(p.payout ?? 0).toLocaleString()}.`;
       case "trade": return `You bought <b>${p.item}</b> on the player market for <span class="ric">R</span>${(p.price ?? 0).toLocaleString()}.`;
+      case "group_shout": return `📣 <b>${p.group}</b> shouted: “${p.text}” <a href="group.html?id=${p.group_id}">View group →</a>`;
+      case "group_join": return `<b data-hovercard="${p.username}">${p.username}</b> joined your group <b>${p.group}</b>.`;
+      case "game_update": return `🎮 <b>${p.game}</b> was updated. <a href="game.html?id=${p.game_id}">Check it out →</a>`;
       default: return p.message || "Notification";
     }
   }
 
-  async function render() {
-    drop.innerHTML = '<div class="noti-head"><b>Notifications</b></div><div class="noti-empty">Loading…</div>';
+  let tab = "activity"; // 'inbox' | 'activity'
+  const tabsHTML = () => `<div class="noti-tabs">
+    <button class="noti-tab${tab === "inbox" ? " on" : ""}" data-tab="inbox">📥 Inbox</button>
+    <button class="noti-tab${tab === "activity" ? " on" : ""}" data-tab="activity">🔔 Activity</button>
+  </div>`;
+
+  async function renderInbox() {
+    drop.innerHTML = `<div class="noti-head"><b>Notifications</b></div>${tabsHTML()}<div class="noti-empty">Loading…</div>`;
+    wireTabs();
+    const { data } = await supabase.rpc("incoming_friend_requests");
+    const list = data || [];
+    const body = list.length
+      ? '<div class="noti-group">Friend requests</div>' + list.map((r) => `
+        <div class="noti unread"><b data-hovercard="${r.username}">${r.username}</b> sent you a friend request.
+          <div class="n-actions"><button class="btn primary small" data-fr-accept="${r.username}">Accept</button>
+          <button class="btn ghost small" data-fr-decline="${r.username}">Decline</button></div>
+        </div>`).join("")
+      : `<div class="noti-empty"><div style="font-size:34px;margin-bottom:6px;">📥</div>No pending friend requests.</div>`;
+    drop.innerHTML = `<div class="noti-head"><b>Notifications</b></div>${tabsHTML()}` + body;
+    wireTabs();
+    drop.querySelectorAll("[data-fr-accept]").forEach((b) => b.addEventListener("click", async () => {
+      const { error } = await supabase.rpc("respond_friend_request", { p_from_username: b.dataset.frAccept, p_accept: true });
+      toast(error ? error.message : `You and ${b.dataset.frAccept} are now friends!`, error ? "err" : "ok");
+      unreadCount(); renderInbox();
+    }));
+    drop.querySelectorAll("[data-fr-decline]").forEach((b) => b.addEventListener("click", async () => {
+      await supabase.rpc("respond_friend_request", { p_from_username: b.dataset.frDecline, p_accept: false });
+      unreadCount(); renderInbox();
+    }));
+  }
+
+  async function renderActivity() {
+    drop.innerHTML = `<div class="noti-head"><b>Notifications</b></div>${tabsHTML()}<div class="noti-empty">Loading…</div>`;
+    wireTabs();
     const { data } = await supabase.from("notifications")
       .select("id, type, payload, read, created_at")
-      .order("created_at", { ascending: false }).limit(25);
+      .order("created_at", { ascending: false }).limit(30);
     const list = data || [];
     if (!list.length) {
-      drop.innerHTML = `<div class="noti-head"><b>Notifications</b></div>
+      drop.innerHTML = `<div class="noti-head"><b>Notifications</b></div>${tabsHTML()}
         <div class="noti-empty"><div style="font-size:34px;margin-bottom:6px;">🔔</div>
-        Nothing yet! Friend requests, purchases, and trades will show up here.<br>
+        Nothing yet! Friend requests, sales, group shouts, and game updates will show up here.<br>
         <a class="btn primary small" href="catalog.html" style="margin-top:10px;display:inline-block;">Browse the catalog</a></div>`;
+      wireTabs();
       return;
     }
     const byGroup = {};
     for (const n of list) (byGroup[n.type] = byGroup[n.type] || []).push(n);
-    drop.innerHTML = `<div class="noti-head"><b>Notifications</b><button class="btn ghost small" id="noti-clear">Mark all read</button></div>` +
+    drop.innerHTML = `<div class="noti-head"><b>Notifications</b><button class="btn ghost small" id="noti-clear">Mark all read</button></div>${tabsHTML()}` +
       Object.entries(byGroup).map(([type, ns]) =>
         `<div class="noti-group">${GROUPS[type] || type}</div>` +
         ns.map((n) => `<div class="noti${n.read ? "" : " unread"}">${line(n)}</div>`).join("")
       ).join("");
+    wireTabs();
     drop.querySelector("#noti-clear")?.addEventListener("click", async () => {
       await supabase.from("notifications").update({ read: true }).eq("read", false);
-      unreadCount(); render();
+      unreadCount(); renderActivity();
     });
-    drop.querySelectorAll("[data-fr-accept]").forEach((b) => b.addEventListener("click", async () => {
-      const { error } = await supabase.rpc("respond_friend_request", { p_from_username: b.dataset.frAccept, p_accept: true });
-      if (!error) await supabase.from("notifications").update({ read: true }).eq("id", b.dataset.nid);
-      toast(error ? error.message : `You and ${b.dataset.frAccept} are now friends!`, error ? "err" : "ok");
-      unreadCount(); render();
-    }));
-    drop.querySelectorAll("[data-fr-decline]").forEach((b) => b.addEventListener("click", async () => {
-      await supabase.rpc("respond_friend_request", { p_from_username: b.dataset.frDecline, p_accept: false });
-      await supabase.from("notifications").update({ read: true }).eq("id", b.dataset.nid);
-      unreadCount(); render();
+  }
+
+  function wireTabs() {
+    drop.querySelectorAll(".noti-tab").forEach((b) => b.addEventListener("click", () => {
+      tab = b.dataset.tab;
+      render();
     }));
   }
+
+  function render() { return tab === "inbox" ? renderInbox() : renderActivity(); }
 
   bell.addEventListener("click", (e) => {
     e.stopPropagation();
