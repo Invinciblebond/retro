@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const { data: prof } = await sb.from("profiles").select("avatar_config").eq("id", me).single();
   const cfg = Object.assign({ body_color: COLORS[0], equipped: {} }, prof?.avatar_config || {});
   const { data: inv } = await sb.from("inventory")
-    .select("id, catalog_items(id, name, icon, image_url, category)").eq("user_id", me);
+    .select("id, catalog_items(id, name, icon, image_url, category, item_type)").eq("user_id", me);
   const items = (inv || []).map((r) => r.catalog_items).filter(Boolean)
     .filter((v, i, a) => a.findIndex((x) => x.id === v.id) === i);
 
@@ -120,7 +120,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     pool.forEach((it) => {
       const d = document.createElement("div");
       d.className = "icard" + (cfg.equipped[activeSlot] === it.id ? " eq" : "");
-      d.innerHTML = `<div class="iv">${it.image_url ? `<img src="${it.image_url}">` : (it.icon || "📦")}</div>${it.name}`;
+      d.innerHTML = `<div class="iv">${it.image_url ? `<img src="${it.image_url}">` : (it.icon || "📦")}</div>${it.name}
+        ${it.item_type === "limited_u" ? '<div style="margin-top:3px;"><span class="badge-ulim"><span class="bl">LIMITED</span><span class="bu">U</span></span></div>'
+          : it.item_type === "limited" ? '<div style="margin-top:3px;"><span class="badge-lim">LIMITED</span></div>' : ""}`;
       d.addEventListener("click", () => {
         cfg.equipped[activeSlot] = cfg.equipped[activeSlot] === it.id ? null : it.id;
         paintGrid(); render();

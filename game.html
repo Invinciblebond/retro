@@ -76,11 +76,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!id) { location.replace("discover.html"); return; }
 
   const { data: g, error } = await sb.from("games")
-    .select("*, creator:profiles(id, username)").eq("id", id).single();
+    .select("*, creator:profiles(id, username, user_number)").eq("id", id).single();
   if (error || !g) { toast("Game not found.", "err"); setTimeout(()=>location.replace("discover.html"), 900); return; }
   document.title = `${g.title} — Utopoly`;
   document.getElementById("title").textContent = g.title;
-  document.getElementById("by").innerHTML = `by <a href="profile.html?u=${g.creator?.username}"><b>${g.creator?.username || "?"}</b></a>`;
+  document.getElementById("by").innerHTML = `by <a href="${window.profileUrl(g.creator)}"><b>${g.creator?.username || "?"}</b></a>`;
   document.getElementById("visits").textContent = g.visits.toLocaleString();
   document.getElementById("favs").textContent = g.favorites_count.toLocaleString();
   document.getElementById("genre").textContent = g.genre;

@@ -28,6 +28,11 @@
   .rrow input { padding:7px 9px; border-radius:7px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:12.5px; }
   .rrow label { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:4px; }
   select.rank-sel { padding:5px 8px; border-radius:7px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:12px; }
+  .holdings { display:inline-flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 14px; font-weight:900; font-size:14px; }
+  .holdings .hl { font-size:10px; letter-spacing:1.2px; color:var(--muted); text-transform:uppercase; font-weight:800; display:block; }
+  .wpager { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:12px; font-size:12px; color:var(--muted); }
+  .payrow { display:flex; gap:8px; align-items:center; padding:6px 0; font-size:13px; flex-wrap:wrap; }
+  .payrow input { padding:7px 9px; border-radius:7px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:12.5px; width:90px; }
 </style>
 </head>
 <body class="theme-1" data-page="group">
@@ -44,7 +49,12 @@
           <p id="desc"></p>
           <p style="font-size:12px;color:var(--muted);" id="meta"></p>
         </div>
-        <div id="joinbox"></div>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end;">
+          <div class="holdings" title="Group funds are held by the group itself, separate from any member's wallet.">
+            <span><span class="hl">Group holdings</span><span id="holdings">0</span> RETROBUX</span>
+          </div>
+          <div id="joinbox"></div>
+        </div>
       </div>
 
       <div class="panel" id="shout-panel" style="display:none;">
@@ -56,6 +66,11 @@
         </div>
       </div>
 
+      <div class="panel" id="joinreq-panel" style="display:none;">
+        <h4>Join requests</h4>
+        <div id="joinreqs"></div>
+      </div>
+
       <div class="panel">
         <h4>Group wall</h4>
         <div class="wform" id="wform" style="display:none;">
@@ -63,6 +78,11 @@
           <button class="btn primary small" id="wall-post">Post</button>
         </div>
         <div id="wall"></div>
+        <div class="wpager" id="wpager" style="display:none;">
+          <button class="btn ghost small" id="wprev">‹ Prev</button>
+          <span id="wpage-info"></span>
+          <button class="btn ghost small" id="wnext">Next ›</button>
+        </div>
       </div>
 
       <div class="panel">
@@ -70,16 +90,37 @@
         <div id="members"></div>
       </div>
 
+      <div class="panel" id="funds-admin" style="display:none;">
+        <h4>Group funds &amp; payouts</h4>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">
+          Funds belong to the group — sales revenue is credited here, never to the owner's wallet.
+          <a href="group-revenue.html?id=" id="rev-link">View sales &amp; revenue →</a>
+        </p>
+        <div class="payrow">
+          <select class="rank-sel" id="pay-member"></select>
+          <input type="number" id="pay-amount" min="1" placeholder="Amount">
+          <button class="btn ghost small" id="pay-once">One-time payout</button>
+        </div>
+        <div class="payrow">
+          <select class="rank-sel" id="rpay-member"></select>
+          <input type="number" id="rpay-pct" min="0" max="100" placeholder="%">
+          <button class="btn ghost small" id="rpay-set">Set recurring %</button>
+        </div>
+        <div id="rpay-list" style="font-size:12.5px;color:var(--muted);margin-top:8px;"></div>
+      </div>
+
       <div class="panel" id="rank-admin" style="display:none;">
         <h4>Manage ranks (owner)</h4>
+        <label style="font-size:12.5px;display:flex;gap:6px;align-items:center;margin-bottom:12px;">
+          <input type="checkbox" id="approval-toggle"> Require approval to join
+        </label>
         <div id="ranks"></div>
         <div class="rrow" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px;">
           <input type="text" id="nr-name" placeholder="New rank name">
           <input type="number" id="nr-num" min="1" max="254" placeholder="#">
-          <label><input type="checkbox" id="nr-post" checked> wall</label>
-          <label><input type="checkbox" id="nr-manage"> manage</label>
           <button class="btn ghost small" id="nr-add">Add rank</button>
         </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;">New ranks start with wall posting only — edit toggles after creating.</p>
       </div>
     </div>
   </main>
@@ -99,9 +140,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const sb = window.supabaseClient;
   const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
   const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const esc = (s) => String(s ?? "").replace(/</g,"&lt;");
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) return;
-  const me = session.user.id;
+  const me = session?.user?.id || null; // page is publicly viewable (public holdings)
   const id = new URLSearchParams(location.search).get("id");
   if (!id) { location.replace("groups.html"); return; }
 
@@ -111,27 +152,37 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("name").textContent = g.name;
   document.getElementById("desc").textContent = g.description || "";
   document.getElementById("meta").textContent = `Owned by ${g.owner?.username || "?"} · ${g.member_count.toLocaleString()} members · created ${new Date(g.created_at).toLocaleDateString()}`;
+  document.getElementById("holdings").textContent = Number(g.funds_retrobux || 0).toLocaleString();
   const em = document.getElementById("em");
   em.innerHTML = g.emblem_url ? `<img src="${g.emblem_url}" style="width:100%;height:100%;object-fit:cover;">` : (g.emblem || "⭐");
-  const isOwner = g.owner_id === me;
+  const isOwner = me && g.owner_id === me;
 
   const [{ data: ranks }, { data: members }] = await Promise.all([
     sb.from("group_ranks").select("*").eq("group_id", id).order("rank_number", { ascending: false }),
-    sb.from("group_members").select("user_id, rank_id, profiles(username, avatar_url)").eq("group_id", id),
+    sb.from("group_members").select("user_id, rank_id, profiles(username, avatar_url, user_number)").eq("group_id", id),
   ]);
-  const myMembership = (members || []).find((m) => m.user_id === me);
+  const myMembership = me ? (members || []).find((m) => m.user_id === me) : null;
   const myRank = myMembership ? ranks.find((r) => r.id === myMembership.rank_id) : null;
+  const perm = (p) => !!(isOwner || window.retroProfile?.is_admin || myRank?.[p]);
 
   /* join / leave */
   const joinbox = document.getElementById("joinbox");
-  if (!myMembership) {
-    joinbox.innerHTML = '<button class="btn primary" id="join">Join Group</button>';
-    document.getElementById("join").addEventListener("click", async (e) => {
-      e.target.disabled = true;
-      const { error } = await sb.rpc("join_group", { p_group: id });
-      if (error) { toast(friendly(error.message), "err"); e.target.disabled = false; }
-      else { toast("Welcome to the group!", "ok"); setTimeout(()=>location.reload(), 900); }
-    });
+  if (!me) {
+    joinbox.innerHTML = '<a class="btn primary" href="index.html">Log in to join</a>';
+  } else if (!myMembership) {
+    const { data: pending } = await sb.from("group_join_requests").select("id").eq("group_id", id).eq("user_id", me).maybeSingle();
+    if (pending) {
+      joinbox.innerHTML = '<button class="btn ghost" disabled>Request pending…</button>';
+    } else {
+      joinbox.innerHTML = `<button class="btn primary" id="join">${g.join_approval ? "Request to Join" : "Join Group"}</button>`;
+      document.getElementById("join").addEventListener("click", async (e) => {
+        e.target.disabled = true;
+        const { data, error } = await sb.rpc("join_group", { p_group: id });
+        if (error) { toast(friendly(error.message), "err"); e.target.disabled = false; }
+        else if (data === "requested") { toast("Join request sent!", "ok"); setTimeout(()=>location.reload(), 900); }
+        else { toast("Welcome to the group!", "ok"); setTimeout(()=>location.reload(), 900); }
+      });
+    }
   } else if (!isOwner) {
     joinbox.innerHTML = '<button class="btn ghost" id="leave">Leave Group</button>';
     document.getElementById("leave").addEventListener("click", async (e) => {
@@ -142,12 +193,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  /* join requests (accept_requests permission) */
+  if (perm("can_accept_requests")) {
+    const { data: reqs } = await sb.from("group_join_requests")
+      .select("user_id, created_at, profiles(username)").eq("group_id", id).order("created_at");
+    if (reqs?.length) {
+      document.getElementById("joinreq-panel").style.display = "block";
+      document.getElementById("joinreqs").innerHTML = reqs.map((r) => `
+        <div class="mrow"><span>${esc(r.profiles?.username)}</span>
+          <span style="margin-left:auto;display:flex;gap:6px;">
+            <button class="btn primary small" data-acc="${r.user_id}">Accept</button>
+            <button class="btn ghost small" data-dec="${r.user_id}">Decline</button>
+          </span></div>`).join("");
+      document.querySelectorAll("[data-acc],[data-dec]").forEach((b) => b.addEventListener("click", async () => {
+        const accept = b.hasAttribute("data-acc");
+        const { error } = await sb.rpc("respond_join_request", { p_group: id, p_user: b.dataset.acc || b.dataset.dec, p_accept: accept });
+        if (error) toast(friendly(error.message), "err");
+        else { toast(accept ? "Member accepted." : "Request declined.", "ok"); setTimeout(()=>location.reload(), 800); }
+      }));
+    }
+  }
+
   /* shout */
-  const canShout = isOwner || myRank?.can_manage_members;
+  const canShout = perm("can_manage_members");
   if (g.shout || canShout) {
     document.getElementById("shout-panel").style.display = "block";
     document.getElementById("shout-current").innerHTML = g.shout
-      ? `“${g.shout.replace(/</g,"&lt;")}” <span style="font-size:11px;">— ${g.shout_at ? new Date(g.shout_at).toLocaleString() : ""}</span>`
+      ? `“${esc(g.shout)}” <span style="font-size:11px;">— ${g.shout_at ? new Date(g.shout_at).toLocaleString() : ""}</span>`
       : "No shout yet.";
     if (canShout) {
       document.getElementById("shout-form").style.display = "flex";
@@ -161,33 +233,46 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  /* wall */
+  /* wall — paginated, newest first */
+  const PAGE_SIZE = 10;
+  let wallPage = 0, wallTotal = 0;
   if (myRank?.can_post_wall) document.getElementById("wform").style.display = "flex";
   async function loadWall() {
-    const { data: posts } = await sb.from("group_wall_posts")
-      .select("*, author:profiles(username)").eq("group_id", id).order("created_at", { ascending: false }).limit(50);
-    const canModerate = isOwner || window.retroProfile?.is_admin;
-    document.getElementById("wall").innerHTML = (posts || []).map((p) => `
-      <div class="wpost"><span class="wa">${p.author?.username || "?"}</span><span class="wt">${new Date(p.created_at).toLocaleString()}</span>
-        ${(canModerate || p.author_id === me) ? `<button class="btn ghost small" style="float:right;" data-del="${p.id}">✕</button>` : ""}
-        <div style="margin-top:4px;">${p.body.replace(/</g,"&lt;")}</div>
+    const { data, error } = await sb.rpc("get_group_wall", { p_group: id, p_page: wallPage, p_size: PAGE_SIZE });
+    if (error) return;
+    wallTotal = data.total || 0;
+    const posts = data.posts || [];
+    const canDelete = perm("can_delete_wall");
+    document.getElementById("wall").innerHTML = posts.map((p) => `
+      <div class="wpost"><a class="wa" href="${window.profileUrl(p)}">${esc(p.username)}</a><span class="wt">${new Date(p.created_at).toLocaleString()}</span>
+        ${(canDelete || p.author_id === me) ? `<button class="btn ghost small" style="float:right;" data-del="${p.id}">✕</button>` : ""}
+        <div style="margin-top:4px;">${esc(p.body)}</div>
       </div>`).join("") || '<div style="color:var(--muted);font-size:13px;">Nothing on the wall yet.</div>';
     document.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
-      const { error } = await sb.from("group_wall_posts").delete().eq("id", b.dataset.del);
+      const { error } = await sb.rpc("delete_group_wall_post", { p_post: Number(b.dataset.del) });
       if (error) toast(friendly(error.message), "err"); else loadWall();
     }));
+    const pages = Math.max(1, Math.ceil(wallTotal / PAGE_SIZE));
+    const pager = document.getElementById("wpager");
+    pager.style.display = pages > 1 ? "flex" : "none";
+    document.getElementById("wpage-info").textContent = `Page ${wallPage + 1} of ${pages}`;
+    document.getElementById("wprev").disabled = wallPage === 0;
+    document.getElementById("wnext").disabled = wallPage >= pages - 1;
   }
+  document.getElementById("wprev").addEventListener("click", () => { if (wallPage > 0) { wallPage--; loadWall(); } });
+  document.getElementById("wnext").addEventListener("click", () => { wallPage++; loadWall(); });
   loadWall();
   document.getElementById("wall-post")?.addEventListener("click", async () => {
     const body = document.getElementById("wall-input").value.trim();
     if (!body) return;
     const { error } = await sb.rpc("post_group_wall", { p_group: id, p_body: body });
     if (error) toast(friendly(error.message), "err");
-    else { document.getElementById("wall-input").value = ""; loadWall(); }
+    else { document.getElementById("wall-input").value = ""; wallPage = 0; loadWall(); }
   });
 
   /* members grouped by rank */
-  const canManage = myRank?.can_manage_members || window.retroProfile?.is_admin;
+  const canManage = perm("can_manage_members");
+  const canKick = perm("can_kick");
   const mbox = document.getElementById("members");
   mbox.innerHTML = "";
   (ranks || []).forEach((r) => {
@@ -201,33 +286,86 @@ document.addEventListener("DOMContentLoaded", async () => {
       const row = document.createElement("div");
       row.className = "mrow";
       row.innerHTML = `<img src="${m.profiles?.avatar_url || ""}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--thumb);" onerror="this.style.visibility='hidden'">
-        <a href="profile.html?u=${m.profiles?.username}">${m.profiles?.username || "?"}</a>`;
+        <a href="${window.profileUrl(m.profiles)}">${esc(m.profiles?.username) || "?"}</a>`;
+      const right = document.createElement("span");
+      right.style.cssText = "margin-left:auto;display:flex;gap:6px;align-items:center;";
       if (canManage && m.user_id !== g.owner_id) {
         const sel = document.createElement("select");
         sel.className = "rank-sel";
-        sel.style.marginLeft = "auto";
         sel.innerHTML = ranks.filter((x) => x.rank_number < 255).map((x) =>
-          `<option value="${x.id}" ${x.id === m.rank_id ? "selected" : ""}>${x.name}</option>`).join("");
+          `<option value="${x.id}" ${x.id === m.rank_id ? "selected" : ""}>${esc(x.name)}</option>`).join("");
         sel.addEventListener("change", async () => {
           const { error } = await sb.rpc("set_member_rank", { p_group: id, p_user: m.user_id, p_rank: sel.value });
           if (error) toast(friendly(error.message), "err"); else toast("Rank updated.", "ok");
         });
-        row.appendChild(sel);
+        right.appendChild(sel);
       }
+      if (canKick && m.user_id !== g.owner_id && m.user_id !== me) {
+        const kb = document.createElement("button");
+        kb.className = "btn ghost small";
+        kb.textContent = "Kick";
+        kb.addEventListener("click", async () => {
+          if (!confirm(`Kick ${m.profiles?.username} from the group?`)) return;
+          const { error } = await sb.rpc("kick_group_member", { p_group: id, p_user: m.user_id });
+          if (error) toast(friendly(error.message), "err");
+          else { toast("Member kicked.", "ok"); setTimeout(()=>location.reload(), 800); }
+        });
+        right.appendChild(kb);
+      }
+      row.appendChild(right);
       mbox.appendChild(row);
     });
   });
 
+  /* funds & payouts (spend_funds permission) */
+  if (perm("can_spend_funds")) {
+    document.getElementById("funds-admin").style.display = "block";
+    document.getElementById("rev-link").href = `group-revenue.html?id=${id}`;
+    const opts = (members || []).map((m) =>
+      `<option value="${m.user_id}">${esc(m.profiles?.username)}</option>`).join("");
+    document.getElementById("pay-member").innerHTML = opts;
+    document.getElementById("rpay-member").innerHTML = opts;
+    document.getElementById("pay-once").addEventListener("click", async () => {
+      const amt = parseInt(document.getElementById("pay-amount").value, 10);
+      if (!Number.isFinite(amt) || amt <= 0) return toast("Enter a valid amount.", "err");
+      const { error } = await sb.rpc("group_payout", { p_group: id, p_user: document.getElementById("pay-member").value, p_amount: amt });
+      if (error) toast(friendly(error.message), "err");
+      else { toast("Payout sent from group funds.", "ok"); setTimeout(()=>location.reload(), 900); }
+    });
+    document.getElementById("rpay-set").addEventListener("click", async () => {
+      const pct = parseInt(document.getElementById("rpay-pct").value, 10);
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) return toast("Percent must be 0–100 (0 removes).", "err");
+      const { error } = await sb.rpc("set_group_payout", { p_group: id, p_user: document.getElementById("rpay-member").value, p_percent: pct });
+      if (error) toast(friendly(error.message), "err");
+      else { toast(pct ? "Recurring payout set." : "Recurring payout removed.", "ok"); loadPayoutList(); }
+    });
+    async function loadPayoutList() {
+      const { data } = await sb.from("group_payout_configs").select("percent, profiles(username)").eq("group_id", id);
+      document.getElementById("rpay-list").innerHTML = (data || []).length
+        ? "Recurring: " + data.map((r) => `${esc(r.profiles?.username)} ${r.percent}%`).join(" · ")
+        : "No recurring payouts configured.";
+    }
+    loadPayoutList();
+  }
+
   /* rank admin (owner) */
   if (isOwner || window.retroProfile?.is_admin) {
     document.getElementById("rank-admin").style.display = "block";
+    const at = document.getElementById("approval-toggle");
+    at.checked = !!g.join_approval;
+    at.addEventListener("change", async () => {
+      const { error } = await sb.rpc("set_group_settings", { p_group: id, p_join_approval: at.checked });
+      if (error) { toast(friendly(error.message), "err"); at.checked = !at.checked; }
+      else toast(at.checked ? "Join approval enabled." : "Join approval disabled.", "ok");
+    });
+    const PERMS = [["rp","can_post_wall","wall"],["rdw","can_delete_wall","del wall"],["rm2","can_manage_members","manage"],
+      ["rk","can_kick","kick"],["ra","can_accept_requests","accept"],["rs","can_spend_funds","funds"],["rc","can_create_items","items"]];
     const rbox = document.getElementById("ranks");
     rbox.innerHTML = (ranks || []).map((r) => `
       <div class="rrow" data-rank="${r.id}">
-        <input type="text" value="${r.name}" ${r.rank_number === 255 ? "disabled" : ""} class="rn">
+        <input type="text" value="${esc(r.name)}" ${r.rank_number === 255 ? "disabled" : ""} class="rn">
         <input type="number" value="${r.rank_number}" min="1" max="254" ${r.rank_number === 255 ? "disabled" : ""} class="rnum">
-        <label><input type="checkbox" class="rp" ${r.can_post_wall ? "checked" : ""} ${r.rank_number === 255 ? "disabled" : ""}> wall</label>
-        <label><input type="checkbox" class="rm2" ${r.can_manage_members ? "checked" : ""} ${r.rank_number === 255 ? "disabled" : ""}> manage</label>
+        ${PERMS.map(([cls, col, lbl]) => `<label><input type="checkbox" class="${cls}" ${r[col] ? "checked" : ""} ${r.rank_number === 255 ? "disabled" : ""}> ${lbl}</label>`).join("")}
         ${r.rank_number === 255 ? '<span style="font-size:11px;color:var(--muted);">owner rank</span>'
           : `<button class="btn ghost small" data-save>Save</button><button class="btn ghost small" data-remove>Delete</button>`}
       </div>`).join("");
@@ -235,7 +373,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       const row = b.closest(".rrow");
       const { error } = await sb.rpc("manage_group_rank", { p_group: id, p_action: "update", p_rank: row.dataset.rank,
         p_name: row.querySelector(".rn").value.trim(), p_rank_number: parseInt(row.querySelector(".rnum").value, 10),
-        p_can_post: row.querySelector(".rp").checked, p_can_manage: row.querySelector(".rm2").checked });
+        p_can_post: row.querySelector(".rp").checked, p_can_manage: row.querySelector(".rm2").checked,
+        p_can_delete_wall: row.querySelector(".rdw").checked, p_can_kick: row.querySelector(".rk").checked,
+        p_can_accept: row.querySelector(".ra").checked, p_can_spend: row.querySelector(".rs").checked,
+        p_can_create: row.querySelector(".rc").checked });
       if (error) toast(friendly(error.message), "err"); else toast("Rank saved.", "ok");
     }));
     rbox.querySelectorAll("[data-remove]").forEach((b) => b.addEventListener("click", async () => {
@@ -246,8 +387,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const name = document.getElementById("nr-name").value.trim();
       const num = parseInt(document.getElementById("nr-num").value, 10);
       if (!name || !Number.isFinite(num)) return toast("Rank needs a name and number.", "err");
-      const { error } = await sb.rpc("manage_group_rank", { p_group: id, p_action: "create", p_name: name, p_rank_number: num,
-        p_can_post: document.getElementById("nr-post").checked, p_can_manage: document.getElementById("nr-manage").checked });
+      const { error } = await sb.rpc("manage_group_rank", { p_group: id, p_action: "create", p_name: name, p_rank_number: num });
       if (error) toast(friendly(error.message), "err"); else { toast("Rank created.", "ok"); setTimeout(()=>location.reload(), 800); }
     });
   }

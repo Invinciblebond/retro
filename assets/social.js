@@ -79,7 +79,7 @@ async function renderOnlineRail() {
     const { data, error } = await supabase.rpc("recent_signups", { max_rows: 8 });
     if (error || !data) return;
     const rows = data.map((u) => `
-      <div class="fr" data-hovercard="${u.username}">
+      <div class="fr" data-hovercard="${u.username}" onclick="location.href=window.profileUrl({username:'${u.username}',user_number:${u.user_number ?? "null"}})" style="cursor:pointer;">
         <span class="fpfp">${u.avatar_url ? `<img class="fav" src="${u.avatar_url}" alt="">` : (u.username || "?").slice(0, 2).toUpperCase()}
           <span class="${u.is_online ? "dot-on" : "dot-off"}"></span></span>
         ${u.username}
@@ -193,7 +193,7 @@ function wireSearch() {
       : `<div class="sd-empty">No users matching “${q}”</div>`)
       + `<div class="sd-item" data-full="1"><span class="sic">🔎</span>Search catalog for “${q}” <span class="sub off">Enter ↵</span></div>`;
     drop.querySelectorAll("[data-user]").forEach((el) =>
-      el.addEventListener("click", () => toast("User profiles are coming soon!", "info")));
+      el.addEventListener("click", () => { location.href = window.profileUrl(el.dataset.user); }));
     drop.querySelector("[data-full]")?.addEventListener("click", () => submitSearch(q));
     open();
   }
@@ -319,7 +319,8 @@ async function showHovercard(anchor) {
     toast(error ? error.message : `You and ${uname} are now friends!`, error ? "err" : "ok");
     removeHovercard();
   });
-  hcEl.querySelector("[data-hc-profile]")?.addEventListener("click", () => toast("Full profiles are coming soon!", "info"));
+  hcEl.querySelector("[data-hc-profile]")?.addEventListener("click", () =>
+    { location.href = window.profileUrl({ username: u.username, user_number: u.user_number }); });
 }
 
 /* ---------- Notification bell ---------- */

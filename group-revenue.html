@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Group Revenue — Utopoly</title>
+<link rel="stylesheet" href="assets/retro.css?v=0.07">
+<style>
+  .gwrap { max-width:980px; margin:24px auto; padding:0 20px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .totals { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+  .tot { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 18px; min-width:160px; }
+  .tot .tl { font-size:10px; letter-spacing:1.2px; color:var(--muted); text-transform:uppercase; font-weight:800; }
+  .tot .tv { font-size:20px; font-weight:900; margin-top:4px; }
+  table.rev { width:100%; border-collapse:collapse; font-size:13px; }
+  table.rev th { text-align:left; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--line); }
+  table.rev td { padding:8px; border-bottom:1px solid var(--line); }
+  table.rev tr:last-child td { border-bottom:none; }
+  .amt-pos { color:#1a9c37; font-weight:800; } .amt-neg { color:#e2231a; font-weight:800; }
+</style>
+</head>
+<body class="theme-1" data-page="group">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="gwrap">
+      <h1 style="font-size:22px;font-weight:900;margin-bottom:4px;" id="gname">Group revenue</h1>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;"><a href="#" id="back">← Back to group</a></p>
+
+      <div class="totals">
+        <div class="tot"><div class="tl">Group holdings</div><div class="tv"><span id="funds">…</span> RETROBUX</div></div>
+        <div class="tot"><div class="tl">Total gross sales</div><div class="tv"><span id="gross">…</span> RETROBUX</div></div>
+        <div class="tot"><div class="tl">Total net revenue</div><div class="tv"><span id="net">…</span> RETROBUX</div></div>
+      </div>
+
+      <div class="panel">
+        <h4>Sales</h4>
+        <table class="rev"><thead><tr><th>Date</th><th>Item</th><th>Buyer</th><th>Price</th><th>Currency</th></tr></thead>
+        <tbody id="sales"></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h4>Fund ledger</h4>
+        <table class="rev"><thead><tr><th>Date</th><th>Type</th><th>Counterparty</th><th>Amount</th><th>Note</th></tr></thead>
+        <tbody id="ledger"></tbody></table>
+      </div>
+    </div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js?v=0.07"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js?v=0.07"></script>
+<script src="assets/supabaseClient.js?v=0.07"></script>
+<script src="assets/auth.js?v=0.07"></script>
+<script src="assets/i18n.js?v=0.07"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t) => window.retroAuth?.toast?.(m,t);
+  const esc = (s) => String(s ?? "").replace(/</g,"&lt;");
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id) { location.replace("groups.html"); return; }
+  document.getElementById("back").href = `group.html?id=${id}`;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.replace(`group.html?id=${id}`); return; }
+
+  const { data: g } = await sb.from("groups").select("name").eq("id", id).single();
+  if (g) document.getElementById("gname").textContent = `${g.name} — Revenue`;
+
+  const { data, error } = await sb.rpc("get_group_sales", { p_group: id, p_limit: 200 });
+  if (error) {
+    toast("You don't have permission to view this group's revenue.", "err");
+    setTimeout(()=>location.replace(`group.html?id=${id}`), 1200);
+    return;
+  }
+  document.getElementById("funds").textContent = Number(data.funds || 0).toLocaleString();
+  document.getElementById("gross").textContent = Number(data.total_gross || 0).toLocaleString();
+  document.getElementById("net").textContent = Number(data.total_net || 0).toLocaleString();
+
+  document.getElementById("sales").innerHTML = (data.sales || []).map((s) => `
+    <tr><td>${new Date(s.created_at).toLocaleString()}</td><td>${esc(s.item_name)}</td>
+    <td>${esc(s.buyer) || "?"}</td><td>${Number(s.price).toLocaleString()}</td><td>${s.currency.toUpperCase()}</td></tr>`).join("")
+    || '<tr><td colspan="5" style="color:var(--muted);">No sales yet.</td></tr>';
+
+  document.getElementById("ledger").innerHTML = (data.ledger || []).map((l) => `
+    <tr><td>${new Date(l.created_at).toLocaleString()}</td><td>${esc(l.kind)}</td>
+    <td>${esc(l.counterparty) || "—"}</td>
+    <td class="${l.amount >= 0 ? "amt-pos" : "amt-neg"}">${l.amount >= 0 ? "+" : ""}${Number(l.amount).toLocaleString()} ${l.currency.toUpperCase()}</td>
+    <td>${esc(l.note) || ""}</td></tr>`).join("")
+    || '<tr><td colspan="5" style="color:var(--muted);">No fund activity yet.</td></tr>';
+});
+</script>
+</body>
+</html>

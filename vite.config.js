@@ -23,6 +23,7 @@ export default defineConfig({
         game: resolve(__dirname, "game.html"),
         groups: resolve(__dirname, "groups.html"),
         group: resolve(__dirname, "group.html"),
+        "group-revenue": resolve(__dirname, "group-revenue.html"),
         avatar: resolve(__dirname, "avatar.html"),
         profile: resolve(__dirname, "profile.html"),
         settings: resolve(__dirname, "settings.html"),

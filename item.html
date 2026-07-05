@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   ov.addEventListener("click", (e) => { if (e.target === ov) closeModal(); });
 
   const { data: item, error } = await sb.from("catalog_items")
-    .select("id, name, price, category, icon, image_url, on_sale, sale_percent, item_type, stock, total_quantity, rap, description, created_at, creator_id, creator:profiles(username)")
+    .select("id, name, price, category, icon, image_url, on_sale, sale_percent, item_type, stock, total_quantity, rap, description, created_at, creator_id, creator:profiles(username, user_number)")
     .eq("id", id).single();
   if (error || !item) { toast("Item not found.", "err"); setTimeout(()=>location.replace("catalog.html"), 900); return; }
   document.title = `${item.name} — Utopoly`;
@@ -122,10 +122,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const nameEl = document.getElementById("iname");
   nameEl.textContent = item.name; nameEl.style.display = "block";
 
-  // type tag — ULimited: green U + gold Limited
+  // type tag — ULIMITED: green band + yellow U badge; LIMITED: gold badge
   const typeEl = document.getElementById("itype");
-  if (item.item_type === "limited_u") typeEl.innerHTML = '<span class="type-tag"><span class="u">U</span><span class="lim">Limited</span></span>';
-  else if (item.item_type === "limited") typeEl.innerHTML = '<span class="type-tag limited">LIMITED</span>';
+  if (item.item_type === "limited_u") typeEl.innerHTML = '<span class="badge-ulim lg"><span class="bl">LIMITED</span><span class="bu">U</span></span>';
+  else if (item.item_type === "limited") typeEl.innerHTML = '<span class="badge-lim lg">LIMITED</span>';
   else typeEl.innerHTML = `<span class="type-tag normal">${item.category?.toUpperCase() || "ITEM"}</span>`;
 
   const salePrice = item.sale_percent ? Math.floor(item.price * (100 - item.sale_percent) / 100) : item.price;
@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const creatorName = item.creator?.username;
   document.getElementById("istock").insertAdjacentHTML("beforebegin",
     `<div style="font-size:12.5px;color:var(--muted);font-weight:700;margin-bottom:8px;">By ${creatorName
-      ? `<a href="profile.html?u=${encodeURIComponent(creatorName)}" data-hovercard="${creatorName}" style="color:var(--accent2);">${creatorName}</a>`
+      ? `<a href="${window.profileUrl(item.creator)}" data-hovercard="${creatorName}" style="color:var(--accent2);">${creatorName}</a>`
       : '<span style="color:var(--accent2);">Utopoly</span>'}</div>`);
   if (!item.on_sale && !IS_LIMITED) {
     document.getElementById("istock").textContent = "Off-sale — no longer purchasable from the catalog.";
@@ -278,13 +278,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (RESELLABLE) {
     const panel = document.getElementById("resale-panel");
     panel.style.display = "block";
+    if (item.item_type === "limited_u")
+      panel.querySelector("h4").insertAdjacentHTML("beforeend", ' <span class="badge-ulim" style="vertical-align:middle;"><span class="bl">LIMITED</span><span class="bu">U</span></span>');
     const box = document.getElementById("listings");
     box.innerHTML = Array.from({length:3},()=>'<div class="skel" style="height:38px;margin-bottom:8px;"></div>').join("");
     const { data: ls } = await sb.rpc("get_item_listings", { p_item: id });
     const myListings = new Set(mine.filter((c) => c.listed).map((c) => c.listing_id));
     box.innerHTML = (ls && ls.length) ? ls.map((l) => `
       <div class="listing">
-        <span data-hovercard="${l.seller}">${l.seller}</span>
+        <a href="${window.profileUrl({ username: l.seller, user_number: l.seller_number })}" data-hovercard="${l.seller}">${l.seller}</a>
         <span class="price"><span class="ric">R</span> ${l.price.toLocaleString()}</span>
         ${myListings.has(l.listing_id)
           ? `<button class="btn ghost small" data-cancel="${l.listing_id}">Remove</button>`

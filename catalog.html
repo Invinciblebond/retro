@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     else if (s === "Newest") list = list.slice().reverse();
 
     const badge = (it) => {
-      if (it.ty === 'limited_u') return `<span class="ribbon" style="background:#111;"><span style="color:#2ecc40;font-weight:900;">U</span><span style="color:#f1c40f;font-weight:900;">Limited</span></span>`;
+      if (it.ty === 'limited_u') return `<span class="ribbon ulim badge-ulim"><span class="bl">LIMITED</span><span class="bu">U</span></span>`;
       if (it.ty === 'limited') return `<span class="ribbon" style="background:#f1c40f;color:#111;">LIMITED${(it.st ?? 0) > 0 ? ` · ${it.st} LEFT` : ''}</span>`;
       if (it.sp) return `<span class="ribbon" style="background:#2ecc40;color:#111;">-${it.sp}%</span>`;
       if (it.ca && (Date.now() - new Date(it.ca)) < 7*24*3600*1000) return `<span class="ribbon" style="background:var(--accent2);color:#111;">NEW</span>`;

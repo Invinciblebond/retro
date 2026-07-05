@@ -172,7 +172,7 @@ function setAvatarImg(el, url, username) {
 async function loadProfile(user) {
   let { data: profile, error } = await supabase
     .from("profiles")
-    .select("username, retrobux, rix, is_admin, display_name, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
+    .select("username, user_number, retrobux, rix, is_admin, display_name, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
     .eq("id", user.id)
     .single();
   if (error || !profile) return;
@@ -245,7 +245,11 @@ async function loadProfile(user) {
   }
 
   const nameEl = document.getElementById("profile-username");
-  if (nameEl) nameEl.textContent = uname;
+  if (nameEl) {
+    // username links to the user's own profile (Profile removed from sidebar)
+    nameEl.innerHTML = `<a href="${window.profileUrl?.({ username: uname, user_number: profile.user_number }) || "profile.html"}" style="color:inherit;text-decoration:none;">${uname}</a>`;
+    nameEl.style.cursor = "pointer";
+  }
   const avEl = document.getElementById("profile-avatar");
   if (avEl) {
     avEl.src = profile.avatar_url || DEFAULT_AVATAR;
@@ -257,6 +261,35 @@ async function loadProfile(user) {
   }
 
   document.dispatchEvent(new CustomEvent("retro:profile", { detail: profile }));
+
+  loadSocialCounts(user.id);
+}
+
+/* ---------- Real friend/follower counts (home page) ---------- */
+async function loadSocialCounts(uid) {
+  const friendEl = document.getElementById("friend-count");
+  const followerEl = document.getElementById("follower-count");
+  if (!friendEl && !followerEl) return;
+  try {
+    if (friendEl) {
+      const { count, error } = await supabase
+        .from("friendships")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "accepted")
+        .or(`requester.eq.${uid},addressee.eq.${uid}`);
+      if (!error) friendEl.textContent = count ?? 0;
+    }
+    if (followerEl) {
+      const { count, error } = await supabase
+        .from("follows")
+        .select("follower_id", { count: "exact", head: true })
+        .eq("target_type", "user")
+        .eq("target_id", uid);
+      if (!error) followerEl.textContent = count ?? 0;
+    }
+  } catch (e) {
+    console.warn("social counts failed", e);
+  }
 }
 
 /* ---------- Profile updates (RLS: own row only) ---------- */

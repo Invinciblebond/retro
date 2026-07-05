@@ -85,7 +85,9 @@ img { max-width:100%; display:block; }
 .rail a.ritem { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:8px; font-size:14px; font-weight:600; color:var(--muted); margin-bottom:2px; }
 .rail a.ritem:hover { background:var(--card); color:var(--txt); }
 .rail a.ritem.active { background:var(--card); color:var(--txt); box-shadow:inset 3px 0 0 var(--accent); }
-.rail a.ritem .ic { width:20px; text-align:center; opacity:.85; }
+.rail a.ritem .ic { width:20px; height:20px; flex-shrink:0; text-align:center; opacity:.8; transition:opacity .12s; }
+.rail a.ritem:hover .ic, .rail a.ritem.active .ic { opacity:1; }
+.rail a.ritem.active svg.ic { stroke-width:2.2; }
 .main-col { flex:1; min-width:0; }
 
 /* ---------- Cards / carousels ---------- */
@@ -148,3 +150,12 @@ img { max-width:100%; display:block; }
   body.has-tabbar { padding-bottom:64px; }
   .right-rail { display:none !important; }
 }
+
+/* ---- Item type badges: LIMITED (gold) vs ULIMITED (green band + yellow U) ---- */
+.badge-lim { display:inline-flex; align-items:center; background:#f1c40f; color:#111; font-weight:900; font-size:9.5px; letter-spacing:1px; padding:3px 8px; border-radius:3px; }
+.badge-ulim { display:inline-flex; align-items:stretch; font-weight:900; font-size:9.5px; letter-spacing:1px; border-radius:3px; overflow:hidden; line-height:1; }
+.badge-ulim .bl { background:#1fa83d; color:#fff; padding:4px 6px 4px 8px; display:flex; align-items:center; }
+.badge-ulim .bu { background:#f1c40f; color:#111; padding:4px 7px 4px 10px; clip-path:polygon(30% 0, 100% 0, 100% 100%, 0 100%); margin-left:-5px; display:flex; align-items:center; }
+.badge-lim.lg, .badge-ulim.lg { font-size:12px; }
+.ribbon.ulim { background:transparent; padding:0; box-shadow:none; display:inline-flex; }
+.ribbon.ulim .bl { box-shadow:0 2px 6px rgba(0,0,0,.3); }

@@ -129,7 +129,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const el = document.createElement("div");
     el.className = "titem";
     el.innerHTML = `<span class="tic">${inv.image_url ? `<img src="${inv.image_url}">` : (inv.icon || "📦")}</span>
-      <span>${inv.name}${inv.serial ? ` <span style="color:var(--muted);">#${inv.serial}</span>` : ""}</span>
+      <span>${inv.name}${inv.serial ? ` <span style="color:var(--muted);">#${inv.serial}</span>` : ""}
+        ${inv.item_type === "limited_u" ? '<span class="badge-ulim"><span class="bl">LIMITED</span><span class="bu">U</span></span>' : '<span class="badge-lim">LIMITED</span>'}</span>
       <span class="rap">RAP ${(inv.rap ?? 0).toLocaleString()}</span>`;
     el.addEventListener("click", () => {
       if (selSet.has(inv.inv_id)) selSet.delete(inv.inv_id); else selSet.add(inv.inv_id);
@@ -144,7 +145,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       .select("id, serial, catalog_items!inner(id, name, icon, image_url, rap, item_type)")
       .eq("user_id", uid).in("catalog_items.item_type", ["limited","limited_u"]);
     return (data || []).map((r) => ({ inv_id: r.id, serial: r.serial, name: r.catalog_items.name,
-      icon: r.catalog_items.icon, image_url: r.catalog_items.image_url, rap: r.catalog_items.rap }));
+      icon: r.catalog_items.icon, image_url: r.catalog_items.image_url, rap: r.catalog_items.rap,
+      item_type: r.catalog_items.item_type }));
   }
 
   /* my items */
@@ -162,15 +164,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     const v = q.value.trim();
     if (v.length < 2) { drop.classList.remove("open"); return; }
     deb = setTimeout(async () => {
-      const { data } = await sb.from("profiles").select("id, username").ilike("username", `%${v}%`).neq("id", me).limit(6);
-      drop.innerHTML = (data || []).map((u) => `<div data-id="${u.id}" data-name="${u.username}">${u.username}</div>`).join("") || '<div style="color:var(--muted);">No users found</div>';
+      const { data } = await sb.from("profiles").select("id, username, user_number").ilike("username", `%${v}%`).neq("id", me).limit(6);
+      drop.innerHTML = (data || []).map((u) => `<div data-id="${u.id}" data-name="${u.username}" data-num="${u.user_number ?? ""}">${u.username}</div>`).join("") || '<div style="color:var(--muted);">No users found</div>';
       drop.classList.add("open");
       drop.querySelectorAll("[data-id]").forEach((d) => d.addEventListener("click", async () => {
         state.partner = { id: d.dataset.id, username: d.dataset.name };
         state.theirSel.clear();
         q.value = d.dataset.name;
         drop.classList.remove("open");
-        document.getElementById("partner-line").textContent = `Trading with ${d.dataset.name}`;
+        document.getElementById("partner-line").innerHTML =
+          `Trading with <a href="${window.profileUrl({ username: d.dataset.name, user_number: d.dataset.num || null })}">${d.dataset.name}</a>`;
         const box = document.getElementById("their-items");
         box.innerHTML = "Loading…";
         const inv = await loadLimiteds(state.partner.id);
