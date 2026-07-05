@@ -172,7 +172,7 @@ function setAvatarImg(el, url, username) {
 async function loadProfile(user) {
   let { data: profile, error } = await supabase
     .from("profiles")
-    .select("username, user_number, retrobux, rix, is_admin, display_name, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
+    .select("username, user_number, retrobux, rix, is_admin, is_mod, display_name, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
     .eq("id", user.id)
     .single();
   if (error || !profile) return;
@@ -247,7 +247,7 @@ async function loadProfile(user) {
   const nameEl = document.getElementById("profile-username");
   if (nameEl) {
     // username links to the user's own profile (Profile removed from sidebar)
-    nameEl.innerHTML = `<a href="${window.profileUrl?.({ username: uname, user_number: profile.user_number }) || "profile.html"}" style="color:inherit;text-decoration:none;">${uname}</a>`;
+    nameEl.innerHTML = `<a href="${window.profileUrl?.({ username: uname, user_number: profile.user_number }) || "profile.html"}" style="color:inherit;text-decoration:none;">${uname}</a>${window.staffBadgeHTML?.(profile, "self") || ""}`;
     nameEl.style.cursor = "pointer";
   }
   const avEl = document.getElementById("profile-avatar");

@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!p) { toast("User not found.", "err"); return; }
   const uid = p.id;
   document.title = `${p.username} — Utopoly`;
-  document.getElementById("pname").innerHTML = `${p.display_name || p.username} <span style="font-size:13px;color:var(--muted);font-weight:800;">#${p.user_number}</span>`;
+  document.getElementById("pname").innerHTML = `${p.display_name || p.username}${window.staffBadgeHTML?.(p, "other") || ""} <span style="font-size:13px;color:var(--muted);font-weight:800;">#${p.user_number}</span>`;
   document.getElementById("pstatus").textContent = p.status || "";
   document.getElementById("pdesc").textContent = p.description || "";
   document.getElementById("s-rap").innerHTML = `<span class="ric">R</span> ${(p.rap || 0).toLocaleString()}`;

@@ -28,6 +28,17 @@
     return u ? `profile.html?u=${encodeURIComponent(u)}` : "profile.html";
   };
 
+  /* Staff badge (admin/mod). p: profile-ish object with is_admin / is_mod.
+     mode: "self" → "You're an Admin" / "You're a moderator"
+           "other" → "This user is an admin" / "This user is a moderator" */
+  window.staffBadgeHTML = (p, mode = "other") => {
+    if (!p || (!p.is_admin && !p.is_mod)) return "";
+    const title = p.is_admin
+      ? (mode === "self" ? "You're an Admin" : "This user is an admin")
+      : (mode === "self" ? "You're a moderator" : "This user is a moderator");
+    return ` <img src="https://i.ibb.co/SX7PLrC9/adminvadge.png" alt="${p.is_admin ? "Admin" : "Moderator"} badge" title="${title}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">`;
+  };
+
   // Apply saved theme (Settings → Appearance) before anything renders
   const savedTheme = localStorage.getItem("retro:theme");
   if (savedTheme && /^theme-[1-4]$/.test(savedTheme) && page !== "landing") {
