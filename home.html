@@ -51,11 +51,20 @@
         <!-- Profile header block -->
         <div class="profile-block" id="avatar">
           <div class="avatar-frame">
-            <div class="avatar-render">
+            <div class="avatar-render" id="home-avatar-render">
               <span class="fig">🧍</span>
               AVATAR RENDER
               <span class="tag dev">IN DEV</span>
             </div>
+            <script>
+              // profiles.avatar_snapshot_url = PNG snapshot published from avatar editor
+              document.addEventListener("retro:profile", (e) => {
+                const url = e.detail?.avatar_snapshot_url;
+                if (!url) return;
+                document.getElementById("home-avatar-render").innerHTML =
+                  `<img src="${url}" alt="Your avatar" style="width:100%;height:100%;object-fit:contain;border-radius:8px;">`;
+              });
+            </script>
           </div>
           <div class="profile-meta">
             <div class="name-row">

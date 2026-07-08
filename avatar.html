@@ -12,6 +12,9 @@
   .awrap { max-width:1000px; margin:24px auto; padding:0 20px; display:flex; gap:24px; flex-wrap:wrap; }
   .apreview { width:320px; flex-shrink:0; }
   .stage { width:320px; height:400px; background:var(--card); border:1px solid var(--line); border-radius:14px; position:relative; overflow:hidden; }
+  .stage img.snap { width:100%; height:100%; object-fit:contain; display:block; }
+  .stage canvas { display:block; }
+  .view-toggle { position:absolute; top:8px; right:8px; z-index:2; padding:5px 10px; border-radius:14px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:11px; font-weight:800; cursor:pointer; }
   .aeditor { flex:1; min-width:300px; }
   .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
   .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
@@ -36,7 +39,10 @@
   <main class="main-col">
     <div class="awrap">
       <div class="apreview">
-        <div class="stage" id="stage"></div>
+        <div class="stage" id="stage">
+          <button class="view-toggle" id="view3d" style="display:none;">View in 3D</button>
+          <div id="stage-body" style="width:100%;height:100%;"></div>
+        </div>
         <button class="btn primary block" id="save" style="margin-top:14px;width:100%;">Save Avatar</button>
       </div>
       <div class="aeditor">
@@ -64,7 +70,15 @@
 <script src="assets/social.js?v=0.07"></script>
 <script src="assets/i18n.js?v=0.07"></script>
 <script src="assets/avatar-render.js?v=0.07"></script>
-<script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import { loadModel, snapshotPNG, mountViewer, svgToPNG, publishSnapshot } from "./assets/avatar3d.js?v=0.07";
+
 document.addEventListener("DOMContentLoaded", async () => {
   const sb = window.supabaseClient;
   const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
@@ -77,17 +91,45 @@ document.addEventListener("DOMContentLoaded", async () => {
   const COLORS = ["#f5d29a","#e0ac69","#8d5524","#c68642","#ffdbac","#a0c8f0","#f0a0a0","#a8e6a1","#f9e79f","#d7bde2","#aab7b8","#5d6d7e"];
 
   /* load config + inventory */
-  const { data: prof } = await sb.from("profiles").select("avatar_config").eq("id", me).single();
+  const { data: prof } = await sb.from("profiles").select("avatar_config, avatar_snapshot_url").eq("id", me).single();
   const cfg = Object.assign({ body_color: COLORS[0], equipped: {} }, prof?.avatar_config || {});
   const { data: inv } = await sb.from("inventory")
     .select("id, catalog_items(id, name, icon, image_url, category, item_type)").eq("user_id", me);
   const items = (inv || []).map((r) => r.catalog_items).filter(Boolean)
     .filter((v, i, a) => a.findIndex((x) => x.id === v.id) === i);
 
-  /* preview */
-  const stage = document.getElementById("stage");
-  const render = () => { stage.innerHTML = window.renderAvatarSVG(cfg, items); };
-  render();
+  /* preview — 2D snapshot by default, toggle to interactive 3D */
+  const stageBody = document.getElementById("stage-body");
+  const toggleBtn = document.getElementById("view3d");
+  let has3D = false, viewer = null, mode = "2d";
+  let snapUrl = prof?.avatar_snapshot_url || null;
+
+  loadModel().then(() => { has3D = true; toggleBtn.style.display = ""; }).catch(() => {});
+
+  async function show2D() {
+    if (viewer) { viewer.dispose(); viewer = null; }
+    mode = "2d"; toggleBtn.textContent = "View in 3D";
+    if (snapUrl) {
+      stageBody.innerHTML = `<img class="snap" src="${snapUrl}" alt="Your avatar">`;
+    } else if (has3D) {
+      const blob = await snapshotPNG();
+      if (blob) { stageBody.innerHTML = `<img class="snap" src="${URL.createObjectURL(blob)}" alt="Your avatar">`; return; }
+      stageBody.innerHTML = window.renderAvatarSVG(cfg, items);
+    } else {
+      stageBody.innerHTML = window.renderAvatarSVG(cfg, items); // legacy fallback until GLB exists
+    }
+  }
+
+  async function show3D() {
+    stageBody.innerHTML = "";
+    mode = "3d"; toggleBtn.textContent = "View in 2D";
+    try { viewer = await mountViewer(stageBody); }
+    catch { await show2D(); }
+  }
+
+  toggleBtn.addEventListener("click", () => (mode === "2d" ? show3D() : show2D()));
+  const render = () => { if (mode === "2d" && !snapUrl && !has3D) stageBody.innerHTML = window.renderAvatarSVG(cfg, items); };
+  await show2D();
 
   /* colors */
   const cbox = document.getElementById("colors");
@@ -139,9 +181,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     const btn = document.getElementById("save");
     btn.disabled = true; btn.textContent = "Saving…";
     const { error } = await sb.from("profiles").update({ avatar_config: cfg, updated_at: new Date().toISOString() }).eq("id", me);
+    if (error) {
+      btn.disabled = false; btn.textContent = "Save Avatar";
+      toast(window.retroAuth.friendly(error.message), "err");
+      return;
+    }
+    /* re-render snapshot on client + publish so homepage updates */
+    try {
+      btn.textContent = "Rendering…";
+      let blob = await snapshotPNG();                     // 3D model if present
+      if (!blob) blob = await svgToPNG(window.renderAvatarSVG(cfg, items)); // fallback: SVG raster
+      const url = await publishSnapshot(sb, me, blob);
+      snapUrl = url;
+      if (mode === "2d") await show2D();
+      toast("Avatar saved!", "ok");
+    } catch (e) {
+      toast("Saved, but snapshot upload failed: " + (e.message || e), "err");
+    }
     btn.disabled = false; btn.textContent = "Save Avatar";
-    if (error) toast(window.retroAuth.friendly(error.message), "err");
-    else toast("Avatar saved!", "ok");
   });
 });
 </script>

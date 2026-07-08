@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const v = q.value.trim();
     if (v.length < 2) { drop.classList.remove("open"); return; }
     deb = setTimeout(async () => {
-      const { data } = await sb.from("profiles").select("id, username, user_number").ilike("username", `%${v}%`).neq("id", me).limit(6);
+      const { data } = await sb.from("public_profiles").select("id, username, user_number").ilike("username", `%${v}%`).neq("id", me).limit(6);
       drop.innerHTML = (data || []).map((u) => `<div data-id="${u.id}" data-name="${u.username}" data-num="${u.user_number ?? ""}">${u.username}</div>`).join("") || '<div style="color:var(--muted);">No users found</div>';
       drop.classList.add("open");
       drop.querySelectorAll("[data-id]").forEach((d) => d.addEventListener("click", async () => {

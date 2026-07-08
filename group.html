@@ -111,6 +111,16 @@
         <div id="rpay-list" style="font-size:12.5px;color:var(--muted);margin-top:8px;"></div>
       </div>
 
+      <div class="panel" id="settings-admin" style="display:none;">
+        <h4>Group settings (owner)</h4>
+        <div class="frm" style="display:grid;gap:10px;max-width:420px;">
+          <input type="text" id="gs-name" maxlength="50" placeholder="Group name">
+          <textarea id="gs-desc" maxlength="500" placeholder="Description" style="padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);font-size:13.5px;font-family:inherit;"></textarea>
+          <input type="text" id="gs-emblem" maxlength="4" placeholder="Emblem (emoji)">
+          <button class="btn primary" id="gs-save" style="justify-self:start;">Save settings</button>
+        </div>
+      </div>
+
       <div class="panel" id="rank-admin" style="display:none;">
         <h4>Manage ranks (owner)</h4>
         <label style="font-size:12.5px;display:flex;gap:6px;align-items:center;margin-bottom:12px;">
@@ -148,7 +158,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const id = new URLSearchParams(location.search).get("id");
   if (!id) { location.replace("groups.html"); return; }
 
-  const { data: g, error } = await sb.from("groups").select("*, owner:profiles(username)").eq("id", id).single();
+  const { data: g, error } = await sb.from("groups").select("*, owner:public_profiles(username)").eq("id", id).single();
   if (error || !g) { toast("Group not found.", "err"); setTimeout(()=>location.replace("groups.html"), 900); return; }
   document.title = `${g.name} — Utopoly`;
   document.getElementById("name").textContent = g.name;
@@ -161,7 +171,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const [{ data: ranks }, { data: members }] = await Promise.all([
     sb.from("group_ranks").select("*").eq("group_id", id).order("rank_number", { ascending: false }),
-    sb.from("group_members").select("user_id, rank_id, profiles(username, avatar_url, user_number)").eq("group_id", id),
+    sb.from("group_members").select("user_id, rank_id, profiles:public_profiles(username, avatar_url, user_number)").eq("group_id", id),
   ]);
   const myMembership = me ? (members || []).find((m) => m.user_id === me) : null;
   const myRank = myMembership ? ranks.find((r) => r.id === myMembership.rank_id) : null;
@@ -198,7 +208,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* join requests (accept_requests permission) */
   if (perm("can_accept_requests")) {
     const { data: reqs } = await sb.from("group_join_requests")
-      .select("user_id, created_at, profiles(username)").eq("group_id", id).order("created_at");
+      .select("user_id, created_at, profiles:public_profiles(username)").eq("group_id", id).order("created_at");
     if (reqs?.length) {
       document.getElementById("joinreq-panel").style.display = "block";
       document.getElementById("joinreqs").innerHTML = reqs.map((r) => `
@@ -342,12 +352,34 @@ document.addEventListener("DOMContentLoaded", async () => {
       else { toast(pct ? "Recurring payout set." : "Recurring payout removed.", "ok"); loadPayoutList(); }
     });
     async function loadPayoutList() {
-      const { data } = await sb.from("group_payout_configs").select("percent, profiles(username)").eq("group_id", id);
+      const { data } = await sb.from("group_payout_configs").select("percent, profiles:public_profiles(username)").eq("group_id", id);
       document.getElementById("rpay-list").innerHTML = (data || []).length
         ? "Recurring: " + data.map((r) => `${esc(r.profiles?.username)} ${r.percent}%`).join(" · ")
         : "No recurring payouts configured.";
     }
     loadPayoutList();
+  }
+
+  /* group settings (owner) */
+  if (isOwner || window.retroProfile?.is_admin) {
+    document.getElementById("settings-admin").style.display = "block";
+    document.getElementById("gs-name").value = g.name || "";
+    document.getElementById("gs-desc").value = g.description || "";
+    document.getElementById("gs-emblem").value = g.emblem || "";
+    document.getElementById("gs-save").addEventListener("click", async () => {
+      const name = document.getElementById("gs-name").value.trim();
+      if (name.length < 3) return toast("Group names need at least 3 characters.", "err");
+      const btn = document.getElementById("gs-save");
+      btn.disabled = true;
+      const { error } = await sb.from("groups").update({
+        name,
+        description: document.getElementById("gs-desc").value.trim(),
+        emblem: document.getElementById("gs-emblem").value.trim() || "⭐",
+      }).eq("id", id);
+      btn.disabled = false;
+      if (error) toast(friendly(error.message), "err");
+      else { toast("Group settings saved.", "ok"); setTimeout(()=>location.reload(), 800); }
+    });
   }
 
   /* rank admin (owner) */

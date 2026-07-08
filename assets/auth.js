@@ -172,7 +172,7 @@ function setAvatarImg(el, url, username) {
 async function loadProfile(user) {
   let { data: profile, error } = await supabase
     .from("profiles")
-    .select("username, user_number, retrobux, rix, is_admin, is_mod, display_name, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
+    .select("username, user_number, retrobux, rix, is_admin, is_mod, display_name, wallet_balance, subscribed, subscription_type, avatar_url, avatar_snapshot_url, created_at")
     .eq("id", user.id)
     .single();
   if (error || !profile) return;
@@ -197,7 +197,7 @@ async function loadProfile(user) {
       .from("profiles")
       .update({ avatar_url: DEFAULT_AVATAR, updated_at: new Date().toISOString() })
       .eq("id", user.id)
-      .select("username, retrobux, wallet_balance, subscribed, subscription_type, avatar_url, created_at")
+      .select("username, retrobux, wallet_balance, subscribed, subscription_type, avatar_url, avatar_snapshot_url, created_at")
       .single();
     profile = updated || { ...profile, avatar_url: DEFAULT_AVATAR };
   }

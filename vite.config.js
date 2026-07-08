@@ -1,9 +1,32 @@
 import { defineConfig } from "vite";
-import { resolve } from "path";
+import { resolve, join, dirname } from "path";
+import { cpSync, mkdirSync, readdirSync } from "fs";
+
+// Copies classic (non-module) scripts + static files under assets/ into dist,
+// since Vite only bundles module-graph assets. Keeps dist self-contained.
+function copyStaticAssets() {
+  let outDir = "dist";
+  return {
+    name: "copy-static-assets",
+    configResolved(config) { outDir = config.build.outDir; },
+    closeBundle() {
+      const src = resolve(__dirname, "assets");
+      const dest = resolve(outDir, "assets");
+      mkdirSync(dest, { recursive: true });
+      for (const entry of readdirSync(src)) {
+        if (entry === "env.example.js") continue;
+        cpSync(join(src, entry), join(dest, entry), { recursive: true });
+      }
+    },
+  };
+}
 
 export default defineConfig({
+  plugins: [copyStaticAssets()],
   build: {
     rollupOptions: {
+      // "three" resolves at runtime via the <script type="importmap"> in avatar.html
+      external: ["three", /^three\/addons\//],
       input: {
         index: resolve(__dirname, "index.html"),
         home: resolve(__dirname, "home.html"),
