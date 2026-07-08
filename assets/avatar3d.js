@@ -4,6 +4,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 
 export const MODEL_URL = "assets/models/avatar.glb";
 
@@ -47,7 +48,8 @@ export async function snapshotPNG({ width = 640, height = 800, url = MODEL_URL }
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setSize(width, height);
   const scene = makeScene();
-  const model = gltf.scene.clone(true);
+  // SkeletonUtils.clone — plain .clone() breaks SkinnedMesh skeleton bindings (collapsed mesh)
+  const model = SkeletonUtils.clone(gltf.scene);
   scene.add(model);
   const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 100);
   frameObject(model, camera);
@@ -68,7 +70,7 @@ export async function mountViewer(container, { url = MODEL_URL } = {}) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(renderer.domElement);
   const scene = makeScene();
-  const model = gltf.scene.clone(true);
+  const model = SkeletonUtils.clone(gltf.scene); // skeleton-safe clone
   scene.add(model);
   const camera = new THREE.PerspectiveCamera(30, w / h, 0.1, 100);
   const center = frameObject(model, camera);
