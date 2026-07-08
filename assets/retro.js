@@ -3,7 +3,7 @@
   // ---- Single source of truth for the site version ----
   // Bump this on every release AND update the ?v= stamps in the HTML files
   // (they must match — a mismatch means the browser served a stale page).
-  const APP_VERSION = "0.1";
+  const APP_VERSION = "0.11";
   window.APP_VERSION = APP_VERSION;
   console.log(`%cUTOPOLY%c v${APP_VERSION}`, "font-weight:900;color:#e2231a;", "color:inherit;");
   // Stale-cache detector: compare our own <script src="...retro.js?v=N"> tag
