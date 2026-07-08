@@ -158,21 +158,28 @@ document.addEventListener("DOMContentLoaded", async () => {
   const id = new URLSearchParams(location.search).get("id");
   if (!id) { location.replace("groups.html"); return; }
 
-  const { data: g, error } = await sb.from("groups").select("*, owner:public_profiles(username)").eq("id", id).single();
+  const { data: g, error } = await sb.from("groups").select("*").eq("id", id).single();
   if (error || !g) { toast("Group not found.", "err"); setTimeout(()=>location.replace("groups.html"), 900); return; }
   document.title = `${g.name} — Utopoly`;
   document.getElementById("name").textContent = g.name;
   document.getElementById("desc").textContent = g.description || "";
-  document.getElementById("meta").textContent = `Owned by ${g.owner?.username || "?"} · ${g.member_count.toLocaleString()} members · created ${new Date(g.created_at).toLocaleDateString()}`;
   document.getElementById("holdings").textContent = Number(g.funds_retrobux || 0).toLocaleString();
   const em = document.getElementById("em");
   em.innerHTML = g.emblem_url ? `<img src="${g.emblem_url}" style="width:100%;height:100%;object-fit:cover;">` : (g.emblem || "⭐");
   const isOwner = me && g.owner_id === me;
 
-  const [{ data: ranks }, { data: members }] = await Promise.all([
+  const [{ data: ranks }, { data: rawMembers }] = await Promise.all([
     sb.from("group_ranks").select("*").eq("group_id", id).order("rank_number", { ascending: false }),
-    sb.from("group_members").select("user_id, rank_id, profiles:public_profiles(username, avatar_url, user_number)").eq("group_id", id),
+    sb.from("group_members").select("user_id, rank_id").eq("group_id", id),
   ]);
+  /* profile lookup done separately (no FK embeds on the view — keeps PostgREST happy) */
+  const profileIds = [...new Set([...(rawMembers || []).map((m) => m.user_id), g.owner_id])];
+  const { data: profRows } = await sb.from("public_profiles")
+    .select("id, username, avatar_url, user_number").in("id", profileIds);
+  const profMap = Object.fromEntries((profRows || []).map((p) => [p.id, p]));
+  const members = (rawMembers || []).map((m) => ({ ...m, profiles: profMap[m.user_id] || null }));
+  document.getElementById("meta").textContent =
+    `Owned by ${profMap[g.owner_id]?.username || "?"} · ${(g.member_count ?? 0).toLocaleString()} members · created ${new Date(g.created_at).toLocaleDateString()}`;
   const myMembership = me ? (members || []).find((m) => m.user_id === me) : null;
   const myRank = myMembership ? ranks.find((r) => r.id === myMembership.rank_id) : null;
   const perm = (p) => !!(isOwner || window.retroProfile?.is_admin || myRank?.[p]);
@@ -207,8 +214,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* join requests (accept_requests permission) */
   if (perm("can_accept_requests")) {
-    const { data: reqs } = await sb.from("group_join_requests")
-      .select("user_id, created_at, profiles:public_profiles(username)").eq("group_id", id).order("created_at");
+    const { data: reqsRaw } = await sb.from("group_join_requests")
+      .select("user_id, created_at").eq("group_id", id).order("created_at");
+    let reqs = reqsRaw || [];
+    if (reqs.length) {
+      const { data: rp } = await sb.from("public_profiles").select("id, username").in("id", reqs.map((r) => r.user_id));
+      const rpm = Object.fromEntries((rp || []).map((p) => [p.id, p]));
+      reqs = reqs.map((r) => ({ ...r, profiles: rpm[r.user_id] || null }));
+    }
     if (reqs?.length) {
       document.getElementById("joinreq-panel").style.display = "block";
       document.getElementById("joinreqs").innerHTML = reqs.map((r) => `
@@ -352,9 +365,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       else { toast(pct ? "Recurring payout set." : "Recurring payout removed.", "ok"); loadPayoutList(); }
     });
     async function loadPayoutList() {
-      const { data } = await sb.from("group_payout_configs").select("percent, profiles:public_profiles(username)").eq("group_id", id);
+      const { data } = await sb.from("group_payout_configs").select("percent, user_id").eq("group_id", id);
       document.getElementById("rpay-list").innerHTML = (data || []).length
-        ? "Recurring: " + data.map((r) => `${esc(r.profiles?.username)} ${r.percent}%`).join(" · ")
+        ? "Recurring: " + data.map((r) => `${esc(profMap[r.user_id]?.username)} ${r.percent}%`).join(" · ")
         : "No recurring payouts configured.";
     }
     loadPayoutList();
