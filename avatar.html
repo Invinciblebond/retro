@@ -104,17 +104,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   let has3D = false, viewer = null, mode = "2d";
   let snapUrl = prof?.avatar_snapshot_url || null;
 
-  loadModel().then(() => { has3D = true; toggleBtn.style.display = ""; }).catch(() => {});
+  loadModel().then(() => {
+    has3D = true; toggleBtn.style.display = "";
+    if (mode === "2d") show2D(); // re-render with fresh 3D snapshot once model is ready
+  }).catch(() => {});
 
   async function show2D() {
     if (viewer) { viewer.dispose(); viewer = null; }
     mode = "2d"; toggleBtn.textContent = "View in 3D";
-    if (snapUrl) {
-      stageBody.innerHTML = `<img class="snap" src="${snapUrl}" alt="Your avatar">`;
-    } else if (has3D) {
+    if (has3D) {
+      // Fresh client-side render so framing always matches current settings.
       const blob = await snapshotPNG();
       if (blob) { stageBody.innerHTML = `<img class="snap" src="${URL.createObjectURL(blob)}" alt="Your avatar">`; return; }
       stageBody.innerHTML = window.renderAvatarSVG(cfg, items);
+    } else if (snapUrl) {
+      stageBody.innerHTML = `<img class="snap" src="${snapUrl}" alt="Your avatar">`;
     } else {
       stageBody.innerHTML = window.renderAvatarSVG(cfg, items); // legacy fallback until GLB exists
     }

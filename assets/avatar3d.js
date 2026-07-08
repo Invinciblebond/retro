@@ -19,7 +19,8 @@ function makeScene() {
   return scene;
 }
 
-function frameObject(obj, camera, zoom = 1.25) {
+// Default framing ~3x further out than the old tight crop.
+function frameObject(obj, camera, zoom = 3.75) {
   const box = new THREE.Box3().setFromObject(obj);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
@@ -74,8 +75,9 @@ export async function mountViewer(container, { url = MODEL_URL } = {}) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.copy(center);
   controls.enableDamping = true;
-  controls.minDistance = camera.position.z * 0.4;
-  controls.maxDistance = camera.position.z * 3;
+  controls.enableZoom = true; // scroll / pinch to zoom
+  controls.minDistance = camera.position.z * 0.15; // allow zooming in close
+  controls.maxDistance = camera.position.z * 4;    // and far out
   let raf;
   (function loop() {
     raf = requestAnimationFrame(loop);
