@@ -54,6 +54,29 @@
         <h4>Your games</h4>
         <div id="my-games"><div style="color:var(--muted);font-size:13px;">Loading…</div></div>
       </div>
+
+      <div class="panel">
+        <h4>Create a T-shirt</h4>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">Upload a PNG decal — it prints on the front of the torso, over any shirt. Publishing costs <span class="ric">R</span> <span id="t-fee">5</span> and your T-shirt goes live in the catalog instantly. You automatically own your creation.</p>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;">
+          <div class="frm" style="flex:1;min-width:260px;">
+            <input type="text" id="t-name" maxlength="80" placeholder="T-shirt name">
+            <textarea id="t-desc" maxlength="500" placeholder="Description (optional)"></textarea>
+            <input type="file" id="t-file" accept="image/png">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <input type="number" id="t-price" min="1" placeholder="Price (Retrobux, min 1)" style="width:180px;">
+              <label style="font-size:12.5px;font-weight:700;display:flex;gap:6px;align-items:center;">
+                <input type="checkbox" id="t-offsale"> Off-sale (wear it yourself, don't sell)
+              </label>
+            </div>
+            <button class="btn primary" id="t-publish" style="justify-self:start;">Publish — <span class="ric">R</span> 5</button>
+          </div>
+          <div>
+            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Live preview</div>
+            <div id="t-preview" style="width:230px;height:300px;border:1px solid var(--line);border-radius:10px;background:var(--thumb);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">Upload a PNG to preview</div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -67,6 +90,107 @@
 <script src="assets/auth.js?v=0.07"></script>
 <script src="assets/social.js?v=0.07"></script>
 <script src="assets/i18n.js?v=0.07"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import { mountViewer } from "./assets/avatar3d.js?v=0.07";
+
+/* ===== T-shirt creator: PNG upload -> spinning mannequin preview -> create_tshirt RPC ===== */
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const me = session.user.id;
+
+  // fee comes from DB config, never hardcoded logic
+  let fee = 5;
+  sb.rpc("cfg_int", { p_key: "tshirt_creation_fee", p_field: "amount" }).then(({ data }) => {
+    if (data != null) { fee = data; document.getElementById("t-fee").textContent = data;
+      document.getElementById("t-publish").innerHTML = `Publish — <span class="ric">R</span> ${data}`; }
+  });
+
+  const fileInput = document.getElementById("t-file");
+  const previewBox = document.getElementById("t-preview");
+  let decalDataUrl = null, decalFile = null, viewer = null;
+
+  document.getElementById("t-offsale").addEventListener("change", (e) => {
+    document.getElementById("t-price").disabled = e.target.checked;
+  });
+
+  fileInput.addEventListener("change", () => {
+    decalDataUrl = null; decalFile = null;
+    const f = fileInput.files?.[0];
+    if (!f) return;
+    if (f.type !== "image/png") { fileInput.value = ""; return toast("T-shirt decals must be PNG files.", "err"); }
+    if (f.size > 2 * 1024 * 1024) { fileInput.value = ""; return toast("PNG too large — keep it under 2 MB.", "err"); }
+    const url = URL.createObjectURL(f);
+    const im = new Image();
+    im.onload = async () => {
+      URL.revokeObjectURL(url);
+      if (im.naturalWidth > 1024 || im.naturalHeight > 1024) {
+        fileInput.value = "";
+        return toast(`Max 1024×1024 px (yours is ${im.naturalWidth}×${im.naturalHeight}).`, "err", 5000);
+      }
+      const r = new FileReader();
+      r.onload = async () => {
+        decalDataUrl = r.result; decalFile = f;
+        // spinning mannequin: composite decal onto the front-torso UV region only
+        if (viewer) { viewer.dispose(); viewer = null; }
+        previewBox.innerHTML = "";
+        try {
+          viewer = await mountViewer(previewBox, {
+            cfg: { body_color: "#f5d29a", equipped: { tshirt: "preview" } },
+            items: [{ id: "preview", image_url: decalDataUrl }],
+            autoRotate: true,
+          });
+        } catch { previewBox.textContent = "3D preview unavailable"; }
+      };
+      r.readAsDataURL(f);
+    };
+    im.onerror = () => { fileInput.value = ""; toast("Could not read that PNG.", "err"); };
+    im.src = url;
+  });
+
+  document.getElementById("t-publish").addEventListener("click", async () => {
+    const name = document.getElementById("t-name").value.trim();
+    const offsale = document.getElementById("t-offsale").checked;
+    const price = parseInt(document.getElementById("t-price").value, 10);
+    if (!name) return toast("Give your T-shirt a name.", "err");
+    if (!decalFile) return toast("Upload a PNG decal first.", "err");
+    if (!offsale && (!Number.isFinite(price) || price < 1)) return toast("Set a price of at least 1 Retrobux, or mark it off-sale.", "err");
+    const btn = document.getElementById("t-publish");
+    btn.disabled = true; btn.textContent = "Publishing…";
+    try {
+      // sanitized filename: uuid only, never the user's original name
+      const path = `${me}/${crypto.randomUUID()}.png`;
+      const { error: upErr } = await sb.storage.from("tshirts").upload(path, decalFile, { contentType: "image/png" });
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from("tshirts").getPublicUrl(path);
+      const { error } = await sb.rpc("create_tshirt", {
+        p_name: name,
+        p_description: document.getElementById("t-desc").value.trim(),
+        p_image_url: pub.publicUrl,
+        p_price: offsale ? 0 : price,
+        p_on_sale: !offsale,
+      });
+      if (error) throw error;
+      toast("T-shirt published! It's live in the catalog now and already in your inventory.", "ok", 6000);
+      ["t-name","t-desc","t-price"].forEach((i) => document.getElementById(i).value = "");
+      fileInput.value = ""; decalDataUrl = null; decalFile = null;
+      if (viewer) { viewer.dispose(); viewer = null; }
+      previewBox.textContent = "Upload a PNG to preview";
+      window.retroAuth?.refreshBalances?.();
+    } catch (e) { toast(friendly(e.message), "err"); }
+    btn.disabled = false; btn.innerHTML = `Publish — <span class="ric">R</span> ${fee}`;
+  });
+});
+</script>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const sb = window.supabaseClient;

@@ -344,16 +344,35 @@ function wireBell() {
   }
   unreadCount();
   setInterval(unreadCount, 30_000);
+  document.addEventListener("noti:refresh", unreadCount);
+
+  /* live badge via Realtime: any notification insert/update for me refreshes the dot */
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!session) return;
+    supabase.channel("noti-" + session.user.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${session.user.id}` },
+        () => { unreadCount(); if (drop.classList.contains("open")) render(); })
+      .subscribe();
+  });
 
   const GROUPS = {
     friend_request: "Friend requests", friend_accept: "Friends",
     purchase: "Purchases", sale: "Item sales", trade: "Trades",
     group_shout: "Group shouts", group_join: "Group joins", game_update: "Game updates",
+    chat_message: "Messages", ad_review: "Advertising",
     system: "Utopoly",
   };
   function line(n) {
     const p = n.payload || {};
     switch (n.type) {
+      case "chat_message": {
+        const cnt = p.message_count > 1 ? `${p.message_count} new messages` : "New message";
+        return `💬 <b>${cnt}</b> from <b>${p.from}</b>: “${String(p.preview || "").replace(/</g, "&lt;")}” <a href="chat.html?u=${encodeURIComponent(p.sender_username || p.from || "")}" data-noti-read="${n.id}">Open chat →</a>`;
+      }
+      case "ad_review":
+        return p.decision === "approved"
+          ? `📣 Your ad “<b>${p.name}</b>” was approved and is now running.`
+          : `📣 Your ad “<b>${p.name}</b>” was ${p.decision === "takedown" ? "taken down" : "rejected"}: ${String(p.reason || "").replace(/</g, "&lt;")}${p.refund ? ` (<span class="ric">R</span>${Number(p.refund).toLocaleString()} refunded)` : ""} <a href="dashboard.html?tab=advertising">View ads →</a>`;
       case "friend_request": return `<b data-hovercard="${p.from}">${p.from}</b> sent you a friend request — check your <b>Inbox</b> tab.`;
       case "friend_accept": return `<b>${p.by}</b> accepted your friend request. <a href="chat.html?u=${encodeURIComponent(p.by || "")}">Say hi →</a>`;
       case "purchase": return `You bought <b>${p.item}</b> for <span class="ric">R</span>${(p.price ?? 0).toLocaleString()}.`;
@@ -420,6 +439,10 @@ function wireBell() {
         ns.map((n) => `<div class="noti${n.read ? "" : " unread"}">${line(n)}</div>`).join("")
       ).join("");
     wireTabs();
+    // clicking a chat notification marks it read before navigating
+    drop.querySelectorAll("[data-noti-read]").forEach((a) => a.addEventListener("click", () => {
+      supabase.from("notifications").update({ read: true }).eq("id", a.dataset.notiRead).then(() => {});
+    }));
     drop.querySelector("#noti-clear")?.addEventListener("click", async () => {
       await supabase.from("notifications").update({ read: true }).eq("read", false);
       unreadCount(); renderActivity();

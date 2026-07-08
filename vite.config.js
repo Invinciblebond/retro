@@ -51,6 +51,7 @@ export default defineConfig({
         profile: resolve(__dirname, "profile.html"),
         settings: resolve(__dirname, "settings.html"),
         admin: resolve(__dirname, "admin.html"),
+        friends: resolve(__dirname, "friends.html"),
       },
     },
   },

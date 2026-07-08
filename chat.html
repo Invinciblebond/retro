@@ -32,6 +32,16 @@
   .empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px; color:var(--muted); }
   .empty-state .big { font-size:52px; margin-bottom:12px; }
   .empty-state p { font-size:13.5px; line-height:1.6; margin-bottom:16px; max-width:320px; }
+  .convo.muted-c { opacity:.55; }
+  .thread-head { position:relative; }
+  .th-menu-btn { margin-left:auto; border:none; background:none; color:var(--muted); font-size:20px; cursor:pointer; padding:2px 10px; border-radius:8px; }
+  .th-menu-btn:hover { background:rgba(255,255,255,.07); }
+  .th-menu { position:absolute; top:44px; right:12px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px; z-index:40; display:none; min-width:160px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+  .th-menu.open { display:block; }
+  .th-menu button { display:block; width:100%; text-align:left; padding:9px 11px; border:none; background:none; color:var(--txt); font-size:12.5px; font-weight:700; cursor:pointer; border-radius:6px; }
+  .th-menu button:hover { background:rgba(255,255,255,.07); }
+  .th-menu button.danger { color:#e2231a; }
+  .blocked-bar { padding:12px 14px; border-top:1px solid var(--line); font-size:13px; color:var(--muted); display:flex; align-items:center; gap:10px; }
   @media (max-width:800px){ .convo-list { width:88px; } .convo span.cname, .convo-list h4 { display:none; } }
 </style>
 </head>
@@ -80,15 +90,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   convos.innerHTML = "<h4>Messages</h4>" +
     Array.from({length:4},()=>'<div class="skel-fr" style="padding:0 16px;"><span class="skel c"></span><span class="skel l"></span></div>').join("");
 
-  const { data } = await sb.rpc("get_friends");
+  let mutedSet = new Set();
+  const [{ data }, { data: myMutes }] = await Promise.all([sb.rpc("get_friends"), sb.rpc("my_mutes")]);
   friends = data || [];
+  mutedSet = new Set((myMutes || []).map((m) => m.muted_id));
 
   function renderConvos() {
     convos.innerHTML = "<h4>Messages</h4>" + (friends.length ? friends.map((f) => `
-      <div class="convo${current === f.friend_id ? " active" : ""}" data-id="${f.friend_id}" data-hovercard="${f.username}">
+      <div class="convo${current === f.friend_id ? " active" : ""}${mutedSet.has(f.friend_id) ? " muted-c" : ""}" data-id="${f.friend_id}" data-hovercard="${f.username}">
         <span class="cpfp">${f.avatar_url ? `<img src="${f.avatar_url}" alt="">` : (f.username||"?").slice(0,2).toUpperCase()}
           <span class="dot ${f.is_online ? "on" : "off"}"></span></span>
-        <span class="cname">${f.username}</span>
+        <span class="cname">${f.username}${mutedSet.has(f.friend_id) ? " 🔇" : ""}</span>
       </div>`).join("")
       : `<div class="empty-state" style="padding:20px 16px;">
           <div class="big">👋</div>
@@ -118,14 +130,66 @@ document.addEventListener("DOMContentLoaded", async () => {
     clearInterval(pollTimer);
     renderConvos();
     const f = friends.find((x) => x.friend_id === fid);
+    const { data: rel } = await sb.rpc("relationship_with", { p_target: fid });
+    const iBlocked = !!rel?.i_blocked;
     thread.innerHTML = `
       <div class="thread-head"><span class="cpfp" style="width:30px;height:30px;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--thumb);font-size:10px;">${f.avatar_url ? `<img src="${f.avatar_url}" style="width:100%;height:100%;object-fit:cover;">` : (f.username||"?").slice(0,2).toUpperCase()}</span>
-        ${f.username} <span style="font-size:11px;font-weight:700;color:${f.is_online ? "#4caf50" : "var(--muted)"};">${f.is_online ? "● Online" : "Offline"}</span></div>
+        ${f.username} <span style="font-size:11px;font-weight:700;color:${f.is_online ? "#4caf50" : "var(--muted)"};">${f.is_online ? "● Online" : "Offline"}</span>
+        <button class="th-menu-btn" id="th-menu-btn" title="Conversation actions">⋯</button>
+        <div class="th-menu" id="th-menu">
+          <button data-th="unfriend">Unfriend</button>
+          <button data-th="mute">${mutedSet.has(fid) ? "Unmute" : "Mute"}</button>
+          <button data-th="block" class="danger">Block</button>
+        </div>
+      </div>
       <div class="msgs" id="msgs"><div class="skel" style="height:40px;width:55%;"></div><div class="skel" style="height:40px;width:45%;align-self:flex-end;"></div></div>
-      <form class="composer" id="composer">
-        <input type="text" maxlength="2000" placeholder="Message ${f.username}…" autocomplete="off">
-        <button class="btn primary" type="submit">Send</button>
-      </form>`;
+      ${iBlocked
+        ? `<div class="blocked-bar">You blocked this user — <button class="btn ghost small" id="unblock-btn">Unblock</button></div>`
+        : `<form class="composer" id="composer">
+            <input type="text" maxlength="2000" placeholder="Message ${f.username}…" autocomplete="off">
+            <button class="btn primary" type="submit">Send</button>
+          </form>`}`;
+
+    /* actions menu: unfriend / block / mute (optimistic with rollback) */
+    const menu = document.getElementById("th-menu");
+    document.getElementById("th-menu-btn").addEventListener("click", (e) => { e.stopPropagation(); menu.classList.toggle("open"); });
+    document.addEventListener("click", () => menu.classList.remove("open"));
+    menu.querySelectorAll("[data-th]").forEach((b) => b.addEventListener("click", async (e) => {
+      e.stopPropagation(); menu.classList.remove("open");
+      const act = b.dataset.th;
+      if (act === "unfriend") {
+        if (!confirm(`Remove ${f.username} from your friends?`)) return;
+        const { error } = await sb.rpc("unfriend_user", { p_target: fid });
+        if (error) return toast(window.retroAuth.friendly(error.message), "err");
+        toast(`${f.username} removed from your friends. The conversation stays readable.`, "ok");
+      } else if (act === "block") {
+        if (!confirm(`Block ${f.username}? ${f.username} won't be able to message you or send you friend requests.`)) return;
+        const { error } = await sb.rpc("block_user_id", { p_target: fid });
+        if (error) return toast(window.retroAuth.friendly(error.message), "err");
+        toast(`${f.username} blocked.`, "ok");
+        openThread(fid); // re-render with disabled composer
+      } else if (act === "mute") {
+        const wasMuted = mutedSet.has(fid);
+        // optimistic update
+        wasMuted ? mutedSet.delete(fid) : mutedSet.add(fid);
+        renderConvos(); b.textContent = mutedSet.has(fid) ? "Unmute" : "Mute";
+        const { error } = await sb.rpc(wasMuted ? "unmute_user" : "mute_user", { p_target: fid });
+        if (error) { // rollback
+          wasMuted ? mutedSet.add(fid) : mutedSet.delete(fid);
+          renderConvos(); b.textContent = mutedSet.has(fid) ? "Unmute" : "Mute";
+          toast(window.retroAuth.friendly(error.message), "err");
+        }
+      }
+    }));
+    document.getElementById("unblock-btn")?.addEventListener("click", async () => {
+      const { error } = await sb.rpc("unblock_user_id", { p_target: fid });
+      if (error) return toast(window.retroAuth.friendly(error.message), "err");
+      toast(`${f.username} unblocked.`, "ok");
+      openThread(fid);
+    });
+
+    // clear coalesced chat notifications for this conversation
+    sb.rpc("clear_chat_notifications", { p_sender: fid }).then(() => document.dispatchEvent(new CustomEvent("noti:refresh")));
     const msgsEl = document.getElementById("msgs");
     let lastId = 0;
     async function refresh() {
@@ -147,7 +211,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       .eq("recipient", me).eq("sender", fid).is("read_at", null).then(() => {});
     pollTimer = setInterval(refresh, 30000); // slow fallback; realtime below is primary
 
-    document.getElementById("composer").addEventListener("submit", async (e) => {
+    document.getElementById("composer")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const input = e.target.querySelector("input");
       const body = input.value.trim();
@@ -188,7 +252,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         sb.from("messages").update({ read_at: new Date().toISOString() }).eq("id", payload.new.id).then(() => {});
       } else {
         loadUnread();
-        toast("💬 New message", "info", 2500);
+        if (!mutedSet.has(payload.new.sender)) toast("💬 New message", "info", 2500);
       }
     })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `sender=eq.${me}` }, () => {

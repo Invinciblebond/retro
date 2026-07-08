@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     mode = "2d"; toggleBtn.textContent = "View in 3D";
     if (has3D) {
       // Fresh client-side render so framing always matches current settings.
-      const blob = await snapshotPNG();
+      const blob = await snapshotPNG({ cfg, items });
       if (blob) { stageBody.innerHTML = `<img class="snap" src="${URL.createObjectURL(blob)}" alt="Your avatar">`; return; }
       stageBody.innerHTML = window.renderAvatarSVG(cfg, items);
     } else if (snapUrl) {
@@ -127,7 +127,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function show3D() {
     stageBody.innerHTML = "";
     mode = "3d"; toggleBtn.textContent = "View in 2D";
-    try { viewer = await mountViewer(stageBody); }
+    try { viewer = await mountViewer(stageBody, { cfg, items }); }
     catch { await show2D(); }
   }
 
@@ -193,7 +193,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     /* re-render snapshot on client + publish so homepage updates */
     try {
       btn.textContent = "Rendering…";
-      let blob = await snapshotPNG();                     // 3D model if present
+      let blob = await snapshotPNG({ cfg, items });        // 3D model if present
       if (!blob) blob = await svgToPNG(window.renderAvatarSVG(cfg, items)); // fallback: SVG raster
       const url = await publishSnapshot(sb, me, blob);
       snapUrl = url;

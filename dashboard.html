@@ -5,13 +5,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Creator Dashboard - Utopoly</title>
-<meta name="description" content="Manage your games, sponsored placements, and creator earnings on Utopoly.">
+<meta name="description" content="Manage your games, items, ads, and creator earnings on Utopoly.">
 <link rel="icon" type="image/png" href="https://i.ibb.co/N6wqhtTn/f079a25a-b9e0-46d8-98f0-cc38807b3c82-removebg-preview.png">
 <link rel="stylesheet" href="assets/retro.css?v=0.07">
 <style>
   .dwrap { max-width:1100px; margin:24px auto; padding:0 20px; }
   .dwrap h1 { font-size:24px; font-weight:900; margin-bottom:4px; }
   .dwrap .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .dtabs { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .dtabs button { padding:9px 16px; border-radius:20px; border:1px solid var(--line); background:var(--card); color:var(--txt); font-size:12.5px; font-weight:800; cursor:pointer; }
+  .dtabs button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
   .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:18px; }
   .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
   .totals { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
@@ -25,12 +28,26 @@
   .dtable .gname { font-weight:800; }
   .frm { display:grid; gap:10px; grid-template-columns:1fr 1fr 1fr auto; align-items:center; }
   .frm select, .frm input { padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:14px; font-family:inherit; min-width:0; }
-  @media (max-width:760px){ .frm { grid-template-columns:1fr; } .dtable-scroll { overflow-x:auto; } }
+  .adfrm { display:grid; gap:10px; }
+  .adfrm input, .adfrm select { padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:14px; font-family:inherit; }
+  .adfrm .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:760px){ .frm { grid-template-columns:1fr; } .adfrm .row2 { grid-template-columns:1fr; } .dtable-scroll { overflow-x:auto; } }
   .camp { display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); font-size:13px; flex-wrap:wrap; }
   .camp:last-child { border-bottom:none; }
   .camp .st { font-size:10.5px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:12px; border:1px solid var(--line); }
   .camp .st.live { color:var(--good); } .camp .st.done { color:var(--muted); }
   .muted { color:var(--muted); font-size:13px; }
+  .adrow { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid var(--line); font-size:13px; flex-wrap:wrap; }
+  .adrow:last-child { border-bottom:none; }
+  .adrow img { width:75px; height:75px; object-fit:cover; border-radius:8px; border:1px solid var(--line); flex-shrink:0; }
+  .badge { font-size:10px; font-weight:900; letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:12px; border:1px solid var(--line); }
+  .badge.pending { color:#f1c40f; } .badge.approved { color:var(--good,#4caf50); }
+  .badge.rejected { color:#e2231a; } .badge.paused, .badge.completed { color:var(--muted); }
+  .ad-preview { width:150px; height:150px; border:1px solid var(--line); border-radius:8px; background:var(--thumb); position:relative; overflow:hidden; }
+  .ad-preview img { width:150px; height:150px; object-fit:cover; display:block; }
+  .ad-preview .adlbl { position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,.55); color:#fff; font-size:9px; font-weight:800; letter-spacing:1px; padding:1px 6px; border-radius:6px; }
+  .empty-cta { text-align:center; padding:40px 20px; color:var(--muted); }
+  .empty-cta .big { font-size:44px; margin-bottom:10px; }
 </style>
 </head>
 <body class="theme-1" data-page="dashboard">
@@ -41,30 +58,94 @@
   <main class="main-col">
     <div class="dwrap">
       <h1>Creator Dashboard</h1>
-      <div class="sub">Retention, session time, and revenue for your games — plus sponsored placements.</div>
+      <div class="sub">Your games, items, earnings, and advertising — all in one place.</div>
 
-      <div class="totals" id="totals"></div>
-
-      <div class="panel">
-        <h4>Per-game analytics</h4>
-        <div class="dtable-scroll" id="stats"><div class="muted">Loading…</div></div>
-        <p class="muted" style="margin-top:10px;">Retention: % of players whose first play was over a day ago who came back on day 1 / day 7. Revenue is your 85% creator share.</p>
+      <div class="dtabs">
+        <button data-t="overview" class="active">Overview</button>
+        <button data-t="games">My Games</button>
+        <button data-t="items">My Items</button>
+        <button data-t="advertising">Advertising</button>
       </div>
 
-      <div class="panel">
-        <h4>Sponsored placement — bid with Retrobux</h4>
-        <p class="muted" style="margin-bottom:12px;">Buy 24 hours of homepage or search placement. Higher bids rank higher. Minimum bid: <span class="ric">R</span> 10.</p>
-        <div class="frm">
-          <select id="ad-game"></select>
-          <select id="ad-placement">
-            <option value="homepage">Homepage placement</option>
-            <option value="search">Search placement</option>
-          </select>
-          <input type="number" id="ad-bid" min="10" placeholder="Bid (Retrobux)">
-          <button class="btn primary" id="ad-go">Start Campaign</button>
+      <!-- OVERVIEW -->
+      <section id="t-overview">
+        <div class="totals" id="totals"></div>
+        <div id="ov-empty" style="display:none;" class="panel">
+          <div class="empty-cta">
+            <div class="big">🛠️</div>
+            <p style="margin-bottom:14px;">You haven't created anything yet. Publish a game to start earning Retrobux and unlock analytics here.</p>
+            <a class="btn primary" href="create.html">Create your first game</a>
+          </div>
         </div>
-        <div id="campaigns" style="margin-top:14px;"><div class="muted">Loading campaigns…</div></div>
-      </div>
+      </section>
+
+      <!-- MY GAMES -->
+      <section id="t-games" style="display:none;">
+        <div class="panel">
+          <h4>Per-game analytics</h4>
+          <div class="dtable-scroll" id="stats"><div class="muted">Loading…</div></div>
+          <p class="muted" style="margin-top:10px;">Retention: % of players whose first play was over a day ago who came back on day 1 / day 7. Revenue is your 85% creator share.</p>
+        </div>
+        <div class="panel">
+          <h4>Sponsored placement — bid with Retrobux</h4>
+          <p class="muted" style="margin-bottom:12px;">Buy 24 hours of homepage or search placement. Higher bids rank higher. Minimum bid: <span class="ric">R</span> 10.</p>
+          <div class="frm">
+            <select id="ad-game"></select>
+            <select id="ad-placement">
+              <option value="homepage">Homepage placement</option>
+              <option value="search">Search placement</option>
+            </select>
+            <input type="number" id="ad-bid" min="10" placeholder="Bid (Retrobux)">
+            <button class="btn primary" id="ad-go">Start Campaign</button>
+          </div>
+          <div id="campaigns" style="margin-top:14px;"><div class="muted">Loading campaigns…</div></div>
+        </div>
+      </section>
+
+      <!-- MY ITEMS -->
+      <section id="t-items" style="display:none;">
+        <div class="panel">
+          <h4>Your T-shirts</h4>
+          <p class="muted" style="margin-bottom:10px;">Created in the <a href="create.html">Create</a> tab. Edit prices any time — changes apply instantly.</p>
+          <div id="tshirts-list"><div class="muted">Loading…</div></div>
+        </div>
+        <div class="panel">
+          <h4>Your published catalog items</h4>
+          <div class="dtable-scroll" id="items-list"><div class="muted">Loading…</div></div>
+        </div>
+        <div class="panel">
+          <h4>Your game passes</h4>
+          <div class="dtable-scroll" id="passes-list"><div class="muted">Loading…</div></div>
+        </div>
+      </section>
+
+      <!-- ADVERTISING -->
+      <section id="t-advertising" style="display:none;">
+        <div class="panel">
+          <h4>Create an ad</h4>
+          <p class="muted" style="margin-bottom:12px;">Your ad appears in the 150×150 slot on the Utopoly home page. You bid a maximum cost per click; the full budget is charged upfront and unspent budget is refunded if the ad is rejected or cancelled.</p>
+          <div class="adfrm">
+            <input id="new-ad-name" maxlength="80" placeholder="Ad name (internal)">
+            <div class="row2">
+              <select id="new-ad-target"><option value="">Loading your content…</option></select>
+              <input id="new-ad-image" type="file" accept="image/png,image/jpeg">
+            </div>
+            <div class="row2">
+              <input id="new-ad-bid" type="number" min="1" placeholder="Max bid per click (Retrobux, min 1)">
+              <input id="new-ad-budget" type="number" min="1" placeholder="Total budget (Retrobux, ≥ bid)">
+            </div>
+            <div id="new-ad-preview-wrap" style="display:none;">
+              <div class="muted" style="margin-bottom:6px;">Preview — exactly how it will appear on the home page:</div>
+              <div class="ad-preview"><img id="new-ad-preview" alt="Ad preview"><span class="adlbl">AD</span></div>
+            </div>
+            <button class="btn primary" id="new-ad-submit" style="justify-self:start;">Submit for review</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>Your ads</h4>
+          <div id="my-ads"><div class="muted">Loading…</div></div>
+        </div>
+      </section>
     </div>
   </main>
 </div>
@@ -85,43 +166,71 @@ document.addEventListener("DOMContentLoaded", async () => {
   const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
+  const me = session.user.id;
 
   const fmt = (n) => Number(n ?? 0).toLocaleString();
   const mins = (s) => { s = Number(s ?? 0); return s >= 60 ? `${Math.floor(s/60)}m ${Math.round(s%60)}s` : `${Math.round(s)}s`; };
+  const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;");
 
+  /* ---- Tabs, deep-linkable via ?tab= ---- */
+  const TABS = ["overview","games","items","advertising"];
+  function showTab(t, push = true) {
+    if (!TABS.includes(t)) t = "overview";
+    document.querySelectorAll(".dtabs button").forEach((b) => b.classList.toggle("active", b.dataset.t === t));
+    TABS.forEach((x) => document.getElementById("t-" + x).style.display = x === t ? "" : "none");
+    if (push) {
+      const u = new URL(location.href); u.searchParams.set("tab", t);
+      history.replaceState(null, "", u);
+    }
+    if (t === "advertising") loadMyAds();
+    if (t === "items") loadItems();
+  }
+  document.querySelectorAll(".dtabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.t)));
+  showTab(new URLSearchParams(location.search).get("tab") || "overview", false);
+
+  /* ---- Overview: real data from games, catalog_items, ledger ---- */
+  let myGames = [];
+  async function loadOverview() {
+    const [{ data: games }, { count: itemCount }, { data: earnRows }] = await Promise.all([
+      sb.from("games").select("id, title, visits, favorites_count, active").eq("creator_id", me),
+      sb.from("catalog_items").select("id", { count: "exact", head: true }).eq("creator_id", me),
+      sb.from("currency_transactions").select("amount, kind").eq("user_id", me).gt("amount", 0).in("kind", ["sale","resale_sale"]),
+    ]);
+    myGames = games || [];
+    const visits = myGames.reduce((s,g) => s + (g.visits||0), 0);
+    const earned = (earnRows || []).reduce((s,r) => s + r.amount, 0);
+    document.getElementById("totals").innerHTML = `
+      <div class="stat"><div class="num">${fmt(myGames.length)}</div><div class="lbl">Total games</div></div>
+      <div class="stat"><div class="num">${fmt(visits)}</div><div class="lbl">Total visits</div></div>
+      <div class="stat"><div class="num">${fmt(itemCount || 0)}</div><div class="lbl">Items published</div></div>
+      <div class="stat"><div class="num"><span class="ric">R</span> ${fmt(earned)}</div><div class="lbl">Earned from sales</div></div>`;
+    document.getElementById("ov-empty").style.display = (myGames.length || itemCount) ? "none" : "";
+  }
+
+  /* ---- My Games: analytics + legacy sponsored placements ---- */
   async function loadStats() {
     const { data, error } = await sb.rpc("creator_game_stats");
     const box = document.getElementById("stats");
     if (error) { box.innerHTML = `<div class="muted">${friendly(error.message)}</div>`; return []; }
     if (!data?.length) { box.innerHTML = '<div class="muted">No games yet — <a href="create.html">create one</a> to see analytics.</div>'; return []; }
-    const t = { visits:0, sess:0, players:0, rev:0 };
     box.innerHTML = `<table class="dtable"><thead><tr>
       <th>Game</th><th>Visits</th><th>Sessions (7d)</th><th>Players (7d)</th>
       <th>Avg session</th><th>D1 ret.</th><th>D7 ret.</th>
       <th>Pass rev.</th><th>Server rev.</th><th>Total rev.</th></tr></thead><tbody>` +
-      data.map((g) => {
-        t.visits += g.visits; t.sess += Number(g.sessions_7d); t.players += Number(g.unique_players_7d); t.rev += Number(g.revenue_total);
-        return `<tr>
-          <td class="gname"><a href="game.html?id=${g.game_id}" style="color:var(--txt);">${g.title}</a></td>
+      data.map((g) => `<tr>
+          <td class="gname"><a href="game.html?id=${g.game_id}" style="color:var(--txt);">${esc(g.title)}</a></td>
           <td>${fmt(g.visits)}</td><td>${fmt(g.sessions_7d)}</td><td>${fmt(g.unique_players_7d)}</td>
           <td>${mins(g.avg_session_seconds)}</td><td>${g.d1_retention_pct}%</td><td>${g.d7_retention_pct}%</td>
           <td><span class="ric">R</span> ${fmt(g.revenue_passes)}</td>
           <td><span class="ric">R</span> ${fmt(g.revenue_servers)}</td>
-          <td><b><span class="ric">R</span> ${fmt(g.revenue_total)}</b></td></tr>`;
-      }).join("") + "</tbody></table>";
-    document.getElementById("totals").innerHTML = `
-      <div class="stat"><div class="num">${fmt(data.length)}</div><div class="lbl">Games</div></div>
-      <div class="stat"><div class="num">${fmt(t.visits)}</div><div class="lbl">Total visits</div></div>
-      <div class="stat"><div class="num">${fmt(t.sess)}</div><div class="lbl">Sessions (7d)</div></div>
-      <div class="stat"><div class="num">${fmt(t.players)}</div><div class="lbl">Players (7d)</div></div>
-      <div class="stat"><div class="num"><span class="ric">R</span> ${fmt(t.rev)}</div><div class="lbl">Lifetime revenue</div></div>`;
+          <td><b><span class="ric">R</span> ${fmt(g.revenue_total)}</b></td></tr>`).join("") + "</tbody></table>";
     return data;
   }
 
   async function loadAdForm(games) {
     const sel = document.getElementById("ad-game");
     sel.innerHTML = games.length
-      ? games.map((g) => `<option value="${g.game_id}">${g.title}</option>`).join("")
+      ? games.map((g) => `<option value="${g.game_id}">${esc(g.title)}</option>`).join("")
       : '<option value="">No games to sponsor</option>';
   }
 
@@ -135,7 +244,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     box.innerHTML = data.map((c) => {
       const live = c.active && now >= Date.parse(c.starts_at) && now <= Date.parse(c.ends_at);
       return `<div class="camp">
-        <b>${c.games?.title ?? "Game"}</b>
+        <b>${esc(c.games?.title ?? "Game")}</b>
         <span>${c.placement === "homepage" ? "🏠 Homepage" : "🔎 Search"}</span>
         <span><span class="ric">R</span> ${fmt(c.bid)} bid</span>
         <span class="muted">ends ${new Date(c.ends_at).toLocaleString()}</span>
@@ -158,6 +267,181 @@ document.addEventListener("DOMContentLoaded", async () => {
     else { toast(`Campaign live! Your game is sponsored on the ${placement} for 24 hours.`, "ok"); document.getElementById("ad-bid").value = ""; loadCampaigns(); window.retroAuth?.refreshBalances?.(); }
   });
 
+  /* ---- My Items: t-shirts (price editing + sales + earnings) ---- */
+  async function loadTshirts() {
+    const box = document.getElementById("tshirts-list");
+    const { data: ts, error } = await sb.rpc("my_tshirt_stats");
+    if (error) { box.innerHTML = `<div class="muted">${friendly(error.message)}</div>`; return; }
+    if (!ts?.length) { box.innerHTML = '<div class="muted">No T-shirts yet — make one in the <a href="create.html">Create</a> tab for 5 Retrobux.</div>'; return; }
+    box.innerHTML = ts.map((t) => `
+      <div class="adrow" data-tid="${t.id}">
+        <img src="${esc(t.image_url)}" alt="" style="background:#fff;">
+        <div style="flex:1;min-width:220px;">
+          <b><a href="item.html?id=${t.id}" style="color:var(--txt);">${esc(t.name)}</a></b>
+          <span class="badge ${t.on_sale ? "approved" : "paused"}">${t.on_sale ? "On sale" : "Off sale"}</span><br>
+          <span class="muted">${fmt(t.sales)} sold · earned <span class="ric">R</span> ${fmt(t.earned)}</span>
+        </div>
+        <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input type="number" min="1" value="${t.price}" data-price style="width:110px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+          <button class="btn ghost small" data-saveprice>Save price</button>
+          <button class="btn ghost small" data-togglesale>${t.on_sale ? "Take off-sale" : "Put on sale"}</button>
+        </span>
+      </div>`).join("");
+    box.querySelectorAll("[data-saveprice]").forEach((b) => b.addEventListener("click", async () => {
+      const row = b.closest("[data-tid]");
+      const price = parseInt(row.querySelector("[data-price]").value, 10);
+      const t = ts.find((x) => x.id === row.dataset.tid);
+      const { error: e } = await sb.rpc("set_tshirt_price", { p_item: row.dataset.tid, p_price: price, p_on_sale: t.on_sale });
+      toast(e ? friendly(e.message) : "Price updated.", e ? "err" : "ok");
+      if (!e) loadTshirts();
+    }));
+    box.querySelectorAll("[data-togglesale]").forEach((b) => b.addEventListener("click", async () => {
+      const row = b.closest("[data-tid]");
+      const t = ts.find((x) => x.id === row.dataset.tid);
+      const price = parseInt(row.querySelector("[data-price]").value, 10) || t.price;
+      const { error: e } = await sb.rpc("set_tshirt_price", { p_item: row.dataset.tid, p_price: Math.max(1, price), p_on_sale: !t.on_sale });
+      toast(e ? friendly(e.message) : (t.on_sale ? "Taken off-sale." : "Now on sale."), e ? "err" : "ok");
+      if (!e) loadTshirts();
+    }));
+  }
+
+  /* ---- My Items: catalog items + game passes ---- */
+  async function loadItems() {
+    loadTshirts();
+    const [{ data: items }, { data: passes }] = await Promise.all([
+      sb.from("catalog_items").select("id, name, price, category, item_type, on_sale, rap, stock").eq("creator_id", me).order("created_at", { ascending: false }),
+      sb.from("game_passes").select("id, name, price, active, games!inner(title, creator_id)").eq("games.creator_id", me).order("created_at", { ascending: false }),
+    ]);
+    document.getElementById("items-list").innerHTML = items?.length
+      ? `<table class="dtable"><thead><tr><th>Item</th><th>Category</th><th>Type</th><th>Price</th><th>RAP</th><th>Status</th></tr></thead><tbody>` +
+        items.map((i) => `<tr>
+          <td class="gname"><a href="item.html?id=${i.id}" style="color:var(--txt);">${esc(i.name)}</a></td>
+          <td>${esc(i.category)}</td><td>${i.item_type}</td>
+          <td><span class="ric">R</span> ${fmt(i.price)}</td><td>${fmt(i.rap)}</td>
+          <td>${i.on_sale ? "On sale" : "Off sale"}${i.stock != null ? ` · ${i.stock} left` : ""}</td></tr>`).join("") + "</tbody></table>"
+      : '<div class="muted">No published items yet.</div>';
+    document.getElementById("passes-list").innerHTML = passes?.length
+      ? `<table class="dtable"><thead><tr><th>Pass</th><th>Game</th><th>Price</th><th>Status</th></tr></thead><tbody>` +
+        passes.map((p) => `<tr><td class="gname">${esc(p.name)}</td><td>${esc(p.games?.title)}</td>
+          <td><span class="ric">R</span> ${fmt(p.price)}</td><td>${p.active ? "Active" : "Inactive"}</td></tr>`).join("") + "</tbody></table>"
+      : '<div class="muted">No game passes yet.</div>';
+  }
+
+  /* ---- Advertising: create ad + list ads ---- */
+  let adImageDataUrl = null;
+  const imgInput = document.getElementById("new-ad-image");
+  imgInput.addEventListener("change", () => {
+    adImageDataUrl = null;
+    document.getElementById("new-ad-preview-wrap").style.display = "none";
+    const f = imgInput.files?.[0];
+    if (!f) return;
+    if (!["image/png","image/jpeg"].includes(f.type)) { imgInput.value = ""; return toast("Ad image must be a PNG or JPG.", "err"); }
+    const url = URL.createObjectURL(f);
+    const im = new Image();
+    im.onload = () => {
+      URL.revokeObjectURL(url);
+      if (im.naturalWidth !== 150 || im.naturalHeight !== 150) {
+        imgInput.value = "";
+        return toast(`Ad image must be exactly 150×150 px (yours is ${im.naturalWidth}×${im.naturalHeight}).`, "err", 5000);
+      }
+      const r = new FileReader();
+      r.onload = () => {
+        adImageDataUrl = r.result;
+        document.getElementById("new-ad-preview").src = adImageDataUrl;
+        document.getElementById("new-ad-preview-wrap").style.display = "";
+      };
+      r.readAsDataURL(f);
+    };
+    im.onerror = () => { imgInput.value = ""; toast("Could not read that image.", "err"); };
+    im.src = url;
+  });
+
+  async function loadAdTargets() {
+    const sel = document.getElementById("new-ad-target");
+    const [{ data: games }, { data: items }, { data: groups }, { data: prof }] = await Promise.all([
+      sb.from("games").select("id, title").eq("creator_id", me).eq("active", true),
+      sb.from("catalog_items").select("id, name").eq("creator_id", me),
+      sb.from("groups").select("id, name").eq("owner_id", me),
+      sb.from("profiles").select("user_number, username").eq("id", me).single(),
+    ]);
+    let html = "";
+    (games || []).forEach((g) => html += `<option value="game.html?id=${g.id}">🎮 Game — ${esc(g.title)}</option>`);
+    (items || []).forEach((i) => html += `<option value="item.html?id=${i.id}">📦 Item — ${esc(i.name)}</option>`);
+    (groups || []).forEach((g) => html += `<option value="group.html?id=${g.id}">👥 Group — ${esc(g.name)}</option>`);
+    if (prof) html += `<option value="profile.html?id=${prof.user_number}">🙂 My profile — ${esc(prof.username)}</option>`;
+    sel.innerHTML = html || '<option value="">Nothing to advertise yet — create a game or item first</option>';
+  }
+
+  document.getElementById("new-ad-submit").addEventListener("click", async () => {
+    const name = document.getElementById("new-ad-name").value.trim();
+    const target = document.getElementById("new-ad-target").value;
+    const bid = parseInt(document.getElementById("new-ad-bid").value, 10);
+    const budget = parseInt(document.getElementById("new-ad-budget").value, 10);
+    const file = imgInput.files?.[0];
+    if (!name) return toast("Give your ad a name.", "err");
+    if (!target) return toast("Pick what the ad links to.", "err");
+    if (!Number.isFinite(bid) || bid < 1) return toast("Max bid must be at least 1 Retrobux.", "err");
+    if (!Number.isFinite(budget) || budget < bid) return toast("Budget must be at least your bid.", "err");
+    if (!file || !adImageDataUrl) return toast("Upload a 150×150 PNG or JPG ad image.", "err");
+
+    const btn = document.getElementById("new-ad-submit");
+    btn.disabled = true; btn.textContent = "Submitting…";
+    try {
+      const ext = file.type === "image/png" ? "png" : "jpg";
+      const path = `${me}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await sb.storage.from("ad-images").upload(path, file, { contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from("ad-images").getPublicUrl(path);
+      const { error } = await sb.rpc("create_ad", {
+        p_name: name, p_image_url: pub.publicUrl, p_target_url: target, p_bid: bid, p_budget: budget,
+      });
+      if (error) throw error;
+      toast("Your ad was sent to the Utopoly admin team for approval. This may take a few hours.", "ok", 6000);
+      ["new-ad-name","new-ad-bid","new-ad-budget"].forEach((i) => document.getElementById(i).value = "");
+      imgInput.value = ""; adImageDataUrl = null;
+      document.getElementById("new-ad-preview-wrap").style.display = "none";
+      window.retroAuth?.refreshBalances?.();
+      loadMyAds();
+    } catch (e) {
+      toast(friendly(e.message), "err");
+    }
+    btn.disabled = false; btn.textContent = "Submit for review";
+  });
+
+  async function loadMyAds() {
+    loadAdTargets();
+    const box = document.getElementById("my-ads");
+    const { data: ads, error } = await sb.rpc("my_ads");
+    if (error) { box.innerHTML = `<div class="muted">${friendly(error.message)}</div>`; return; }
+    if (!ads?.length) { box.innerHTML = '<div class="muted">No ads yet — create your first one above.</div>'; return; }
+    box.innerHTML = ads.map((a) => `
+      <div class="adrow">
+        <img src="${esc(a.image_url)}" alt="">
+        <div style="flex:1;min-width:220px;">
+          <b>${esc(a.name)}</b> <span class="badge ${a.status}">${a.status}</span><br>
+          <span class="muted">Max bid <span class="ric">R</span> ${fmt(a.bid_amount)} · spent <span class="ric">R</span> ${fmt(a.budget_spent)} / ${fmt(a.budget_total)}
+          · ${fmt(a.impressions)} impressions · ${fmt(a.clicks)} clicks</span>
+          ${a.rejection_reason ? `<br><span class="muted" style="color:#e2231a;">Rejected: ${esc(a.rejection_reason)}</span>` : ""}
+        </div>
+        <span style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${a.status === "approved" ? `<button class="btn ghost small" data-pause="${a.id}">Pause</button>` : ""}
+          ${a.status === "paused" ? `<button class="btn ghost small" data-resume="${a.id}">Resume</button>` : ""}
+          ${["pending","approved","paused"].includes(a.status) ? `<button class="btn ghost small" data-cancel="${a.id}">Cancel &amp; refund</button>` : ""}
+        </span>
+      </div>`).join("");
+    const act = async (fn, args, ok) => {
+      const { error: e } = await sb.rpc(fn, args);
+      if (e) toast(friendly(e.message), "err");
+      else { toast(ok, "ok"); window.retroAuth?.refreshBalances?.(); loadMyAds(); }
+    };
+    box.querySelectorAll("[data-pause]").forEach((b) => b.addEventListener("click", () => act("set_ad_paused", { p_ad: b.dataset.pause, p_paused: true }, "Ad paused.")));
+    box.querySelectorAll("[data-resume]").forEach((b) => b.addEventListener("click", () => act("set_ad_paused", { p_ad: b.dataset.resume, p_paused: false }, "Ad resumed.")));
+    box.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", () => {
+      if (confirm("Cancel this ad? Unspent budget is refunded to your Retrobux balance.")) act("cancel_ad", { p_ad: b.dataset.cancel }, "Ad cancelled — unspent budget refunded.");
+    }));
+  }
+
+  loadOverview();
   const games = await loadStats();
   loadAdForm(games);
   loadCampaigns();

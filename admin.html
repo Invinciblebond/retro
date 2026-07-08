@@ -44,6 +44,7 @@
         <button data-t="economy">Economy</button>
         <button data-t="content">Content</button>
         <button data-t="events">Events</button>
+        <button data-t="ads">Ad Approvals <span id="ads-badge" style="display:none;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px;">0</span></button>
         <button data-t="log">Mod Log</button>
       </div>
 
@@ -147,6 +148,20 @@
         <div class="panel"><h4>All events</h4><div class="lst" id="ev-list"></div></div>
       </section>
 
+      <section id="t-ads" style="display:none;">
+        <div class="panel"><h4>Pending ads — approval queue (oldest first)</h4><div class="lst" id="ads-queue"><div class="mut">Loading…</div></div></div>
+        <div class="panel">
+          <h4>All ads</h4>
+          <div style="margin-bottom:10px;">
+            <select id="ads-filter" style="padding:8px 11px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+              <option value="">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option>
+              <option value="rejected">Rejected</option><option value="paused">Paused</option><option value="completed">Completed</option>
+            </select>
+          </div>
+          <div class="lst" id="ads-all"></div>
+        </div>
+      </section>
+
       <section id="t-log" style="display:none;">
         <div class="panel"><h4>Moderation log</h4><div class="lst" id="log-list"></div></div>
       </section>
@@ -182,10 +197,62 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* tabs */
   document.querySelectorAll(".atabs button").forEach((b) => b.addEventListener("click", () => {
     document.querySelectorAll(".atabs button").forEach((x) => x.classList.toggle("active", x === b));
-    ["users","catalog","economy","content","events","log"].forEach((t) =>
+    ["users","catalog","economy","content","events","ads","log"].forEach((t) =>
       document.getElementById("t-" + t).style.display = t === b.dataset.t ? "" : "none");
-    ({ catalog: loadCatalog, economy: () => { loadEconomy(); loadGiftCards(); }, content: loadContent, events: loadEvents, log: loadLog })[b.dataset.t]?.();
+    ({ catalog: loadCatalog, economy: () => { loadEconomy(); loadGiftCards(); }, content: loadContent, events: loadEvents, ads: loadAds, log: loadLog })[b.dataset.t]?.();
   }));
+
+  /* ===== Ad Approvals ===== */
+  async function refreshAdBadge() {
+    const { data: n } = await sb.rpc("admin_pending_ad_count");
+    const badge = document.getElementById("ads-badge");
+    badge.style.display = n > 0 ? "" : "none";
+    badge.textContent = n;
+  }
+  function adRow(a, isQueue) {
+    const spent = `R ${a.budget_spent?.toLocaleString()} / ${a.budget_total?.toLocaleString()}`;
+    const actions = isQueue
+      ? `<button class="btn primary small" data-ad-approve="${a.id}">Approve</button>
+         <button class="btn ghost small" data-ad-reject="${a.id}">Reject</button>`
+      : (["approved","paused"].includes(a.status)
+        ? `<button class="btn ghost small" data-ad-takedown="${a.id}">Take down</button>` : "");
+    return `<div class="lrow">
+      <img src="${esc(a.image_url)}" alt="" style="width:75px;height:75px;object-fit:cover;border-radius:8px;border:1px solid var(--line);">
+      <div>
+        <b>${esc(a.name)}</b> <span class="flag adm" style="text-transform:uppercase;">${a.status}</span><br>
+        <span class="mut">by <a href="profile.html?id=${a.advertiser_number}" style="color:var(--accent2);">${esc(a.advertiser_username)}</a>
+          · target <code>${esc(a.target_url)}</code> · max bid R ${a.bid_amount} · ${spent}
+          · ${a.impressions} impr / ${a.clicks} clicks · ${new Date(a.created_at).toLocaleString()}</span>
+        ${a.rejection_reason ? `<br><span class="mut" style="color:#e2231a;">Reason: ${esc(a.rejection_reason)}</span>` : ""}
+      </div>
+      <span class="sp">${actions}</span>
+    </div>`;
+  }
+  async function loadAds() {
+    refreshAdBadge();
+    const [{ data: pending }, { data: all }] = await Promise.all([
+      sb.rpc("admin_list_ads", { p_status: "pending" }),
+      sb.rpc("admin_list_ads", { p_status: document.getElementById("ads-filter").value || null }),
+    ]);
+    document.getElementById("ads-queue").innerHTML =
+      (pending || []).map((a) => adRow(a, true)).join("") || '<div class="mut">No ads waiting for review. 🎉</div>';
+    document.getElementById("ads-all").innerHTML =
+      (all || []).map((a) => adRow(a, false)).join("") || '<div class="mut">No ads.</div>';
+    document.querySelectorAll("[data-ad-approve]").forEach((b) => b.addEventListener("click", () =>
+      act("review_ad", { p_ad: b.dataset.adApprove, p_decision: "approve" }, "Ad approved — it is now eligible to serve.", loadAds)));
+    document.querySelectorAll("[data-ad-reject]").forEach((b) => b.addEventListener("click", () => {
+      const reason = prompt("Rejection reason (shown to the advertiser):");
+      if (!reason?.trim()) return;
+      act("review_ad", { p_ad: b.dataset.adReject, p_decision: "reject", p_reason: reason.trim() }, "Ad rejected and unspent budget refunded.", loadAds);
+    }));
+    document.querySelectorAll("[data-ad-takedown]").forEach((b) => b.addEventListener("click", () => {
+      const reason = prompt("Takedown reason (shown to the advertiser):");
+      if (!reason?.trim()) return;
+      act("review_ad", { p_ad: b.dataset.adTakedown, p_decision: "takedown", p_reason: reason.trim() }, "Ad taken down and unspent budget refunded.", loadAds);
+    }));
+  }
+  document.getElementById("ads-filter").addEventListener("change", loadAds);
+  refreshAdBadge();
 
   const esc = (s) => String(s || "").replace(/</g, "&lt;");
   const act = async (fn, args, ok, reload) => {
@@ -268,9 +335,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function loadCatalog() {
     const { data: items } = await sb.from("catalog_items").select("*").order("created_at", { ascending: false }).limit(100);
     document.getElementById("c-list").innerHTML = (items || []).map((i) => `
-      <div class="lrow"><b>${esc(i.name)}</b><span class="mut">${i.item_type} · R ${i.price} · stock ${i.stock ?? "∞"} · RAP ${i.rap}</span>
-        <span class="sp"><button class="btn ghost small" data-edit='${JSON.stringify({id:i.id,name:i.name,price:i.price,category:i.category,item_type:i.item_type,stock:i.stock,icon:i.icon,image_url:i.image_url,description:i.description,on_sale:i.on_sale}).replace(/'/g,"&#39;")}'>Edit</button></span>
+      <div class="lrow"><b>${esc(i.name)}</b>${i.asset_type === "tshirt" ? ' <span class="flag adm">USER T-SHIRT</span>' : ""}<span class="mut">${i.item_type} · R ${i.price} · stock ${i.stock ?? "∞"} · RAP ${i.rap}${i.on_sale ? "" : " · OFF-SALE"}</span>
+        <span class="sp"><button class="btn ghost small" data-edit='${JSON.stringify({id:i.id,name:i.name,price:i.price,category:i.category,item_type:i.item_type,stock:i.stock,icon:i.icon,image_url:i.image_url,description:i.description,on_sale:i.on_sale}).replace(/'/g,"&#39;")}'>Edit</button>
+        ${i.on_sale ? `<button class="btn ghost small" data-takedown="${i.id}">Take down</button>` : ""}</span>
       </div>`).join("");
+    document.querySelectorAll("[data-takedown]").forEach((b) => b.addEventListener("click", () => {
+      if (!confirm("Take this item off-sale? (Logged to the moderation log.)")) return;
+      act("admin_set_item_lifecycle", { p_item: b.dataset.takedown, p_action: "off_sale" }, "Item taken off-sale.", loadCatalog);
+    }));
     document.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => {
       const i = JSON.parse(b.dataset.edit.replace(/&#39;/g, "'"));
       document.getElementById("c-id").value = i.id;

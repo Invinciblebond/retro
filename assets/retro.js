@@ -3,7 +3,7 @@
   // ---- Single source of truth for the site version ----
   // Bump this on every release AND update the ?v= stamps in the HTML files
   // (they must match — a mismatch means the browser served a stale page).
-  const APP_VERSION = "0.11";
+  const APP_VERSION = "0.12";
   window.APP_VERSION = APP_VERSION;
   console.log(`%cUTOPOLY%c v${APP_VERSION}`, "font-weight:900;color:#e2231a;", "color:inherit;");
   // Stale-cache detector: compare our own <script src="...retro.js?v=N"> tag
@@ -92,7 +92,7 @@
     <a class="ritem ${page === "trade" ? "active" : ""}" href="trade.html">${ICONS.trade}Trade</a>
     <a class="ritem ${page === "dashboard" ? "active" : ""}" href="dashboard.html">${ICONS.dashboard}Dashboard</a>
     <a class="ritem ${page === "shop" ? "active" : ""}" href="shop.html">${ICONS.shop}Shop</a>
-    <a class="ritem" href="home.html#friends">${ICONS.friends}Friends</a>
+    <a class="ritem ${page === "friends" ? "active" : ""}" href="friends.html">${ICONS.friends}Friends</a>
     <a class="ritem ${page === "chat" ? "active" : ""}" href="chat.html">${ICONS.chat}Chat</a>
     <a class="ritem ${page === "settings" ? "active" : ""}" href="settings.html">${ICONS.settings}Settings</a>
     <a class="ritem admin-only ${page === "admin" ? "active" : ""}" href="admin.html" style="display:none;">${ICONS.admin}Admin</a>
