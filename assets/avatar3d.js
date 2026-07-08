@@ -20,14 +20,32 @@ function makeScene() {
   return scene;
 }
 
-// Default framing ~3x further out than the old tight crop.
+// Framing derived entirely from model bounds — no magic offsets.
+// Skinned-mesh-accurate bounds: precise=true where supported, else union of
+// each mesh's computed bounding box transformed to world space.
+function computeBounds(obj) {
+  obj.updateMatrixWorld(true);
+  try {
+    const box = new THREE.Box3().setFromObject(obj, true); // precise: applies skinning
+    if (!box.isEmpty()) return box;
+  } catch {}
+  const box = new THREE.Box3();
+  obj.traverse((child) => {
+    if (!child.isMesh || !child.geometry) return;
+    child.geometry.computeBoundingBox();
+    box.union(child.geometry.boundingBox.clone().applyMatrix4(child.matrixWorld));
+  });
+  return box;
+}
+
+// Default zoom 3.75 ≈ 3x further out than a tight crop; full body + padding.
 function frameObject(obj, camera, zoom = 3.75) {
-  const box = new THREE.Box3().setFromObject(obj);
+  const box = computeBounds(obj);
   const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3()); // orbit/look target = true box center (Y included)
   const maxDim = Math.max(size.x, size.y, size.z);
-  const dist = (maxDim / (2 * Math.tan((camera.fov * Math.PI / 180) / 2))) * zoom;
-  camera.position.set(center.x, center.y, center.z + dist); // front view
+  const dist = (maxDim / 2) / Math.tan((camera.fov * Math.PI / 180) / 2) * zoom;
+  camera.position.set(center.x, center.y, center.z + dist); // front view, level with center
   camera.near = dist / 100;
   camera.far = dist * 100;
   camera.lookAt(center);
@@ -78,8 +96,9 @@ export async function mountViewer(container, { url = MODEL_URL } = {}) {
   controls.target.copy(center);
   controls.enableDamping = true;
   controls.enableZoom = true; // scroll / pinch to zoom
-  controls.minDistance = camera.position.z * 0.15; // allow zooming in close
-  controls.maxDistance = camera.position.z * 4;    // and far out
+  const dist = camera.position.distanceTo(center);
+  controls.minDistance = dist * 0.15; // allow zooming in close
+  controls.maxDistance = dist * 4;    // and far out
   let raf;
   (function loop() {
     raf = requestAnimationFrame(loop);
