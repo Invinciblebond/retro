@@ -82,6 +82,7 @@
     chat: svg('<path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/><path d="M8.5 11.5h7"/><path d="M8.5 14.5h4"/>'),
     settings: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 12a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-2-1.2L14.5 3h-4l-.4 2.6a7.4 7.4 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7.4 7.4 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.06-.4.1-.8.1-1.2z"/>'),
     admin: svg('<path d="M12 3 4.5 6v5c0 4.6 3.2 8.4 7.5 10 4.3-1.6 7.5-5.4 7.5-10V6z"/><path d="m9 12 2 2 4-4"/>'),
+    forum: svg('<path d="M4 5h16v10H9l-4 4z"/><path d="M8 9h8"/><path d="M8 12h5"/>'),
   };
   const rail = `
   <aside class="rail">
@@ -94,6 +95,7 @@
     <a class="ritem ${page === "shop" ? "active" : ""}" href="shop.html">${ICONS.shop}Shop</a>
     <a class="ritem ${page === "friends" ? "active" : ""}" href="friends.html">${ICONS.friends}Friends</a>
     <a class="ritem ${page === "chat" ? "active" : ""}" href="chat.html">${ICONS.chat}Chat</a>
+    <a class="ritem ${["forum","leaderboard"].includes(page) ? "active" : ""}" href="forum.html">${ICONS.forum}Forum</a>
     <a class="ritem ${page === "settings" ? "active" : ""}" href="settings.html">${ICONS.settings}Settings</a>
     <a class="ritem admin-only ${page === "admin" ? "active" : ""}" href="admin.html" style="display:none;">${ICONS.admin}Admin</a>
   </aside>`;

@@ -184,6 +184,57 @@ document.addEventListener("DOMContentLoaded", async () => {
       else { toast(`You bought ${item.name}!`, "ok"); setTimeout(()=>location.reload(), 1200); }
     });
     actions.appendChild(buyBtn);
+
+    /* ----- Buy as gift (friends only) ----- */
+    const giftBtn = document.createElement("button");
+    giftBtn.className = "btn ghost";
+    giftBtn.style.marginLeft = "8px";
+    giftBtn.textContent = "🎁 Buy as gift";
+    giftBtn.onclick = async () => {
+      const { data: friends } = await sb.rpc("get_friends"); // blocked users are never friends (block auto-unfriends)
+      if (!friends?.length) return toast("Add some friends first — gifts can only go to friends.", "err");
+      openModal(`
+        <h3>Gift ${item.name}</h3>
+        <select id="gift-to" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);margin-bottom:10px;">
+          ${friends.map((f) => `<option value="${f.friend_id}">${f.username}</option>`).join("")}
+        </select>
+        <div class="fee-row total"><span>You pay</span><span><span class="ric">R</span> ${salePrice.toLocaleString()}</span></div>
+        <div class="row">
+          <button class="btn ghost" id="m-cancel">Cancel</button>
+          <button class="btn primary" id="m-ok">Send gift</button>
+        </div>`);
+      document.getElementById("m-cancel").onclick = closeModal;
+      document.getElementById("m-ok").onclick = async () => {
+        const b = document.getElementById("m-ok"); b.disabled = true; b.textContent = "Sending…";
+        const { error } = await sb.rpc("gift_item", { p_item: id, p_recipient: document.getElementById("gift-to").value });
+        closeModal();
+        if (error) toast(friendly(error.message), "err");
+        else { toast("Gift sent! 🎁", "ok"); window.retroAuth?.refreshBalances?.(); }
+      };
+    };
+    actions.appendChild(giftBtn);
+  }
+
+  /* ----- Wishlist heart toggle ----- */
+  {
+    const { data: { session: wlSess } } = await sb.auth.getSession();
+    const me = wlSess?.user?.id;
+    const { data: wl } = me ? await sb.from("wishlists").select("item_id").eq("user_id", me).eq("item_id", id).maybeSingle() : { data: null };
+    let onList = !!wl;
+    const heart = document.createElement("button");
+    heart.className = "btn ghost";
+    heart.style.marginLeft = "8px";
+    const paint = () => heart.textContent = onList ? "❤️ Wishlisted" : "♡ Wishlist";
+    paint();
+    heart.onclick = async () => {
+      const { error } = onList
+        ? await sb.from("wishlists").delete().eq("user_id", me).eq("item_id", id)
+        : await sb.from("wishlists").insert({ user_id: me, item_id: id });
+      if (error) return toast(friendly(error.message), "err");
+      onList = !onList; paint();
+      toast(onList ? "Added to your wishlist — we'll ping you on price drops & restocks." : "Removed from wishlist.", "ok");
+    };
+    actions.appendChild(heart);
   }
 
   // Sell (owned unlisted ULimited copies)

@@ -360,6 +360,7 @@ function wireBell() {
     purchase: "Purchases", sale: "Item sales", trade: "Trades",
     group_shout: "Group shouts", group_join: "Group joins", game_update: "Game updates",
     chat_message: "Messages", ad_review: "Advertising",
+    wishlist: "Wishlist", gift: "Gifts", referral: "Referrals", report_update: "Reports",
     system: "Utopoly",
   };
   function line(n) {
@@ -369,6 +370,15 @@ function wireBell() {
         const cnt = p.message_count > 1 ? `${p.message_count} new messages` : "New message";
         return `💬 <b>${cnt}</b> from <b>${p.from}</b>: “${String(p.preview || "").replace(/</g, "&lt;")}” <a href="chat.html?u=${encodeURIComponent(p.sender_username || p.from || "")}" data-noti-read="${n.id}">Open chat →</a>`;
       }
+      case "wishlist": {
+        const ev = p.event === "price_drop" ? `dropped to <span class="ric">R</span>${Number(p.price).toLocaleString()}`
+          : p.event === "back_in_stock" ? "is back in stock"
+          : `has a new resale listing at <span class="ric">R</span>${Number(p.price).toLocaleString()}`;
+        return `❤️ Wishlisted <b>${p.item}</b> ${ev}. <a href="item.html?id=${p.item_id}">View item →</a>`;
+      }
+      case "gift": return `🎁 <b>${p.from}</b> sent you a gift: <b>${p.item}</b>! <a href="item.html?id=${p.item_id}">See it →</a>`;
+      case "referral": return `🤝 You earned <span class="ric">R</span>${Number(p.amount).toLocaleString()} — <b>${p.other}</b> ${p.role === "referrer" ? "joined with your link!" : "referred you. Welcome!"}`;
+      case "report_update": return `🛡 Your report on ${p.target_type} was reviewed: <b>${p.outcome === "actioned" ? "action was taken" : "no action needed"}</b>. Thanks for keeping Utopoly safe.`;
       case "ad_review":
         return p.decision === "approved"
           ? `📣 Your ad “<b>${p.name}</b>” was approved and is now running.`
@@ -470,6 +480,45 @@ function wireBell() {
   });
   document.addEventListener("click", (e) => { if (!drop.contains(e.target) && !bell.contains(e.target)) drop.classList.remove("open"); });
 }
+
+/* ---------- Shared report modal (profiles, games, items, chat, group walls, forum) ---------- */
+window.openReportModal = function (targetType, targetId, label = "content") {
+  document.getElementById("report-ov")?.remove();
+  const ov = document.createElement("div");
+  ov.id = "report-ov";
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;";
+  ov.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;max-width:400px;width:100%;">
+      <h3 style="font-weight:900;margin-bottom:4px;">🚩 Report ${label}</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Reports go to the Utopoly moderation team. False reports may be ignored.</p>
+      <select id="rp-reason" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);margin-bottom:10px;">
+        <option value="spam">Spam</option><option value="scam">Scam</option>
+        <option value="inappropriate">Inappropriate content</option>
+        <option value="harassment">Harassment</option><option value="other">Other</option>
+      </select>
+      <textarea id="rp-details" maxlength="1000" placeholder="Details (optional but helpful)" style="width:100%;min-height:70px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);font-family:inherit;font-size:13px;resize:vertical;"></textarea>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+        <button class="btn ghost" id="rp-cancel">Cancel</button>
+        <button class="btn primary" id="rp-send">Submit report</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector("#rp-cancel").addEventListener("click", close);
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  ov.querySelector("#rp-send").addEventListener("click", async () => {
+    const btn = ov.querySelector("#rp-send");
+    btn.disabled = true;
+    const { error } = await supabase.rpc("submit_report", {
+      p_type: targetType, p_target: String(targetId),
+      p_reason: ov.querySelector("#rp-reason").value,
+      p_details: ov.querySelector("#rp-details").value.trim(),
+    });
+    close();
+    toast(error ? (window.retroAuth?.friendly?.(error.message) || error.message)
+                : "Report submitted — thanks for keeping Utopoly safe.", error ? "err" : "ok");
+  });
+};
 
 /* ---------- Init ---------- */
 wireSearch();

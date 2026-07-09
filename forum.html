@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forum - Utopoly</title>
+<meta name="description" content="The Utopoly community forum — discuss trading, games, and everything else.">
+<link rel="icon" type="image/png" href="https://i.ibb.co/N6wqhtTn/f079a25a-b9e0-46d8-98f0-cc38807b3c82-removebg-preview.png">
+<link rel="stylesheet" href="assets/retro.css?v=0.07">
+<style>
+  .fwrap { max-width:1000px; margin:24px auto; padding:0 20px; }
+  .fwrap h1 { font-size:24px; font-weight:900; margin-bottom:4px; }
+  .crumbs { font-size:12.5px; color:var(--muted); margin-bottom:16px; }
+  .crumbs a { color:var(--accent2); text-decoration:none; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .panel h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .cat { display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .cat:last-child { border-bottom:none; }
+  .cat:hover .cname { color:var(--accent2); }
+  .cat .cname { font-weight:800; font-size:15px; }
+  .cat .cdesc { font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .cat .cstats { margin-left:auto; text-align:right; font-size:11.5px; color:var(--muted); flex-shrink:0; }
+  .trow { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); font-size:13.5px; flex-wrap:wrap; }
+  .trow:last-child { border-bottom:none; }
+  .trow .tt { font-weight:800; color:var(--txt); text-decoration:none; }
+  .trow .tt:hover { color:var(--accent2); }
+  .trow .tm { font-size:11.5px; color:var(--muted); margin-left:auto; text-align:right; }
+  .tag2 { font-size:9.5px; font-weight:900; letter-spacing:1px; padding:2px 8px; border-radius:8px; border:1px solid var(--line); }
+  .tag2.pin { color:#f1c40f; } .tag2.lock { color:#e2231a; }
+  .post { display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--line); }
+  .post:last-child { border-bottom:none; }
+  .post .pp { width:42px; height:42px; border-radius:50%; background:var(--thumb); overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--muted); }
+  .post .pp img { width:100%; height:100%; object-fit:cover; }
+  .post .pb { flex:1; min-width:0; }
+  .post .ph { font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .post .ph a { color:var(--accent2); text-decoration:none; font-weight:800; }
+  .post .body { font-size:13.5px; line-height:1.55; white-space:pre-wrap; word-wrap:break-word; }
+  .post .body.gone { color:var(--muted); font-style:italic; }
+  .post .pacts { margin-top:6px; display:flex; gap:8px; }
+  .post .pacts button { border:none; background:none; color:var(--muted); font-size:11.5px; font-weight:700; cursor:pointer; padding:0; }
+  .post .pacts button:hover { color:var(--accent2); }
+  .frm textarea, .frm input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:13.5px; font-family:inherit; }
+  .frm textarea { min-height:90px; resize:vertical; }
+  .pager { display:flex; gap:8px; margin-top:12px; }
+  .lbcta { display:flex; align-items:center; gap:12px; background:linear-gradient(90deg, rgba(241,196,15,.12), transparent); border:1px solid var(--line); border-radius:12px; padding:14px 18px; margin-bottom:16px; text-decoration:none; }
+  .lbcta b { color:var(--txt); } .lbcta span { color:var(--muted); font-size:12.5px; }
+</style>
+</head>
+<body class="theme-1" data-page="forum">
+
+<div data-include="header"></div>
+<div class="shell">
+  <div data-include="rail"></div>
+  <main class="main-col">
+    <div class="fwrap" id="view"><div class="panel">Loading…</div></div>
+  </main>
+</div>
+<div data-include="tabbar"></div>
+<div data-include="footer"></div>
+
+<script src="assets/retro.js?v=0.07"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js?v=0.07"></script>
+<script src="assets/supabaseClient.js?v=0.07"></script>
+<script src="assets/auth.js?v=0.07"></script>
+<script src="assets/social.js?v=0.07"></script>
+<script src="assets/i18n.js?v=0.07"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const sb = window.supabaseClient;
+  const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+  const friendly = (m) => window.retroAuth?.friendly?.(m) || m;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const me = session.user.id;
+  let isAdmin = false;
+  sb.rpc("is_admin").then(({ data }) => { isAdmin = !!data; });
+
+  const view = document.getElementById("view");
+  const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  const ago = (d) => { const m = (Date.now()-new Date(d))/6e4;
+    return m<1?"just now":m<60?`${m|0}m ago`:m<1440?`${m/60|0}h ago`:`${m/1440|0}d ago`; };
+  const q = () => new URLSearchParams(location.search);
+  const nav = (params) => { history.pushState(null,"",`forum.html${params?"?"+params:""}`); route(); };
+  window.addEventListener("popstate", route);
+
+  async function route() {
+    const p = q();
+    if (p.get("thread")) return renderThread(p.get("thread"), +(p.get("page")||0));
+    if (p.get("cat")) return renderCategory(p.get("cat"), +(p.get("page")||0));
+    return renderHome();
+  }
+
+  /* ---------- Forum home ---------- */
+  async function renderHome() {
+    const { data: cats } = await sb.rpc("forum_home");
+    view.innerHTML = `
+      <h1>Forum</h1>
+      <div class="crumbs">Talk trading, games, and everything Utopoly.</div>
+      <a class="lbcta" href="leaderboard.html">🏆 <div><b>Richest Players Leaderboard</b><br><span>Who's sitting on the biggest pile of Retrobux? Top 25, updated every 15 minutes.</span></div></a>
+      <div class="panel"><h4>Categories</h4>
+        ${(cats||[]).map((c) => `
+          <div class="cat" data-cat="${c.id}">
+            <div><div class="cname">${esc(c.name)}</div><div class="cdesc">${esc(c.description)}</div></div>
+            <div class="cstats">${c.thread_count} threads<br>${c.last_activity ? "last post " + ago(c.last_activity) : "no posts yet"}</div>
+          </div>`).join("") || '<div style="color:var(--muted);font-size:13px;">No categories yet.</div>'}
+      </div>`;
+    view.querySelectorAll("[data-cat]").forEach((el) => el.addEventListener("click", () => nav("cat="+el.dataset.cat)));
+  }
+
+  /* ---------- Category: thread list ---------- */
+  async function renderCategory(catId, page) {
+    const [{ data: cats }, { data: threads }] = await Promise.all([
+      sb.rpc("forum_home"), sb.rpc("forum_threads_page", { p_category: catId, p_page: page }),
+    ]);
+    const cat = (cats||[]).find((c) => c.id === catId);
+    view.innerHTML = `
+      <h1>${esc(cat?.name || "Category")}</h1>
+      <div class="crumbs"><a href="forum.html">Forum</a> › ${esc(cat?.name || "")}</div>
+      <div class="panel"><h4>New thread</h4>
+        <div class="frm" style="display:grid;gap:10px;">
+          <input id="nt-title" maxlength="120" placeholder="Thread title">
+          <textarea id="nt-body" maxlength="10000" placeholder="Say something…"></textarea>
+          <button class="btn primary" id="nt-go" style="justify-self:start;">Post thread</button>
+        </div>
+      </div>
+      <div class="panel"><h4>Threads</h4>
+        ${(threads||[]).map((t) => `
+          <div class="trow">
+            ${t.pinned ? '<span class="tag2 pin">📌 PINNED</span>' : ""}${t.locked ? '<span class="tag2 lock">🔒 LOCKED</span>' : ""}
+            <a class="tt" href="forum.html?thread=${t.id}" data-thread="${t.id}">${esc(t.title)}</a>
+            <span class="tm">by <a href="${window.profileUrl({username:t.author_username,user_number:t.author_number})}" style="color:var(--accent2);">${esc(t.author_username)}</a>
+             · ${t.reply_count} replies · last ${ago(t.last_post_at)}</span>
+          </div>`).join("") || '<div style="color:var(--muted);font-size:13px;">No threads yet — start the first one above!</div>'}
+        <div class="pager">
+          ${page > 0 ? `<button class="btn ghost small" id="pg-prev">← Newer</button>` : ""}
+          ${(threads||[]).length === 25 ? `<button class="btn ghost small" id="pg-next">Older →</button>` : ""}
+        </div>
+      </div>`;
+    view.querySelectorAll("[data-thread]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); nav("thread="+a.dataset.thread); }));
+    document.getElementById("pg-prev")?.addEventListener("click", () => nav(`cat=${catId}&page=${page-1}`));
+    document.getElementById("pg-next")?.addEventListener("click", () => nav(`cat=${catId}&page=${page+1}`));
+    document.getElementById("nt-go").addEventListener("click", async () => {
+      const title = document.getElementById("nt-title").value.trim();
+      const body = document.getElementById("nt-body").value.trim();
+      if (!title || !body) return toast("Title and body required.", "err");
+      const { data: tid, error } = await sb.rpc("create_forum_thread", { p_category: catId, p_title: title, p_body: body });
+      if (error) return toast(friendly(error.message), "err");
+      nav("thread="+tid);
+    });
+  }
+
+  /* ---------- Thread: posts ---------- */
+  async function renderThread(threadId, page) {
+    const [{ data: posts }, { data: th }] = await Promise.all([
+      sb.rpc("forum_posts_page", { p_thread: threadId, p_page: page }),
+      sb.from("forum_threads").select("title, locked, pinned, category_id, author_id").eq("id", threadId).maybeSingle(),
+    ]);
+    if (!th) { view.innerHTML = '<div class="panel">Thread not found.</div>'; return; }
+    view.innerHTML = `
+      <h1>${th.pinned ? "📌 " : ""}${th.locked ? "🔒 " : ""}${esc(th.title)}</h1>
+      <div class="crumbs"><a href="forum.html">Forum</a> › <a href="forum.html?cat=${th.category_id}" id="bc-cat">category</a> › thread
+        ${isAdmin ? ` · <button class="btn ghost small" id="adm-pin">${th.pinned?"Unpin":"Pin"}</button>
+        <button class="btn ghost small" id="adm-lock">${th.locked?"Unlock":"Lock"}</button>
+        <button class="btn ghost small" id="adm-del">Delete thread</button>` : ""}</div>
+      <div class="panel" id="posts">
+        ${(posts||[]).map((p) => `
+          <div class="post" data-pid="${p.id}" data-author="${p.author_id}">
+            <span class="pp">${p.author_avatar ? `<img src="${p.author_avatar}">` : esc((p.author_username||"?").slice(0,2).toUpperCase())}</span>
+            <div class="pb">
+              <div class="ph"><a href="${window.profileUrl({username:p.author_username,user_number:p.author_number})}">${esc(p.author_username)}</a>
+                · ${ago(p.created_at)}${p.edited_at ? ' · <i>edited</i>' : ""}</div>
+              ${p.deleted
+                ? `<div class="body gone">[${p.deleted_by === "moderator" ? "removed by moderator" : "deleted by author"}]</div>`
+                : `<div class="body">${esc(p.body)}</div>
+                   <div class="pacts">
+                     ${p.author_id === me ? `<button data-edit>Edit</button><button data-del>Delete</button>` : ""}
+                     ${isAdmin && p.author_id !== me ? `<button data-del>Remove (mod)</button>` : ""}
+                     <button data-report>Report</button>
+                   </div>`}
+            </div>
+          </div>`).join("")}
+        <div class="pager">
+          ${page > 0 ? `<button class="btn ghost small" id="pg-prev">← Prev</button>` : ""}
+          ${(posts||[]).length === 20 ? `<button class="btn ghost small" id="pg-next">Next →</button>` : ""}
+        </div>
+      </div>
+      ${th.locked ? '<div class="panel" style="color:var(--muted);font-size:13px;">🔒 This thread is locked.</div>' : `
+      <div class="panel"><h4>Reply</h4>
+        <div class="frm" style="display:grid;gap:10px;">
+          <textarea id="re-body" maxlength="10000" placeholder="Write a reply…"></textarea>
+          <button class="btn primary" id="re-go" style="justify-self:start;">Reply</button>
+        </div>
+      </div>`}`;
+    document.getElementById("bc-cat").addEventListener("click", (e) => { e.preventDefault(); nav("cat="+th.category_id); });
+    document.getElementById("pg-prev")?.addEventListener("click", () => nav(`thread=${threadId}&page=${page-1}`));
+    document.getElementById("pg-next")?.addEventListener("click", () => nav(`thread=${threadId}&page=${page+1}`));
+    document.getElementById("re-go")?.addEventListener("click", async () => {
+      const body = document.getElementById("re-body").value.trim();
+      if (!body) return;
+      const { error } = await sb.rpc("post_forum_reply", { p_thread: threadId, p_body: body });
+      if (error) return toast(friendly(error.message), "err");
+      route();
+    });
+    /* per-post actions */
+    view.querySelectorAll(".post").forEach((el) => {
+      const pid = +el.dataset.pid;
+      el.querySelector("[data-edit]")?.addEventListener("click", async () => {
+        const cur = el.querySelector(".body").textContent;
+        const next = prompt("Edit your post:", cur);
+        if (next == null || !next.trim()) return;
+        const { error } = await sb.rpc("edit_forum_post", { p_post: pid, p_body: next.trim() });
+        if (error) toast(friendly(error.message), "err"); else route();
+      });
+      el.querySelector("[data-del]")?.addEventListener("click", async () => {
+        if (!confirm("Delete this post?")) return;
+        const { error } = await sb.rpc("delete_forum_post", { p_post: pid });
+        if (error) toast(friendly(error.message), "err"); else route();
+      });
+      el.querySelector("[data-report]")?.addEventListener("click", () =>
+        window.openReportModal?.("forum_post", String(pid), "forum post"));
+    });
+    /* admin thread controls */
+    const adm = async (action, value) => {
+      const { error } = await sb.rpc("admin_forum_thread", { p_thread: threadId, p_action: action, p_value: value });
+      if (error) toast(friendly(error.message), "err");
+      else if (action === "delete") nav("cat="+th.category_id);
+      else route();
+    };
+    document.getElementById("adm-pin")?.addEventListener("click", () => adm("pin", !th.pinned));
+    document.getElementById("adm-lock")?.addEventListener("click", () => adm("lock", !th.locked));
+    document.getElementById("adm-del")?.addEventListener("click", () => confirm("Delete this thread?") && adm("delete", true));
+  }
+
+  route();
+});
+</script>
+</body>
+</html>

@@ -81,7 +81,9 @@
       <div class="cat-main">
         <div class="subtabs">
           <a href="#" class="active">All</a><a href="#">Hats</a><a href="#">Shirts</a><a href="#">Pants</a><a href="#">T-Shirts</a><a href="#">Faces</a><a href="#">Gear</a><a href="#">Accessories</a><a href="#">Bundles</a>
+          <a href="wishlist.html" style="margin-left:auto;">❤️ Wishlist</a>
         </div>
+        <div id="trend-rows"></div>
         <div class="item-grid" id="grid"></div>
       </div>
     </div>
@@ -150,11 +152,33 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Favorites (wishlist hearts)
+  /* ---- Trending & Recently sold rows (cached server-side, 15 min) ---- */
+  (async () => {
+    const box = document.getElementById("trend-rows");
+    const { data: feeds } = await supabase.rpc("get_catalog_feeds");
+    if (!feeds) return; // hidden gracefully
+    const rowHtml = (title, cards) => cards.length < 3 ? "" : `
+      <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:800;margin:2px 0 8px;">${title}</div>
+      <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;">${cards.join("")}</div>`;
+    const card = (it, sub) => `
+      <a href="item.html?id=${it.id}" style="flex:0 0 130px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;text-decoration:none;color:var(--txt);">
+        <div style="width:100%;height:78px;border-radius:8px;background:var(--thumb);display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden;margin-bottom:6px;">
+          ${it.image_url ? `<img src="${it.image_url}" style="width:100%;height:100%;object-fit:cover;">` : (it.icon || "📦")}</div>
+        <div style="font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${String(it.name).replace(/</g,"&lt;")}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${sub}</div>
+      </a>`;
+    box.innerHTML =
+      rowHtml("🔥 Trending this week", (feeds.trending || []).map((it) =>
+        card(it, `${it.purchases} sold · <span class="ric">R</span>${Number(it.price).toLocaleString()}`))) +
+      rowHtml("🕑 Recently sold (limiteds)", (feeds.recent_resales || []).map((it) =>
+        card(it, `sold <span class="ric">R</span>${Number(it.price).toLocaleString()} · RAP ${Number(it.rap).toLocaleString()}`)));
+  })();
+
   let favs = new Set();
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      const { data: fv } = await supabase.from('favorites').select('item_id');
+      const { data: fv } = await supabase.from('wishlists').select('item_id');
       favs = new Set((fv || []).map(r => r.item_id));
     }
   } catch {}
@@ -241,8 +265,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const id = heart.dataset.fav;
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      if (favs.has(id)) { favs.delete(id); await supabase.from('favorites').delete().eq('item_id', id); }
-      else { favs.add(id); await supabase.from('favorites').insert({ user_id: session.user.id, item_id: id }); }
+      if (favs.has(id)) { favs.delete(id); await supabase.from('wishlists').delete().eq('user_id', session.user.id).eq('item_id', id); }
+      else { favs.add(id); await supabase.from('wishlists').insert({ user_id: session.user.id, item_id: id }); }
       heart.textContent = favs.has(id) ? '♥' : '♡';
       heart.style.color = favs.has(id) ? '#e2231a' : '#fff';
       return;

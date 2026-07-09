@@ -102,6 +102,10 @@
         <div class="panel" id="friends-panel">
           <h4>Friends</h4>
         </div>
+        <div class="panel" id="daily-reward-panel">
+          <h4>Daily Reward</h4>
+          <div id="dr-body" style="font-size:13px;color:var(--muted);">Loading…</div>
+        </div>
         <div class="panel news">
           <h4>Utopoly News</h4>
           <div class="ntitle">Catalog opens for early access 🎉</div>
@@ -170,6 +174,44 @@ document.addEventListener("DOMContentLoaded", async () => {
         location.href = ad.target_url;
       });
     } catch (_) { house(); }
+  })();
+
+  /* ---- Daily login reward widget ---- */
+  (async () => {
+    const body = document.getElementById("dr-body");
+    const toast = (m,t,ms) => window.retroAuth?.toast?.(m,t,ms);
+    function countdown(nextAt) {
+      const tick = () => {
+        const ms = new Date(nextAt) - Date.now();
+        if (ms <= 0) return render();
+        const h = Math.floor(ms/36e5), m = Math.floor(ms%36e5/6e4), s = Math.floor(ms%6e4/1e3);
+        const el = document.getElementById("dr-count");
+        if (el) el.textContent = `${h}h ${m}m ${s}s`; else clearInterval(iv);
+      };
+      const iv = setInterval(tick, 1000); tick();
+    }
+    async function render() {
+      const { data: st, error } = await sb.rpc("daily_reward_status");
+      if (error || !st) { body.textContent = "Unavailable right now."; return; }
+      if (st.claimed_today) {
+        body.innerHTML = `🔥 <b>${st.streak_count}-day streak!</b><br>Next reward in <b id="dr-count">…</b>`;
+        countdown(st.next_claim_at);
+      } else {
+        body.innerHTML = `<span style="color:var(--good,#4caf50);font-weight:800;">● Available now</span>
+          ${st.streak_count ? `<span style="margin-left:6px;">🔥 ${st.streak_count}-day streak</span>` : ""}<br>
+          <button class="btn primary small" id="dr-claim" style="margin-top:8px;">Claim <span class="ric">X</span> ${st.base_rix}+</button>`;
+        let claiming = false; // double-click guard (DB PK also prevents double-credit)
+        document.getElementById("dr-claim").addEventListener("click", async (e) => {
+          if (claiming) return; claiming = true; e.target.disabled = true;
+          const { data: r, error: err } = await sb.rpc("claim_daily_reward");
+          if (err) { toast(window.retroAuth.friendly(err.message), "err"); claiming = false; e.target.disabled = false; return; }
+          toast(`+${r.amount} Rix claimed! Day ${r.streak_count} streak 🔥`, "ok");
+          window.retroAuth?.refreshBalances?.();
+          render();
+        });
+      }
+    }
+    render();
   })();
 
   const { data } = await sb.rpc("get_sponsored_games", { p_placement: "homepage", max_rows: 6 });

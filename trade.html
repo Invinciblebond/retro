@@ -236,9 +236,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         (itemsByTrade[ti.trade_id] ||= { sender: [], receiver: [] })[ti.side].push(ti);
       });
     }
+    /* rix -> retrobux at the stored exchange rate (display only, never money logic) */
+    let rixRate = 10;
+    sb.from("app_config").select("value").eq("key", "rix_to_retrobux_rate").maybeSingle()
+      .then(({ data }) => { if (data?.value?.rate) rixRate = Number(data.value.rate); });
     const fmtSide = (t, side) => {
       const items = (itemsByTrade[t.id]?.[side] || []).map((ti) =>
-        `${ti.inventory?.catalog_items?.name || "?"}${ti.inventory?.serial ? " #" + ti.inventory.serial : ""}`);
+        `${ti.inventory?.catalog_items?.name || "?"}${ti.inventory?.serial ? " #" + ti.inventory.serial : ""}` +
+        ` <span style="font-size:10px;font-weight:800;color:#f1c40f;border:1px solid var(--line);border-radius:8px;padding:0 5px;">RAP ${(ti.inventory?.catalog_items?.rap ?? 0).toLocaleString()}</span>`);
       const cur = [];
       const rbx = side === "sender" ? t.sender_retrobux : t.receiver_retrobux;
       const rix = side === "sender" ? t.sender_rix : t.receiver_rix;
@@ -246,17 +251,36 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (rix) cur.push(`X ${rix.toLocaleString()}`);
       return [...items, ...cur].join(", ") || "nothing";
     };
+    /* total value of one side: item RAP + Retrobux + Rix converted at the stored rate */
+    const sideValue = (t, side) => {
+      const rap = (itemsByTrade[t.id]?.[side] || []).reduce((s, ti) => s + (ti.inventory?.catalog_items?.rap ?? 0), 0);
+      const rbx = side === "sender" ? t.sender_retrobux : t.receiver_retrobux;
+      const rix = side === "sender" ? t.sender_rix : t.receiver_rix;
+      return rap + (rbx || 0) + Math.floor((rix || 0) / rixRate);
+    };
+    /* diff % from MY perspective: positive = I receive more than I give */
+    const valueBadge = (give, get) => {
+      const base = Math.max(give, get, 1);
+      const diff = Math.round((get - give) / base * 100);
+      const color = Math.abs(diff) <= 10 ? "#2ecc40" : Math.abs(diff) <= 30 ? "#f1c40f" : "#e2231a";
+      return { diff, color, html: `<span style="font-size:11px;font-weight:900;color:${color};">You give ~${give.toLocaleString()} · you get ~${get.toLocaleString()} (${diff >= 0 ? "+" : ""}${diff}%)</span>`
+        + (diff < -30 ? `<div style="font-size:11px;font-weight:800;color:#e2231a;margin-top:2px;">⚠ This trade heavily favors the other side</div>` : "") };
+    };
     const row = (t) => {
       const inbound = t.receiver_id === me && t.status === "pending";
       const outbound = t.sender_id === me && t.status === "pending";
       const other = t.sender_id === me ? t.receiver?.username : t.sender?.username;
+      const mySide = t.sender_id === me ? "sender" : "receiver";
+      const theirSide = t.sender_id === me ? "receiver" : "sender";
+      const vb = t.status === "pending" ? valueBadge(sideValue(t, mySide), sideValue(t, theirSide)) : null;
       return `<div class="trow" data-tid="${t.id}">
         <div style="flex:1;min-width:220px;">
           <b>${t.sender_id === me ? "You → " + (other || "?") : (other || "?") + " → You"}</b>
           <div style="font-size:12px;color:var(--muted);margin-top:4px;">
-            They give: ${fmtSide(t, t.sender_id === me ? "receiver" : "sender")}<br>
-            You give: ${fmtSide(t, t.sender_id === me ? "sender" : "receiver")}
+            They give: ${fmtSide(t, theirSide)}<br>
+            You give: ${fmtSide(t, mySide)}
           </div>
+          ${vb ? `<div style="margin-top:5px;">${vb.html}</div>` : ""}
         </div>
         <span class="st ${t.status}">${t.status.toUpperCase()}</span>
         ${inbound ? `<button class="btn primary small" data-act="accept">Accept</button>
@@ -286,9 +310,72 @@ document.addEventListener("DOMContentLoaded", async () => {
       refreshSend();
       document.querySelector('.ttabs button[data-tab="new"]').click();
     }));
+    /* ===== accept confirmation modal (UI friction only — the atomic respond_trade RPC does the work) ===== */
+    function confirmAccept(t) {
+      return new Promise((resolve) => {
+        const mySide = t.receiver_id === me ? "receiver" : "sender";
+        const theirSide = mySide === "receiver" ? "sender" : "receiver";
+        const give = sideValue(t, mySide), get = sideValue(t, theirSide);
+        const vb = valueBadge(give, get);
+        const sideList = (side) => {
+          const items = (itemsByTrade[t.id]?.[side] || []).map((ti) => `
+            <div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;">
+              <span style="width:30px;height:30px;border-radius:6px;background:var(--thumb);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ti.inventory?.catalog_items?.icon || "📦"}</span>
+              <b>${ti.inventory?.catalog_items?.name || "?"}${ti.inventory?.serial ? " #" + ti.inventory.serial : ""}</b>
+              <span style="margin-left:auto;font-size:10.5px;font-weight:800;color:#f1c40f;">RAP ${(ti.inventory?.catalog_items?.rap ?? 0).toLocaleString()}</span>
+            </div>`).join("");
+          const rbx = side === "sender" ? t.sender_retrobux : t.receiver_retrobux;
+          const rix = side === "sender" ? t.sender_rix : t.receiver_rix;
+          const cur = [rbx ? `<div style="font-size:12.5px;padding:4px 0;"><b><span class="ric">R</span> ${rbx.toLocaleString()}</b></div>` : "",
+                       rix ? `<div style="font-size:12.5px;padding:4px 0;"><b>X ${rix.toLocaleString()}</b></div>` : ""].join("");
+          return (items + cur) || '<div style="font-size:12px;color:var(--muted);">nothing</div>';
+        };
+        const ov = document.createElement("div");
+        ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+        ov.innerHTML = `
+          <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;max-width:460px;width:100%;">
+            <h3 style="font-weight:900;margin-bottom:12px;">Confirm this trade</h3>
+            ${vb.diff < -30 ? `<div style="background:#e2231a22;border:1px solid #e2231a;color:#e2231a;font-size:12.5px;font-weight:800;border-radius:10px;padding:10px 12px;margin-bottom:12px;">⚠ This trade heavily favors the other side — you'd be giving up ~${Math.abs(vb.diff)}% more value than you receive.</div>` : ""}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#e2231a;font-weight:900;margin-bottom:6px;">You are giving up</div>${sideList(mySide)}
+                <div style="font-size:11px;color:var(--muted);margin-top:6px;">≈ ${give.toLocaleString()} value</div></div>
+              <div><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#2ecc40;font-weight:900;margin-bottom:6px;">You are receiving</div>${sideList(theirSide)}
+                <div style="font-size:11px;color:var(--muted);margin-top:6px;">≈ ${get.toLocaleString()} value</div></div>
+            </div>
+            <div style="margin-top:10px;">${vb.html}</div>
+            <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;font-weight:700;margin:14px 0;">
+              <input type="checkbox" id="tc-ack" style="margin-top:2px;"> I understand that traded items cannot be recovered once the trade completes.
+            </label>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button class="btn ghost" id="tc-cancel">Cancel</button>
+              <button class="btn primary" id="tc-ok" disabled>Confirm (3)</button>
+            </div>
+          </div>`;
+        document.body.appendChild(ov);
+        const ok = ov.querySelector("#tc-ok"), ack = ov.querySelector("#tc-ack");
+        let left = 3, timerDone = false;
+        const iv = setInterval(() => {
+          left--;
+          if (left <= 0) { clearInterval(iv); timerDone = true; ok.textContent = "Confirm trade"; gate(); }
+          else ok.textContent = `Confirm (${left})`;
+        }, 1000);
+        const gate = () => ok.disabled = !(timerDone && ack.checked);
+        ack.addEventListener("change", gate);
+        const close = (result) => { clearInterval(iv); ov.remove(); resolve(result); };
+        ov.querySelector("#tc-cancel").addEventListener("click", () => close(false));
+        ov.addEventListener("click", (e) => { if (e.target === ov) close(false); });
+        ok.addEventListener("click", () => close(true));
+      });
+    }
+
     document.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", async () => {
+      const tid = b.closest(".trow").dataset.tid;
+      if (b.dataset.act === "accept") {
+        const t = all.find((x) => x.id === tid);
+        if (!(await confirmAccept(t))) return;
+      }
       b.disabled = true;
-      const { error } = await sb.rpc("respond_trade", { p_trade: b.closest(".trow").dataset.tid, p_action: b.dataset.act });
+      const { error } = await sb.rpc("respond_trade", { p_trade: tid, p_action: b.dataset.act });
       if (error) { toast(friendly(error.message), "err"); b.disabled = false; }
       else { toast(`Trade ${b.dataset.act === "accept" ? "accepted — items and currency transferred" : b.dataset.act + "ed"}!`, "ok"); loadLists(); }
     }));
