@@ -120,12 +120,13 @@
       </div>
       <div>
         <h4>Company</h4>
-        <a href="#">About <span class="tag soon">SOON</span></a>
+        <a href="about.html">About</a>
+        <a href="platforms.html">Platforms</a>
         <a href="#">Careers <span class="tag soon">SOON</span></a>
       </div>
       <div>
         <h4>Community</h4>
-        <a href="#" title="Placeholder invite">Discord <span class="tag soon">SOON</span></a>
+        <a href="https://discord.gg/QJyffYR63" target="_blank" rel="noopener">Discord</a>
         <a href="wiki.html">📖 Wiki — how it all works</a>
       </div>
       <div>

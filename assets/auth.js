@@ -7,8 +7,11 @@ const supabase = window.supabaseClient;
 const page = document.body.dataset.page || "";
 const DEFAULT_AVATAR = "https://i.ibb.co/3t5CJPD/3544ea05dc3cd161d076eefc393b2e62.jpg";
 
-// SITE-WIDE RULE: every page except the landing page (index.html) requires login.
+// SITE-WIDE RULE: every page except the landing page (index.html) and the
+// public marketing pages (about, platforms) requires login.
 const isLanding = page === "landing";
+const PUBLIC_PAGES = ["landing", "about", "platforms"];
+const isPublic = PUBLIC_PAGES.includes(page);
 
 /* ---------- Injected styles for toasts, modal, meter, envelope ---------- */
 const style = document.createElement("style");
@@ -114,7 +117,7 @@ function goDest() { const d = getDest(); sessionStorage.removeItem("retro:next")
 /* ---------- Route protection ---------- */
 async function guard() {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!isLanding && !session) {
+  if (!isPublic && !session) {
     const here = location.pathname.split("/").pop() + (location.hash || "");
     sessionStorage.setItem("retro:next", here);
     location.replace(`index.html?auth=required&next=${encodeURIComponent(here)}`);
@@ -538,6 +541,9 @@ function wireLanding() {
         return;
       }
 
+      // A/B analytics only — fire-and-forget, never affects signup flow (assets/ab.js)
+      try { window.retroAB?.recordSignup?.(); } catch {}
+
       if (session) {
         // Auto-login: no email gate. Verification (if pending) nudges later, never blocks.
         successModal(`Welcome, ${username || "friend"}!`, "Your account is ready — jumping in…", goDest, 1600);
@@ -636,7 +642,7 @@ supabase.auth.onAuthStateChange((event) => {
 let redirected = false;
 supabase.auth.onAuthStateChange((_event, newSession) => {
   applyAuthUI(newSession);
-  if (!isLanding && !newSession) location.replace("index.html?auth=required");
+  if (!isPublic && !newSession) location.replace("index.html?auth=required");
   // Landing auto-login: covers the session-restore race where getSession()
   // resolves before the stored session is hydrated, plus OAuth callbacks.
   if (isLanding && newSession && !redirected) { redirected = true; goDest(); }

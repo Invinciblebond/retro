@@ -48,6 +48,7 @@
         <button data-t="reports">Reports <span id="reports-badge" style="display:none;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px;">0</span></button>
         <button data-t="ugc">UGC <span id="ugc-badge" style="display:none;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px;">0</span></button>
         <button data-t="forum">Forum</button>
+        <button data-t="experiments">Experiments</button>
         <button data-t="log">Mod Log</button>
       </div>
 
@@ -205,6 +206,27 @@
         </div>
       </section>
 
+      <section id="t-experiments" style="display:none;">
+        <div class="panel">
+          <h4>Landing theme — landing_theme_v1 (dusk vs daylight, 50/50)</h4>
+          <div id="xp-note" class="mut" style="font-size:12px;color:var(--muted);margin-bottom:12px;"></div>
+          <div id="xp-totals" class="lst"><div class="mut">Loading…</div></div>
+        </div>
+        <div class="panel">
+          <h4>Daily conversion rate per variant</h4>
+          <div id="xp-chart"></div>
+        </div>
+        <div class="panel">
+          <h4>Conclude experiment</h4>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Flags a winner — all future visitors get the winning theme. Logged to the moderation log. Reversible.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn primary small" id="xp-win-dusk">Conclude: Dusk wins</button>
+            <button class="btn primary small" id="xp-win-daylight">Conclude: Daylight wins</button>
+            <button class="btn ghost small" id="xp-reopen">Reopen (clear winner)</button>
+          </div>
+        </div>
+      </section>
+
       <section id="t-log" style="display:none;">
         <div class="panel"><h4>Moderation log</h4><div class="lst" id="log-list"></div></div>
       </section>
@@ -240,10 +262,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* tabs */
   document.querySelectorAll(".atabs button").forEach((b) => b.addEventListener("click", () => {
     document.querySelectorAll(".atabs button").forEach((x) => x.classList.toggle("active", x === b));
-    ["users","catalog","economy","content","events","ads","reports","ugc","forum","log"].forEach((t) =>
+    ["users","catalog","economy","content","events","ads","reports","ugc","forum","experiments","log"].forEach((t) =>
       document.getElementById("t-" + t).style.display = t === b.dataset.t ? "" : "none");
     ({ catalog: loadCatalog, economy: () => { loadEconomy(); loadGiftCards(); }, content: loadContent, events: loadEvents,
-       ads: loadAds, reports: loadReports, ugc: loadUgc, forum: loadForumAdmin, log: loadLog })[b.dataset.t]?.();
+       ads: loadAds, reports: loadReports, ugc: loadUgc, forum: loadForumAdmin, experiments: loadExperiments, log: loadLog })[b.dataset.t]?.();
   }));
 
   /* ===== Reports ===== */
@@ -657,6 +679,76 @@ document.addEventListener("DOMContentLoaded", async () => {
       description: document.getElementById("ev-desc").value.trim(),
       starts_at: new Date(s).toISOString(), ends_at: new Date(e).toISOString(), item_ids,
     }}, "Event created.", loadEvents);
+  });
+
+  /* ===== Experiments (A/B) ===== */
+  const XP = "landing_theme_v1", XP_VARIANTS = ["dusk", "daylight"], XP_MIN = 100;
+  async function loadExperiments() {
+    const { data, error } = await sb.rpc("admin_ab_results", { p_experiment: XP });
+    if (error) return toast(friendly(error.message), "err");
+    const totals = data?.totals || {}, daily = data?.daily || [], winner = data?.winner || null;
+    const rows = XP_VARIANTS.map((v) => {
+      const t = totals[v] || { visits: 0, signups: 0 };
+      return { v, visits: +t.visits, signups: +t.signups, cr: t.visits > 0 ? t.signups / t.visits : 0 };
+    });
+    const totalVisits = rows.reduce((s, r) => s + r.visits, 0);
+    const small = rows.some((r) => r.visits < XP_MIN);
+    const leader = rows[0].cr === rows[1].cr ? null : (rows[0].cr > rows[1].cr ? rows[0] : rows[1]);
+    const other = leader ? rows.find((r) => r !== leader) : null;
+    const lift = leader && other && other.cr > 0 ? ((leader.cr - other.cr) / other.cr) * 100 : null;
+
+    document.getElementById("xp-note").innerHTML =
+      (winner ? `🏁 Concluded — winner: <b>${esc(winner)}</b> (${data?.concluded_at ? new Date(data.concluded_at).toLocaleString() : ""}). All future visitors get this theme. ` : "🟢 Running — 50/50 split. ") +
+      `Total sample: <b>${totalVisits.toLocaleString()}</b> unique visits.` +
+      (small ? ` ⚠️ <b>Sample too small to be meaningful</b> — need at least ${XP_MIN} visits per variant.` : "");
+
+    document.getElementById("xp-totals").innerHTML = rows.map((r) => `
+      <div class="lrow">
+        <b style="text-transform:capitalize;">${r.v === "dusk" ? "🌙" : "🌅"} ${r.v}</b>
+        ${winner === r.v ? '<span class="flag adm">WINNER</span>' : ""}
+        ${leader === r && !winner ? '<span class="flag adm">LEADING</span>' : ""}
+        <span class="mut">${r.visits.toLocaleString()} unique visits · ${r.signups.toLocaleString()} unique signups ·
+          CR <b style="color:var(--txt);">${(r.cr * 100).toFixed(2)}%</b>
+          ${leader === r && lift != null ? ` · +${lift.toFixed(1)}% lift vs ${other.v}` : ""}</span>
+      </div>`).join("");
+
+    /* daily CR chart — plain inline SVG, no libs */
+    const days = [...new Set(daily.map((d) => d.day))].sort();
+    const chart = document.getElementById("xp-chart");
+    if (!days.length) { chart.innerHTML = '<div class="mut">No data yet.</div>'; return; }
+    const byV = {}; XP_VARIANTS.forEach((v) => byV[v] = days.map((day) => {
+      const d = daily.find((x) => x.day === day && x.variant === v);
+      return d && +d.visits > 0 ? (+d.signups / +d.visits) : 0;
+    }));
+    const W = 640, H = 180, P = 30;
+    const maxCr = Math.max(0.01, ...XP_VARIANTS.flatMap((v) => byV[v]));
+    const x = (i) => days.length === 1 ? W / 2 : P + (i * (W - 2 * P)) / (days.length - 1);
+    const y = (cr) => H - P - (cr / maxCr) * (H - 2 * P);
+    const colors = { dusk: "var(--accent2, #7fb0e8)", daylight: "#e6a817" };
+    const line = (v) => byV[v].map((cr, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(cr).toFixed(1)}`).join(" ");
+    chart.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;">
+        <line x1="${P}" y1="${H - P}" x2="${W - P}" y2="${H - P}" stroke="var(--line)" />
+        <text x="${P}" y="14" font-size="10" fill="var(--muted)">max ${(maxCr * 100).toFixed(1)}%</text>
+        ${XP_VARIANTS.map((v) => `<path d="${line(v)}" fill="none" stroke="${colors[v]}" stroke-width="2"/>
+          ${byV[v].map((cr, i) => `<circle cx="${x(i)}" cy="${y(cr)}" r="2.5" fill="${colors[v]}"><title>${v} ${days[i]}: ${(cr * 100).toFixed(2)}%</title></circle>`).join("")}`).join("")}
+        <text x="${P}" y="${H - 8}" font-size="10" fill="var(--muted)">${days[0]}</text>
+        <text x="${W - P}" y="${H - 8}" font-size="10" fill="var(--muted)" text-anchor="end">${days[days.length - 1]}</text>
+      </svg>
+      <div class="mut" style="font-size:11px;">
+        <span style="color:${colors.dusk};">●</span> dusk &nbsp; <span style="color:${colors.daylight};">●</span> daylight — daily conversion rate</div>`;
+  }
+  document.getElementById("xp-win-dusk").addEventListener("click", () => {
+    if (!confirm("Conclude landing_theme_v1 with DUSK as the winner? Future visitors all get dusk.")) return;
+    act("admin_conclude_experiment", { p_experiment: XP, p_winner: "dusk" }, "Concluded — dusk wins. Logged.", loadExperiments);
+  });
+  document.getElementById("xp-win-daylight").addEventListener("click", () => {
+    if (!confirm("Conclude landing_theme_v1 with DAYLIGHT as the winner? Future visitors all get daylight.")) return;
+    act("admin_conclude_experiment", { p_experiment: XP, p_winner: "daylight" }, "Concluded — daylight wins. Logged.", loadExperiments);
+  });
+  document.getElementById("xp-reopen").addEventListener("click", () => {
+    if (!confirm("Clear the winner flag and resume the 50/50 experiment?")) return;
+    act("admin_conclude_experiment", { p_experiment: XP, p_winner: null }, "Experiment reopened.", loadExperiments);
   });
 
   /* ===== Log ===== */

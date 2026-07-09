@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About Utopoly | Play, Create & Trade in Your Browser</title>
+<meta name="description" content="What is Utopoly? An early-access social gaming platform built by fans, for fans — create your avatar, join experiences, collect and trade items, all in your browser.">
+<link rel="icon" type="image/png" href="https://i.ibb.co/N6wqhtTn/f079a25a-b9e0-46d8-98f0-cc38807b3c82-removebg-preview.png">
+<link rel="stylesheet" href="assets/retro.css?v=0.07">
+<style>
+  body { background:var(--bg); }
+  .pub-top { position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:22px; padding:0 22px; height:60px; background:var(--nav); border-bottom:1px solid var(--line); }
+  .pub-top nav { display:flex; gap:18px; }
+  .pub-top nav a { color:var(--muted); font-weight:600; font-size:13.5px; }
+  .pub-top nav a:hover, .pub-top nav a.active { color:var(--txt); }
+  .pub-top .cta { margin-left:auto; }
+
+  .about-hero { position:relative; overflow:hidden; padding:74px 24px 60px; text-align:center;
+    background:linear-gradient(180deg, var(--card2) 0%, var(--bg) 100%); }
+  .about-hero h1 { font-size:34px; font-weight:900; margin:14px 0 10px; }
+  .about-hero p.lead { max-width:560px; margin:0 auto 22px; color:var(--muted); font-size:15.5px; line-height:1.7; }
+
+  .glass { position:relative; border:1px solid rgba(255,255,255,.18); border-radius:22px;
+    background:var(--card); box-shadow:0 8px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25); }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass { background:rgba(255,255,255,.07); -webkit-backdrop-filter:blur(18px) saturate(160%); backdrop-filter:blur(18px) saturate(160%); }
+  }
+  .theme-2 .glass { background:rgba(255,255,255,.5); }
+
+  .wrap { max-width:900px; margin:0 auto; padding:34px 20px 60px; }
+  .wrap h2 { font-size:20px; font-weight:900; margin:34px 0 12px; }
+  .wrap p { font-size:14.5px; line-height:1.8; color:var(--txt); margin-bottom:14px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin:26px 0; }
+  .stat { padding:20px 16px; text-align:center; }
+  .stat b { display:block; font-size:26px; font-weight:900; color:var(--accent); }
+  .stat span { font-size:11.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); font-weight:800; }
+  .wikicard { display:flex; gap:16px; align-items:center; padding:22px; margin-top:30px; }
+  .wikicard .ic { font-size:36px; }
+  .wikicard h3 { font-size:16px; font-weight:800; margin-bottom:4px; }
+  .wikicard p { font-size:13px; color:var(--muted); margin:0; }
+  .wikicard .btn { margin-left:auto; white-space:nowrap; }
+  /* signup CTAs only for logged-out visitors */
+  body.logged-in .guest-cta { display:none !important; }
+</style>
+</head>
+<body class="theme-1" data-page="about">
+
+<header class="pub-top">
+  <a href="index.html" class="wordmark">UT<span class="chip">O</span>P<span class="chip">O</span>LY</a>
+  <nav><a href="home.html">Play</a><a href="about.html" class="active">About</a><a href="platforms.html">Platforms</a></nav>
+  <span class="cta guest-cta"><a class="btn primary small" href="index.html">SIGN UP — IT'S FREE</a></span>
+</header>
+
+<section class="about-hero">
+  <span class="wordmark" style="font-size:40px;">UT<span class="chip">O</span>P<span class="chip">O</span>LY</span>
+  <h1>What is Utopoly?</h1>
+  <p class="lead">Play, create, and trade — right in your browser. No download, no install. An early-access social gaming platform built by fans, for fans.</p>
+  <a class="btn primary guest-cta" href="index.html">SIGN UP NOW</a>
+</section>
+
+<div class="wrap">
+  <div class="stats" id="stats">
+    <div class="stat glass"><b id="s-players">—</b><span>Players</span></div>
+    <div class="stat glass"><b id="s-exp">—</b><span>Experiences</span></div>
+    <div class="stat glass"><b id="s-items">—</b><span>Catalog Items</span></div>
+    <div class="stat glass"><b id="s-groups">—</b><span>Groups</span></div>
+  </div>
+
+  <h2>Our story</h2>
+  <p>Utopoly started with a simple idea: the golden era of browser worlds — blocky avatars, player-run economies, forums full of trade rumors — deserved a modern home. We're an independent project rebuilding that feeling from scratch, retro style, with none of the bloat: open the site, make an avatar, and you're in.</p>
+  <p>Everything on the platform is powered by our two currencies, Retrobux and Rix. Create your avatar, collect and equip items from the catalog, hunt Limiteds and ULimiteds on the resale market, join groups, climb the forum leaderboard, and build your own experiences with the creator tools — then hang out with the friends you make along the way.</p>
+  <p>We're in early access, which means the platform grows in the open. New features ship straight to everyone, the community shapes what comes next, and the wiki documents exactly how it all works — no secrets, no dark patterns.</p>
+
+  <div class="wikicard glass">
+    <span class="ic">📖</span>
+    <div>
+      <h3>Want to learn everything?</h3>
+      <p>The Utopoly Wiki covers avatars, currencies, trading, Limiteds, groups, creator payouts — the whole machine.</p>
+    </div>
+    <a class="btn ghost" href="wiki.html">Open the Wiki</a>
+  </div>
+
+  <div style="text-align:center;margin-top:40px;" class="guest-cta">
+    <a class="btn primary" href="index.html">CREATE YOUR ACCOUNT — FREE</a>
+  </div>
+</div>
+
+<div data-include="footer"></div>
+
+<script src="assets/retro.js?v=0.07"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js?v=0.07"></script>
+<script src="assets/supabaseClient.js?v=0.07"></script>
+<script src="assets/auth.js?v=0.07"></script>
+<script src="assets/i18n.js?v=0.07"></script>
+<script>
+  // live platform stats (cached server-side, anon-callable)
+  window.supabaseClient?.rpc("get_public_stats").then(({ data }) => {
+    if (!data) return;
+    const n = (x) => (x ?? 0).toLocaleString();
+    document.getElementById("s-players").textContent = n(data.players);
+    document.getElementById("s-exp").textContent = n(data.experiences);
+    document.getElementById("s-items").textContent = n(data.catalog_items);
+    document.getElementById("s-groups").textContent = n(data.groups);
+  });
+</script>
+</body>
+</html>

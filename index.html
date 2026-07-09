@@ -7,63 +7,292 @@
 <title>Utopoly | Play & Create Free Multiplayer Games Online</title>
 <meta name="description" content="Play thousands of free multiplayer games in your browser, no download. Create your own worlds, customize your avatar, trade items, and play with friends.">
 <link rel="icon" type="image/png" href="https://i.ibb.co/N6wqhtTn/f079a25a-b9e0-46d8-98f0-cc38807b3c82-removebg-preview.png">
+<script>
+/* A/B assignment — landing_theme_v1 (dusk | daylight).
+   Runs before any CSS/paint: no flicker, no LCP impact, no network.
+   ?theme=dusk|daylight override = QA session, EXCLUDED from experiment data. */
+(function () {
+  var EXP = "landing_theme_v1", KEY = "retro:ab:" + EXP;
+  var VARIANTS = ["dusk", "daylight"];
+  var qs = new URLSearchParams(location.search);
+  var ov = qs.get("theme");
+  var st = null;
+  try { st = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+  // cookie fallback (localStorage cleared / blocked)
+  if (!st) {
+    var m = document.cookie.match(new RegExp("(?:^|; )" + KEY.replace(/[:]/g, "\\$&") + "=([^;]*)"));
+    if (m) { var p = decodeURIComponent(m[1]).split("|"); if (VARIANTS.indexOf(p[0]) > -1 && p[1]) st = { v: p[0], vid: p[1] }; }
+  }
+  var excluded = false, v;
+  if (VARIANTS.indexOf(ov) > -1) { v = ov; excluded = true; }              // QA override
+  else if (st && st.winner && VARIANTS.indexOf(st.winner) > -1) { v = st.winner; excluded = true; } // concluded: everyone gets winner
+  else if (st && VARIANTS.indexOf(st.v) > -1) { v = st.v; }                // returning visitor: sticky
+  else {                                                                    // first visit: 50/50
+    var r = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint8Array(1))[0] : Math.floor(Math.random() * 256);
+    v = r < 128 ? "dusk" : "daylight";
+    var vid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() :
+      "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) { var n = Math.random() * 16 | 0; return (c === "x" ? n : (n & 3 | 8)).toString(16); });
+    st = { v: v, vid: vid };
+  }
+  if (st && !excluded) { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  if (st && st.vid) { try { document.cookie = KEY + "=" + encodeURIComponent(st.v + "|" + st.vid) + ";max-age=31536000;path=/;SameSite=Lax"; } catch (e) {} }
+  window.__ab = { exp: EXP, key: KEY, variant: v, state: st, excluded: excluded };
+  document.documentElement.classList.add("theme-" + v);
+})();
+</script>
 <link rel="stylesheet" href="assets/retro.css?v=0.07">
 <style>
-  /* Landing-specific (Color Scheme 1 / Layout 1) */
-  .land-top { position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:22px; padding:0 22px; height:60px; background:var(--nav); border-bottom:1px solid var(--line); }
-  .land-top nav { display:flex; gap:18px; }
-  .land-top nav a { color:var(--muted); font-weight:600; font-size:13.5px; }
-  .land-top nav a:hover { color:var(--txt); }
-  .land-login { margin-left:auto; display:flex; gap:8px; align-items:center; }
-  .land-login input { padding:8px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:12.5px; width:150px; }
+  /* ============================================================
+     LANDING — smoked-glass panels floating over a living park scene.
+     Two cosmetic variants (html.theme-dusk / html.theme-daylight).
+     Identical layout, copy & element order — ONLY colors/materials differ.
+     ============================================================ */
 
-  .hero { position:relative; overflow:hidden; min-height:640px; display:flex; align-items:center; justify-content:center; padding:60px 24px; }
-  .tilegrid { position:absolute; inset:-120px; display:grid; grid-template-columns:repeat(8,1fr); gap:12px; opacity:.35; filter:blur(2.5px) brightness(.55); animation:drift 60s linear infinite alternate; z-index:0; }
+  /* ---------- Variant palettes (CSS custom properties only) ---------- */
+  html.theme-dusk body {
+    --bg:#0a1220; --side:#0a111d; --nav:#0d1524; --card:#121c2e; --card2:#182440;
+    --txt:#eef3fc; --muted:#a5b2c8; --line:#233248; --input:#0c1424; --thumb:#16233a;
+    --accent:#e2231a; --accent2:#8ab8ee; --logo:#eef3fc;
+    --sky:linear-gradient(180deg,#040911 0%,#081226 34%,#0d1c38 62%,#14273f 100%);
+    --scene-glow:#ff5a3c;
+    --track:#31435f; --tie:#26364e;
+    --car1:#ff3b30; --car2:#d92a21; --car3:#a81f18;
+    /* glass — barely-there smoked panel */
+    --glass-bg:rgba(255,255,255,.08);
+    --glass-fallback:rgba(13,21,37,.94);
+    --glass-border:rgba(255,255,255,.18);
+    --glass-edge:rgba(255,255,255,.25);
+    --glass-scrim:linear-gradient(180deg,rgba(3,7,15,.28) 0%,rgba(3,7,15,.10) 55%,rgba(3,7,15,.22) 100%);
+    --glass-shadow:0 8px 40px rgba(0,0,0,.35), 0 0 46px rgba(226,35,26,.08);
+    --input-glass:rgba(255,255,255,.08); --input-border:rgba(255,255,255,.22);
+    --focus-glow:rgba(138,184,238,.45);
+    --hero-shadow:0 2px 18px rgba(0,0,0,.65);
+    --firefly:#ffd964; --wheel-line:#3d5170; --wheel-cab:#ff3b30;
+  }
+  html.theme-daylight body {
+    --bg:#f4ede2; --side:#fbf5ea; --nav:#fbf5ea; --card:#fffaf1; --card2:#f2e8d8;
+    --txt:#2c241a; --muted:#71675a; --line:#e5d9c6; --input:#f4ecdd; --thumb:#eadfcb;
+    --accent:#e2231a; --accent2:#2f6ea5; --logo:#2c241a;
+    --sky:linear-gradient(180deg,#8fc3e0 0%,#c8ddde 30%,#ffd9a3 62%,#ffb46b 86%,#ff9d57 100%);
+    --scene-glow:#ffcf6e;
+    --track:#c47a4e; --tie:#a9683f;
+    --car1:#e2231a; --car2:#f0603a; --car3:#f5915c;
+    --glass-bg:rgba(255,255,255,.40);
+    --glass-fallback:rgba(255,251,243,.96);
+    --glass-border:rgba(255,255,255,.55);
+    --glass-edge:rgba(255,255,255,.8);
+    --glass-scrim:linear-gradient(180deg,rgba(255,252,246,.30) 0%,rgba(255,252,246,.12) 55%,rgba(255,252,246,.26) 100%);
+    --glass-shadow:0 8px 40px rgba(110,64,25,.30);
+    --input-glass:rgba(255,255,255,.38); --input-border:rgba(120,85,50,.30);
+    --focus-glow:rgba(226,140,60,.40);
+    --hero-shadow:0 1px 10px rgba(255,244,224,.85);
+    --firefly:#ffffff; --wheel-line:#a9683f; --wheel-cab:#e2231a;
+  }
+
+  /* ---------- Glass material ----------
+     Fill stays NEARLY transparent; the frosted look comes from backdrop-filter
+     sampling the animated scene behind. Solid fallback only when unsupported. */
+  .glass { position:relative; border:1px solid var(--glass-border); border-radius:22px;
+    background:var(--glass-fallback);
+    box-shadow:var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass { background:var(--glass-bg);
+      -webkit-backdrop-filter:blur(18px) saturate(160%); backdrop-filter:blur(18px) saturate(160%); }
+  }
+  /* subtle gradient scrim INSIDE the panel for AA text contrast — never dims the page */
+  .glass::before { content:""; position:absolute; inset:0; border-radius:inherit; background:var(--glass-scrim); pointer-events:none; z-index:0; }
+  .glass > * { position:relative; z-index:1; }
+
+  /* ---------- Top bar (thinner glass, no radius) ---------- */
+  .land-top { position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:22px; padding:0 22px; height:60px;
+    border-radius:0; border-left:none; border-right:none; border-top:none; box-shadow:0 8px 30px rgba(0,0,0,.18); }
+  .land-top nav { display:flex; gap:18px; }
+  .land-top nav a { color:var(--txt); opacity:.75; font-weight:600; font-size:13.5px; transition:opacity .15s; }
+  .land-top nav a:hover { opacity:1; }
+  .land-login { margin-left:auto; display:flex; gap:8px; align-items:center; }
+  .land-login input { padding:8px 12px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-glass); color:var(--txt); font-size:12.5px; width:150px; transition:border-color .15s, box-shadow .15s; }
+
+  /* ---------- Hero scene ---------- */
+  .hero { position:relative; overflow:hidden; min-height:680px; display:flex; align-items:center; justify-content:center; padding:70px 24px; background:var(--sky); }
+  /* everything animated pauses when the tab is hidden or the hero scrolls away */
+  .hero.paused * { animation-play-state:paused !important; }
+
+  /* stars (dusk only) */
+  .stars, .stars2 { position:absolute; inset:0; z-index:0; pointer-events:none; background-repeat:repeat; }
+  .stars { background-image:radial-gradient(1.5px 1.5px at 25px 35px,#fff 55%,transparent 60%),radial-gradient(1px 1px at 120px 90px,#dbe8ff 55%,transparent 60%),radial-gradient(1.5px 1.5px at 210px 40px,#fff 55%,transparent 60%),radial-gradient(1px 1px at 300px 130px,#c9dcff 55%,transparent 60%),radial-gradient(1px 1px at 70px 160px,#fff 55%,transparent 60%);
+    background-size:340px 200px; animation:twinkle 4.5s ease-in-out infinite; }
+  .stars2 { background-image:radial-gradient(1px 1px at 60px 60px,#fff 55%,transparent 60%),radial-gradient(1.5px 1.5px at 180px 140px,#e8f0ff 55%,transparent 60%),radial-gradient(1px 1px at 260px 80px,#fff 55%,transparent 60%);
+    background-size:300px 220px; animation:twinkle 6s ease-in-out -2s infinite; }
+  @keyframes twinkle { 0%,100% { opacity:.85 } 50% { opacity:.35 } }
+
+  /* moon (dusk) / sun + shimmering rays (daylight) */
+  .moon { position:absolute; top:52px; right:12%; width:84px; height:84px; border-radius:50%; z-index:0; pointer-events:none;
+    background:radial-gradient(circle at 34% 32%, #fdfdf6 0%, #e8ecf2 55%, #cfd8e6 100%);
+    box-shadow:0 0 40px 14px rgba(220,232,255,.35), 0 0 120px 50px rgba(160,190,255,.14); animation:floaty 9s ease-in-out infinite; }
+  .moon i { position:absolute; border-radius:50%; background:rgba(160,175,200,.35); }
+  .moon i:nth-child(1){ width:16px;height:16px;top:20%;left:52%; } .moon i:nth-child(2){ width:10px;height:10px;top:56%;left:30%; } .moon i:nth-child(3){ width:7px;height:7px;top:40%;left:70%; }
+  .sun { position:absolute; bottom:26%; left:50%; transform:translateX(-50%); width:150px; height:150px; border-radius:50%; z-index:0; pointer-events:none;
+    background:radial-gradient(circle, #fff7d8 0%, #ffdf8e 45%, #ffb95e 100%);
+    box-shadow:0 0 70px 30px rgba(255,205,110,.55), 0 0 220px 110px rgba(255,170,80,.30); }
+  .sun-rays { position:absolute; bottom:26%; left:50%; width:340px; height:340px; margin-left:-170px; margin-bottom:-95px; z-index:0; pointer-events:none;
+    background:conic-gradient(from 0deg, rgba(255,220,140,.22) 0deg 8deg, transparent 8deg 30deg, rgba(255,220,140,.22) 30deg 38deg, transparent 38deg 60deg, rgba(255,220,140,.22) 60deg 68deg, transparent 68deg 90deg, rgba(255,220,140,.22) 90deg 98deg, transparent 98deg 120deg, rgba(255,220,140,.22) 120deg 128deg, transparent 128deg 150deg, rgba(255,220,140,.22) 150deg 158deg, transparent 158deg 180deg, rgba(255,220,140,.22) 180deg 188deg, transparent 188deg 210deg, rgba(255,220,140,.22) 210deg 218deg, transparent 218deg 240deg, rgba(255,220,140,.22) 240deg 248deg, transparent 248deg 270deg, rgba(255,220,140,.22) 270deg 278deg, transparent 278deg 300deg, rgba(255,220,140,.22) 300deg 308deg, transparent 308deg 330deg, rgba(255,220,140,.22) 330deg 338deg, transparent 338deg 360deg);
+    border-radius:50%; animation:rayspin 60s linear infinite; opacity:.8;
+    -webkit-mask-image:radial-gradient(circle, transparent 60px, #000 90px, transparent 170px); mask-image:radial-gradient(circle, transparent 60px, #000 90px, transparent 170px); }
+  @keyframes rayspin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
+  @keyframes floaty { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-8px) } }
+
+  /* clouds — two depths (daylight) */
+  .cloud { position:absolute; z-index:0; pointer-events:none; width:180px; height:38px; border-radius:40px; background:rgba(255,255,255,.75); filter:blur(1px);
+    box-shadow:36px -16px 0 6px rgba(255,255,255,.65), 90px -8px 0 2px rgba(255,255,255,.7); animation:cloudDrift 70s linear infinite; opacity:.85; }
+  .cloud.c1 { top:70px; left:-220px; }
+  .cloud.c2 { top:150px; left:-220px; animation-delay:-30s; transform:scale(.7); animation-duration:90s; }
+  .cloud.far { top:44px; left:-160px; transform:scale(.45); opacity:.5; animation-duration:120s; animation-delay:-55s; filter:blur(2px); }
+  .cloud.far2 { top:190px; left:-160px; transform:scale(.5); opacity:.45; animation-duration:110s; animation-delay:-80s; filter:blur(2px); }
+  @keyframes cloudDrift { from { transform:translateX(0) scale(var(--cs,1)) } to { transform:translateX(calc(100vw + 480px)) scale(var(--cs,1)) } }
+  .cloud.c2 { --cs:.7 } .cloud.far { --cs:.45 } .cloud.far2 { --cs:.5 }
+
+  /* theme-gated decorations */
+  html.theme-daylight .stars, html.theme-daylight .stars2, html.theme-daylight .moon { display:none; }
+  html.theme-dusk .sun, html.theme-dusk .sun-rays, html.theme-dusk .cloud { display:none; }
+
+  /* far parallax layer: drifting experience tiles (never frozen, 80s loop) */
+  .tilegrid { position:absolute; inset:-120px; display:grid; grid-template-columns:repeat(8,1fr); gap:12px; opacity:.12; filter:blur(3px); animation:drift 80s linear infinite alternate; z-index:0; }
   @keyframes drift { from { transform:translate(0,0) } to { transform:translate(-70px,-50px) } }
   .tile { aspect-ratio:16/10; border-radius:8px; background:var(--thumb); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:800; letter-spacing:1px; color:var(--muted); }
-  .tile:nth-child(3n) { background:#33262a; } .tile:nth-child(4n) { background:#22303f; } .tile:nth-child(5n) { background:#26332a; }
-  .hero::after { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 0%, var(--bg) 90%); z-index:1; }
+  .hero::after { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.14) 100%); z-index:1; pointer-events:none; }
 
-  /* roller coaster */
-  .coaster { position:absolute; left:0; right:0; top:8%; z-index:2; pointer-events:none; opacity:.9; }
-  .coaster svg { width:100%; height:220px; }
-  .track { fill:none; stroke:#3a3d44; stroke-width:3; }
-  .track-tie { fill:none; stroke:#2e3138; stroke-width:2; stroke-dasharray:2 14; }
-  .car { animation:ride 14s linear infinite; }
-  .car2 { animation:ride 14s linear infinite; animation-delay:-.55s; }
-  .car3 { animation:ride 14s linear infinite; animation-delay:-1.1s; }
-  @keyframes ride { from { offset-distance:0% } to { offset-distance:100% } }
+  /* ---------- Roller coaster (two trains, physical easing) ---------- */
+  .coaster { position:absolute; left:0; right:0; top:7%; z-index:2; pointer-events:none; opacity:.95; }
+  .coaster svg { width:100%; height:240px; overflow:visible; }
+  .track { fill:none; stroke:var(--track); stroke-width:3; }
+  .track-glow { fill:none; stroke:var(--scene-glow); stroke-width:6; opacity:0; filter:blur(5px); }
+  html.theme-dusk .track-glow { opacity:.35; animation:neonpulse 3.2s ease-in-out infinite; }
+  @keyframes neonpulse { 0%,100% { opacity:.22 } 50% { opacity:.45 } }
+  .track-tie { fill:none; stroke:var(--tie); stroke-width:2; stroke-dasharray:2 14; }
+  /* Seamless loop. Non-uniform keyframes = physics feel:
+     crawls up to the crests (~22% and ~66%), whips through the dips. */
+  .car, .car2, .car3 { animation:ride 13s linear infinite; }
+  .car2 { animation-delay:-.28s; } .car3 { animation-delay:-.56s; }
+  /* second train, half a lap behind */
+  .trainB .car { animation-delay:-6.5s; } .trainB .car2 { animation-delay:-6.78s; } .trainB .car3 { animation-delay:-7.06s; }
+  @keyframes ride {
+    0%   { offset-distance:0% }
+    22%  { offset-distance:14% }   /* slow climb to first crest */
+    34%  { offset-distance:38% }   /* fast drop through the dip */
+    48%  { offset-distance:52% }
+    68%  { offset-distance:64% }   /* slow again up the second crest */
+    82%  { offset-distance:86% }   /* whip down */
+    100% { offset-distance:100% }
+  }
   .carbox { offset-path:path('M -60 160 C 200 160 260 40 460 40 C 660 40 660 170 900 170 C 1140 170 1160 60 1360 60 C 1520 60 1560 140 1700 140'); offset-rotate:auto; }
+  .carbody { fill:var(--car1); } .car2 .carbody { fill:var(--car2); } .car3 .carbody { fill:var(--car3); }
+  .wheel { fill:#1b2333; stroke:var(--muted); stroke-width:1; }
+  .rider { fill:var(--txt); opacity:.85; }
+  .link { fill:var(--tie); }
+  html.theme-daylight .wheel { fill:#5a3d28; stroke:#8a6b4d; }
+  .headlight { fill:url(#beam); opacity:0; }
+  html.theme-dusk .car .headlight { opacity:.8; }
+  html.theme-dusk .carbody { filter:drop-shadow(0 0 6px rgba(255,80,50,.55)); }
+  html.theme-daylight .carbody { filter:drop-shadow(0 3px 4px rgba(120,70,30,.35)); }
 
+  /* ---------- Ferris wheel + park lights ---------- */
+  .ferris { position:absolute; right:4%; bottom:34px; z-index:2; pointer-events:none; opacity:.9; }
+  .ferris svg { width:150px; height:170px; display:block; }
+  .fw-rim { transform-origin:75px 75px; animation:fwspin 26s linear infinite; }
+  @keyframes fwspin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
+  .fw-line { stroke:var(--wheel-line); stroke-width:2.5; fill:none; }
+  .fw-cab { fill:var(--wheel-cab); }
+  .fw-cab.alt { fill:var(--accent2); }
+  html.theme-dusk .ferris svg { filter:drop-shadow(0 0 8px rgba(255,90,60,.35)); }
+  .parklight { position:absolute; z-index:2; width:7px; height:7px; border-radius:50%; pointer-events:none; background:var(--scene-glow); }
+  .parklight.l1 { left:9%; bottom:64px; animation:blink 2.6s ease-in-out infinite; }
+  .parklight.l2 { left:12%; bottom:88px; animation:blink 3.4s ease-in-out -1.2s infinite; }
+  @keyframes blink { 0%,100% { opacity:.25; box-shadow:0 0 4px 1px var(--scene-glow) } 50% { opacity:1; box-shadow:0 0 12px 4px var(--scene-glow) } }
+
+  /* ---------- Particles: fireflies at dusk / dust motes in daylight (12 max) ---------- */
+  .pfx { position:absolute; inset:0; z-index:2; pointer-events:none; }
+  .pfx i { position:absolute; width:4px; height:4px; border-radius:50%; background:var(--firefly); opacity:0;
+    animation:pfloat var(--d,14s) ease-in-out var(--dl,0s) infinite; box-shadow:0 0 6px 2px var(--firefly); }
+  html.theme-daylight .pfx i { box-shadow:0 0 4px 1px rgba(255,255,255,.7); width:3px; height:3px; }
+  @keyframes pfloat {
+    0% { opacity:0; transform:translate(0,0) }
+    12% { opacity:.85 } 45% { opacity:.5 }
+    60% { opacity:.9; transform:translate(var(--dx,30px), var(--dy,-46px)) }
+    85% { opacity:.25 }
+    100% { opacity:0; transform:translate(calc(var(--dx,30px)*1.5), calc(var(--dy,-46px)*1.6)) }
+  }
+  .pfx i:nth-child(1){ left:12%; top:62%; --d:13s; --dl:0s;  --dx:34px;  --dy:-52px }
+  .pfx i:nth-child(2){ left:22%; top:74%; --d:17s; --dl:-4s; --dx:-28px; --dy:-40px }
+  .pfx i:nth-child(3){ left:31%; top:58%; --d:15s; --dl:-9s; --dx:22px;  --dy:-60px }
+  .pfx i:nth-child(4){ left:44%; top:78%; --d:19s; --dl:-2s; --dx:-36px; --dy:-34px }
+  .pfx i:nth-child(5){ left:56%; top:64%; --d:14s; --dl:-7s; --dx:30px;  --dy:-48px }
+  .pfx i:nth-child(6){ left:66%; top:76%; --d:18s; --dl:-12s;--dx:-24px; --dy:-56px }
+  .pfx i:nth-child(7){ left:75%; top:60%; --d:16s; --dl:-5s; --dx:26px;  --dy:-38px }
+  .pfx i:nth-child(8){ left:84%; top:72%; --d:20s; --dl:-10s;--dx:-32px; --dy:-50px }
+  .pfx i:nth-child(9){ left:38%; top:68%; --d:15s; --dl:-13s;--dx:18px;  --dy:-44px }
+  .pfx i:nth-child(10){ left:91%; top:66%; --d:17s; --dl:-8s; --dx:-20px; --dy:-42px }
+
+  /* hills silhouette */
+  .hills { position:absolute; left:0; right:0; bottom:-2px; z-index:2; pointer-events:none; }
+  .hills svg { width:100%; height:120px; display:block; }
+  html.theme-dusk .hillfill { fill:#060b16; }
+  html.theme-daylight .hillfill { fill:#c98a52; }
+
+  /* ---------- Hero content ---------- */
   .hero-inner { position:relative; z-index:3; display:flex; gap:48px; align-items:center; justify-content:center; flex-wrap:wrap; max-width:1150px; }
-  .hero-copy { max-width:460px; }
-  .hero-copy .wordmark { font-size:64px; }
+  .hero-copy { max-width:460px; animation:riseIn .8s cubic-bezier(.2,.9,.25,1) both; }
+  .hero-copy .wordmark { font-size:64px; text-shadow:var(--hero-shadow); }
   .hero-copy .wordmark .chip { border-radius:6px; padding:0 10px; }
-  .hero-copy h1 { font-size:26px; font-weight:800; margin:18px 0 10px; line-height:1.3; }
-  .hero-copy p { color:var(--muted); font-size:15px; line-height:1.65; margin-bottom:24px; }
-  .loginlink { display:block; margin-top:14px; font-size:13px; color:var(--muted); }
+  .hero-copy h1 { font-size:26px; font-weight:800; margin:18px 0 10px; line-height:1.3; text-shadow:var(--hero-shadow); }
+  .hero-copy p { color:var(--txt); opacity:.9; font-size:15px; line-height:1.65; margin-bottom:24px; text-shadow:var(--hero-shadow); }
+  .loginlink { display:block; margin-top:14px; font-size:13px; color:var(--txt); opacity:.85; text-shadow:var(--hero-shadow); }
   .loginlink a { color:var(--accent2); font-weight:700; }
+  @keyframes riseIn { from { opacity:0; transform:translateY(22px) } to { opacity:1; transform:translateY(0) } }
 
-  .signup-card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:26px; width:360px; max-width:100%; box-shadow:0 16px 50px rgba(0,0,0,.5); }
+  /* ---------- Signup card: the frosted panel ----------
+     Sits DIRECTLY over the animated scene (no opaque wrapper) so the
+     backdrop blur has the coaster/stars/clouds to sample. */
+  .signup-card { padding:26px; width:360px; max-width:100%; animation:riseIn .8s .12s cubic-bezier(.2,.9,.25,1) both; }
   .signup-card h3 { font-size:17px; font-weight:800; margin-bottom:16px; }
-  .signup-card label { display:block; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin:12px 0 6px; }
-  .signup-card input, .signup-card select { width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--txt); font-size:13.5px; }
+  .signup-card label { display:block; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--txt); opacity:.75; margin:12px 0 6px; }
+  .signup-card input, .signup-card select {
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--input-border);
+    background:var(--input-glass); color:var(--txt); font-size:13.5px;
+    transition:border-color .18s, box-shadow .18s, background-color .18s; }
+  .signup-card input::placeholder, .land-login input::placeholder { color:var(--txt); opacity:.55; }
+  .signup-card input:focus, .signup-card select:focus, .land-login input:focus {
+    outline:none; border-color:var(--accent2); box-shadow:0 0 0 3px var(--focus-glow); }
+  .signup-card select option { background:var(--card); color:var(--txt); }
   .bday { display:flex; gap:8px; }
-  .microcopy { font-size:11px; color:var(--muted); line-height:1.6; margin:14px 0; }
-  .microcopy a { color:var(--accent2); font-weight:700; }
+  .microcopy { font-size:11px; color:var(--txt); opacity:.72; line-height:1.6; margin:14px 0; }
+  .microcopy a { color:var(--accent2); font-weight:700; opacity:1; }
 
+  /* CTA stays SOLID accent — must pop against the glass */
+  .btn { transition:transform .18s cubic-bezier(.2,.9,.3,1.4), box-shadow .18s, filter .18s; }
+  .btn.primary { background:var(--accent); color:#fff; }
+  .btn.primary:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(226,35,26,.35); }
+  .btn.primary:active { transform:translateY(0); }
+
+  /* ---------- Platforms strip (same glass recipe, smaller) ---------- */
   .platforms { text-align:center; padding:44px 20px 10px; }
   .platforms h4 { font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:18px; }
   .plat-row { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
-  .plat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 22px; font-size:13px; font-weight:700; color:var(--muted); display:flex; align-items:center; gap:8px; }
-  @media (max-width:700px) { .land-login input { display:none; } .hero-copy .wordmark { font-size:44px; } }
+  .plat { border-radius:16px; padding:12px 22px; font-size:13px; font-weight:700; color:var(--txt); display:flex; align-items:center; gap:8px;
+    transition:transform .18s, box-shadow .18s; }
+  .plat:hover { transform:translateY(-3px); }
+
+  @media (max-width:700px) { .land-login input { display:none; } .hero-copy .wordmark { font-size:44px; } .ferris { display:none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hero *, .hero::after { animation:none !important; }
+    .hero-copy, .signup-card { animation:none; }
+  }
 </style>
 </head>
 <body class="theme-1" data-page="landing">
 
-<header class="land-top">
+<header class="land-top glass">
   <span class="wordmark">UT<span class="chip">O</span>P<span class="chip">O</span>LY</span>
-  <nav><a href="home.html">Play</a><a href="#">About</a><a href="#platforms">Platforms</a></nav>
+  <nav><a href="home.html">Play</a><a href="about.html">About</a><a href="platforms.html">Platforms</a></nav>
   <div class="land-login">
     <input type="text" placeholder="Username / Email">
     <input type="password" placeholder="Password">
@@ -72,14 +301,100 @@
 </header>
 
 <section class="hero">
+  <div class="stars" aria-hidden="true"></div>
+  <div class="stars2" aria-hidden="true"></div>
+  <div class="moon" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="sun" aria-hidden="true"></div>
+  <div class="sun-rays" aria-hidden="true"></div>
+  <div class="cloud far" aria-hidden="true"></div>
+  <div class="cloud far2" aria-hidden="true"></div>
+  <div class="cloud c1" aria-hidden="true"></div>
+  <div class="cloud c2" aria-hidden="true"></div>
   <div class="tilegrid" aria-hidden="true"></div>
+
   <div class="coaster" aria-hidden="true">
     <svg viewBox="0 0 1600 220" preserveAspectRatio="none">
+      <defs>
+        <radialGradient id="beam" cx="0%" cy="50%" r="100%">
+          <stop offset="0%" stop-color="#fff3c4" stop-opacity=".9"/>
+          <stop offset="100%" stop-color="#fff3c4" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <path class="track-glow" d="M -60 160 C 200 160 260 40 460 40 C 660 40 660 170 900 170 C 1140 170 1160 60 1360 60 C 1520 60 1560 140 1700 140"/>
       <path class="track" d="M -60 160 C 200 160 260 40 460 40 C 660 40 660 170 900 170 C 1140 170 1160 60 1360 60 C 1520 60 1560 140 1700 140"/>
       <path class="track-tie" d="M -60 168 C 200 168 260 48 460 48 C 660 48 660 178 900 178 C 1140 178 1160 68 1360 68 C 1520 68 1560 148 1700 148"/>
-      <g class="car"><rect class="carbox" x="-14" y="-9" width="28" height="14" rx="4" fill="#e2231a"/></g>
-      <g class="car2"><rect class="carbox" x="-14" y="-9" width="28" height="14" rx="4" fill="#b81b13"/></g>
-      <g class="car3"><rect class="carbox" x="-14" y="-9" width="28" height="14" rx="4" fill="#8f140e"/></g>
+      <!-- train A -->
+      <g class="trainA">
+        <g class="car"><g class="carbox">
+          <ellipse class="headlight" cx="36" cy="-2" rx="34" ry="10"/>
+          <path class="carbody" d="M-15 -8 h30 a4 4 0 0 1 4 4 v6 a3 3 0 0 1 -3 3 h-32 a3 3 0 0 1 -3 -3 v-6 a4 4 0 0 1 4 -4 z"/>
+          <circle class="rider" cx="-7" cy="-10" r="3.4"/><circle class="rider" cx="1" cy="-10" r="3.4"/><circle class="rider" cx="9" cy="-10" r="3.4"/>
+          <circle class="wheel" cx="-9" cy="6" r="3"/><circle class="wheel" cx="9" cy="6" r="3"/>
+        </g></g>
+        <g class="car2"><g class="carbox">
+          <path class="carbody" d="M-15 -8 h30 a4 4 0 0 1 4 4 v6 a3 3 0 0 1 -3 3 h-32 a3 3 0 0 1 -3 -3 v-6 a4 4 0 0 1 4 -4 z"/>
+          <circle class="rider" cx="-7" cy="-10" r="3.4"/><circle class="rider" cx="9" cy="-10" r="3.4"/>
+          <circle class="wheel" cx="-9" cy="6" r="3"/><circle class="wheel" cx="9" cy="6" r="3"/>
+          <rect class="link" x="16" y="-2" width="10" height="3" rx="1.5"/>
+        </g></g>
+        <g class="car3"><g class="carbox">
+          <path class="carbody" d="M-15 -8 h30 a4 4 0 0 1 4 4 v6 a3 3 0 0 1 -3 3 h-32 a3 3 0 0 1 -3 -3 v-6 a4 4 0 0 1 4 -4 z"/>
+          <circle class="rider" cx="1" cy="-10" r="3.4"/>
+          <circle class="wheel" cx="-9" cy="6" r="3"/><circle class="wheel" cx="9" cy="6" r="3"/>
+          <rect class="link" x="16" y="-2" width="10" height="3" rx="1.5"/>
+        </g></g>
+      </g>
+      <!-- train B: half a lap behind -->
+      <g class="trainB">
+        <g class="car"><g class="carbox">
+          <ellipse class="headlight" cx="36" cy="-2" rx="34" ry="10"/>
+          <path class="carbody" d="M-15 -8 h30 a4 4 0 0 1 4 4 v6 a3 3 0 0 1 -3 3 h-32 a3 3 0 0 1 -3 -3 v-6 a4 4 0 0 1 4 -4 z"/>
+          <circle class="rider" cx="-7" cy="-10" r="3.4"/><circle class="rider" cx="9" cy="-10" r="3.4"/>
+          <circle class="wheel" cx="-9" cy="6" r="3"/><circle class="wheel" cx="9" cy="6" r="3"/>
+        </g></g>
+        <g class="car2"><g class="carbox">
+          <path class="carbody" d="M-15 -8 h30 a4 4 0 0 1 4 4 v6 a3 3 0 0 1 -3 3 h-32 a3 3 0 0 1 -3 -3 v-6 a4 4 0 0 1 4 -4 z"/>
+          <circle class="rider" cx="1" cy="-10" r="3.4"/>
+          <circle class="wheel" cx="-9" cy="6" r="3"/><circle class="wheel" cx="9" cy="6" r="3"/>
+          <rect class="link" x="16" y="-2" width="10" height="3" rx="1.5"/>
+        </g></g>
+        <g class="car3"><g class="carbox">
+          <path class="carbody" d="M-15 -8 h30 a4 4 0 0 1 4 4 v6 a3 3 0 0 1 -3 3 h-32 a3 3 0 0 1 -3 -3 v-6 a4 4 0 0 1 4 -4 z"/>
+          <circle class="rider" cx="-7" cy="-10" r="3.4"/><circle class="rider" cx="9" cy="-10" r="3.4"/>
+          <circle class="wheel" cx="-9" cy="6" r="3"/><circle class="wheel" cx="9" cy="6" r="3"/>
+          <rect class="link" x="16" y="-2" width="10" height="3" rx="1.5"/>
+        </g></g>
+      </g>
+    </svg>
+  </div>
+
+  <!-- ferris wheel: rim + cabins rotate, tower static -->
+  <div class="ferris" aria-hidden="true">
+    <svg viewBox="0 0 150 170">
+      <g class="fw-rim">
+        <circle class="fw-line" cx="75" cy="75" r="58"/>
+        <g class="fw-line">
+          <line x1="75" y1="17" x2="75" y2="133"/><line x1="17" y1="75" x2="133" y2="75"/>
+          <line x1="34" y1="34" x2="116" y2="116"/><line x1="116" y1="34" x2="34" y2="116"/>
+        </g>
+        <circle class="fw-cab" cx="75" cy="17" r="6"/><circle class="fw-cab alt" cx="133" cy="75" r="6"/>
+        <circle class="fw-cab" cx="75" cy="133" r="6"/><circle class="fw-cab alt" cx="17" cy="75" r="6"/>
+        <circle class="fw-cab" cx="116" cy="34" r="5"/><circle class="fw-cab alt" cx="34" cy="34" r="5"/>
+        <circle class="fw-cab" cx="116" cy="116" r="5"/><circle class="fw-cab alt" cx="34" cy="116" r="5"/>
+      </g>
+      <circle cx="75" cy="75" r="5" class="fw-cab"/>
+      <path class="fw-line" d="M75 75 L55 168 M75 75 L95 168"/>
+    </svg>
+  </div>
+  <span class="parklight l1" aria-hidden="true"></span>
+  <span class="parklight l2" aria-hidden="true"></span>
+
+  <!-- particles: fireflies (dusk) / dust motes (daylight) -->
+  <div class="pfx" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+  <div class="hills" aria-hidden="true">
+    <svg viewBox="0 0 1600 120" preserveAspectRatio="none">
+      <path class="hillfill" d="M0 120 L0 78 C 140 60 260 92 420 74 C 590 54 700 96 860 80 C 1030 62 1140 98 1300 82 C 1440 68 1530 88 1600 76 L1600 120 Z"/>
     </svg>
   </div>
 
@@ -92,7 +407,7 @@
       <span class="loginlink">Already have an account? <a href="#" onclick="event.preventDefault();document.querySelector('.land-login input')?.focus()">Log In</a></span>
     </div>
 
-    <form class="signup-card">
+    <form class="signup-card glass">
       <h3>Join Utopoly — it's free</h3>
       <label>Birthday</label>
       <div class="bday">
@@ -115,10 +430,10 @@
 <section class="platforms" id="platforms">
   <h4>Available On</h4>
   <div class="plat-row">
-    <span class="plat">🖥 Web</span>
-    <span class="plat">🍎 iOS <span class="tag soon">SOON</span></span>
-    <span class="plat">🤖 Android <span class="tag soon">SOON</span></span>
-    <span class="plat">💾 Desktop <span class="tag soon">SOON</span></span>
+    <a class="plat glass" href="platforms.html">🖥 Web</a>
+    <a class="plat glass" href="platforms.html">🍎 iOS <span class="tag soon">SOON</span></a>
+    <a class="plat glass" href="platforms.html">🤖 Android <span class="tag soon">SOON</span></a>
+    <a class="plat glass" href="platforms.html">💾 Desktop <span class="tag soon">SOON</span></a>
   </div>
 </section>
 
@@ -131,6 +446,17 @@
   const sels = document.querySelectorAll('.bday select');
   for (let d = 1; d <= 31; d++) sels[1].add(new Option(d, d));
   for (let y = 2018; y >= 1940; y--) sels[2].add(new Option(y, y));
+
+  // pause all scene animations when the tab is hidden or the hero scrolls out of view
+  (function () {
+    const hero = document.querySelector('.hero');
+    let visible = true, focused = !document.hidden;
+    const sync = () => hero.classList.toggle('paused', !(visible && focused));
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver((e) => { visible = e[0].isIntersecting; sync(); }, { threshold: 0.05 }).observe(hero);
+    }
+    document.addEventListener('visibilitychange', () => { focused = !document.hidden; sync(); });
+  })();
 </script>
 <script src="assets/retro.js?v=0.07"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -139,5 +465,6 @@
 <script src="assets/auth.js?v=0.07"></script>
 <script src="assets/social.js?v=0.07"></script>
 <script src="assets/i18n.js?v=0.07"></script>
+<script src="assets/ab.js?v=1"></script>
 </body>
 </html>
