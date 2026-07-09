@@ -22,8 +22,6 @@ style.textContent = `
   .fr .dot-on { background:#4caf50; } .fr .dot-off { background:#777; }
   .fr img.fav { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
   .search { position:relative; }
-  .search-scope { margin-left:6px; padding:7px 8px; border-radius:8px; border:1px solid var(--line,#333);
-    background:var(--input,#222); color:var(--txt,#eee); font-size:11.5px; font-weight:700; }
   .search-drop { position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:500;
     background:var(--card,#1c1c22); border:1px solid var(--line,#333); border-radius:12px;
     box-shadow:0 16px 44px rgba(0,0,0,.5); overflow:hidden; display:none; }
@@ -132,18 +130,9 @@ function wireSearch() {
   const input = wrap?.querySelector("input");
   if (!wrap || !input) return;
 
-  // Scope selector
-  const scope = document.createElement("select");
-  scope.className = "search-scope";
-  scope.title = "Search scope";
-  scope.innerHTML = `
-    <option value="catalog">Catalog</option>
-    <option value="users">Users</option>
-    <option value="communities">Communities</option>
-    <option value="games">Games</option>`;
-  wrap.appendChild(scope);
-
-  // Dropdown
+  // Dropdown (scope is auto-detected — no manual selector; every keystroke
+  // queries catalog + users + games + communities in parallel and groups
+  // the results together in this one dropdown)
   const drop = document.createElement("div");
   drop.className = "search-drop";
   wrap.appendChild(drop);
@@ -179,38 +168,64 @@ function wireSearch() {
   }
 
   let timer, seq = 0;
-  async function liveUserSearch(q) {
+  async function liveMultiSearch(q) {
     const mySeq = ++seq;
-    const { data, error } = await supabase.rpc("search_users", { q, max_rows: 6 });
+    const like = `%${q}%`;
+    const [usersRes, catalogRes, gamesRes, groupsRes] = await Promise.all([
+      supabase.rpc("search_users", { q, max_rows: 4 }),
+      supabase.from("catalog_items").select("id, name, price, icon, image_url").ilike("name", like).limit(4),
+      supabase.from("games").select("id, title, thumbnail_url").eq("active", true).ilike("title", like).limit(4),
+      supabase.from("groups").select("id, name, emblem, member_count").ilike("name", like).limit(4),
+    ]);
     if (mySeq !== seq) return; // stale response
-    if (error) return;
-    drop.innerHTML = '<div class="sd-head">Users</div>' + ((data && data.length) ? data.map((u) => `
+
+    const users = usersRes.data || [];
+    const catalog = catalogRes.data || [];
+    const games = gamesRes.data || [];
+    const groups = groupsRes.data || [];
+    const total = users.length + catalog.length + games.length + groups.length;
+
+    const sections = [];
+    if (users.length) sections.push('<div class="sd-head">Users</div>' + users.map((u) => `
       <div class="sd-item" data-user="${u.username}" data-hovercard="${u.username}">
         ${u.avatar_url ? `<img class="spfp" src="${u.avatar_url}" alt="">` : `<span class="spfp" style="display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--muted);">${(u.username || "?").slice(0, 2).toUpperCase()}</span>`}
         ${u.username}
         <span class="sub ${u.is_online ? "on" : "off"}">${u.is_online ? "● Online" : "Offline"}</span>
-      </div>`).join("")
-      : `<div class="sd-empty">No users matching “${q}”</div>`)
-      + `<div class="sd-item" data-full="1"><span class="sic">🔎</span>Search catalog for “${q}” <span class="sub off">Enter ↵</span></div>`;
+      </div>`).join(""));
+    if (catalog.length) sections.push('<div class="sd-head">Catalog</div>' + catalog.map((it) => `
+      <div class="sd-item" data-catalog="${it.id}">
+        <span class="sic">${it.image_url ? `<img src="${it.image_url}" alt="" style="width:18px;height:18px;object-fit:cover;border-radius:4px;">` : (it.icon || "📦")}</span>
+        ${it.name}
+        <span class="sub off"><span class="ric">R</span> ${Number(it.price ?? 0).toLocaleString()}</span>
+      </div>`).join(""));
+    if (games.length) sections.push('<div class="sd-head">Games</div>' + games.map((g) => `
+      <div class="sd-item" data-game-r="${g.id}"><span class="sic">🎮</span>${g.title}</div>`).join(""));
+    if (groups.length) sections.push('<div class="sd-head">Communities</div>' + groups.map((g) => `
+      <div class="sd-item" data-group="${g.id}"><span class="sic">${g.emblem || "👥"}</span>${g.name}<span class="sub off">${g.member_count ?? 0} members</span></div>`).join(""));
+
+    drop.innerHTML = (total ? sections.join("") : `<div class="sd-empty">No results for “${q}”</div>`)
+      + `<div class="sd-item" data-full="1"><span class="sic">🔎</span>Full catalog search for “${q}” <span class="sub off">Enter ↵</span></div>`;
+
     drop.querySelectorAll("[data-user]").forEach((el) =>
       el.addEventListener("click", () => { location.href = window.profileUrl(el.dataset.user); }));
+    drop.querySelectorAll("[data-catalog]").forEach((el) =>
+      el.addEventListener("click", () => { location.href = `item.html?id=${el.dataset.catalog}`; }));
+    drop.querySelectorAll("[data-game-r]").forEach((el) =>
+      el.addEventListener("click", () => { location.href = `game.html?id=${el.dataset.gameR}`; }));
+    drop.querySelectorAll("[data-group]").forEach((el) =>
+      el.addEventListener("click", () => { location.href = `group.html?id=${el.dataset.group}`; }));
     drop.querySelector("[data-full]")?.addEventListener("click", () => submitSearch(q));
     open();
   }
 
-  function submitSearch(q) {
-    const s = scope.value;
-    if (s === "catalog") location.href = `catalog.html?q=${encodeURIComponent(q)}`;
-    else if (s === "users") { input.dispatchEvent(new Event("input")); }
-    else toast(`${s === "communities" ? "Communities" : "Games"} search is coming soon!`, "info");
-  }
+  function submitSearch(q) { location.href = `catalog.html?q=${encodeURIComponent(q)}`; }
 
   input.addEventListener("focus", () => { if (!input.value.trim()) showSuggestions(); });
   input.addEventListener("input", () => {
     clearTimeout(timer);
     const q = input.value.trim();
     if (!q) { showSuggestions(); return; }
-    timer = setTimeout(() => liveUserSearch(q), 280);
+    timer = setTimeout(() => liveMultiSearch(q), 280);
   });
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); const q = input.value.trim(); if (q) { close(); submitSearch(q); } }
