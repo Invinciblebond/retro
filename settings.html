@@ -63,6 +63,7 @@
         <button data-sec="notifications" data-i18n="settings.notifications">Notifications</button>
         <button data-sec="trading" data-i18n="settings.trading">Trading &amp; Economy</button>
         <button data-sec="appearance" data-i18n="settings.appearance">Appearance</button>
+        <button data-sec="referrals">Referrals</button>
       </nav>
 
       <div class="scol">
@@ -277,6 +278,31 @@
           <button class="btn primary" id="ap-save">Save Appearance</button>
         </section>
 
+        <section class="sec" id="sec-referrals">
+          <div class="panel">
+            <h4>Invite friends, earn Retrobux</h4>
+            <p class="muted" style="margin-bottom:12px;">You and each friend who signs up with your link both earn <b><span class="ric">R</span> <span id="rf-reward">…</span></b>.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <input id="rf-link" readonly style="flex:1;min-width:240px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);font-size:13px;">
+              <button class="btn primary" id="rf-copy">Copy link</button>
+            </div>
+            <div style="display:flex;gap:14px;margin-top:16px;flex-wrap:wrap;">
+              <div style="background:var(--input);border:1px solid var(--line);border-radius:10px;padding:12px 18px;text-align:center;">
+                <div style="font-size:19px;font-weight:900;" id="rf-invites">0</div>
+                <div style="font-size:10.5px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;">Total invites</div>
+              </div>
+              <div style="background:var(--input);border:1px solid var(--line);border-radius:10px;padding:12px 18px;text-align:center;">
+                <div style="font-size:19px;font-weight:900;"><span class="ric">R</span> <span id="rf-earned">0</span></div>
+                <div style="font-size:10.5px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;">Earned</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <h4>Referred signups</h4>
+            <div id="rf-list" class="muted">Loading…</div>
+          </div>
+        </section>
+
         <div class="panel" style="margin-top:6px;">
           <h4>Session</h4>
           <p class="muted" style="margin-bottom:12px;">Signed in as <b id="acct-name"></b></p>
@@ -343,7 +369,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (s === "security") { loadMfa(); loadLogins(); renderPinBox(); }
     if (s === "billing") loadRedemptions();
     if (s === "privacy") loadBlocked();
+    if (s === "referrals") loadReferrals();
   };
+
+  /* ---------- referrals ---------- */
+  async function loadReferrals() {
+    const { data: info, error } = await sb.rpc("my_referral_info");
+    if (error || !info) { document.getElementById("rf-list").textContent = "Unavailable right now."; return; }
+    document.getElementById("rf-reward").textContent = info.reward;
+    document.getElementById("rf-link").value = `https://utopoly.com/signup?ref=${info.code}`;
+    document.getElementById("rf-invites").textContent = Number(info.total_invites).toLocaleString();
+    document.getElementById("rf-earned").textContent = Number(info.earned).toLocaleString();
+    document.getElementById("rf-list").innerHTML = (info.signups || []).length
+      ? info.signups.map((s) => `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
+          <b>${String(s.username).replace(/</g,"&lt;")}</b>
+          <span class="muted" style="color:var(--muted);">joined ${new Date(s.joined).toLocaleDateString()}</span>
+          <span style="margin-left:auto;font-weight:800;color:${s.credited ? "var(--good,#4caf50)" : "var(--muted)"};">${s.credited ? "✓ credited" : "daily cap reached"}</span>
+        </div>`).join("")
+      : "No referred signups yet — share your link!";
+    document.getElementById("rf-copy").onclick = async () => {
+      await navigator.clipboard.writeText(document.getElementById("rf-link").value);
+      window.retroAuth?.toast?.("Invite link copied!", "ok");
+    };
+  }
   document.querySelectorAll(".snav button").forEach((b) => b.addEventListener("click", () => showSec(b.dataset.sec)));
   document.addEventListener("click", (e) => { const j = e.target.closest("[data-jump]"); if (j) { e.preventDefault(); showSec(j.dataset.jump); } });
   if (location.hash) showSec(location.hash.slice(1));

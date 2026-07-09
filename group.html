@@ -271,12 +271,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("wall").innerHTML = posts.map((p) => `
       <div class="wpost"><a class="wa" href="${window.profileUrl(p)}">${esc(p.username)}</a><span class="wt">${new Date(p.created_at).toLocaleString()}</span>
         ${(canDelete || p.author_id === me) ? `<button class="btn ghost small" style="float:right;" data-del="${p.id}">✕</button>` : ""}
+        ${p.author_id !== me ? `<button class="btn ghost small" style="float:right;margin-right:4px;" title="Report post" data-rep="${p.id}">🚩</button>` : ""}
         <div style="margin-top:4px;">${esc(p.body)}</div>
       </div>`).join("") || '<div style="color:var(--muted);font-size:13px;">Nothing on the wall yet.</div>';
     document.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
       const { error } = await sb.rpc("delete_group_wall_post", { p_post: Number(b.dataset.del) });
       if (error) toast(friendly(error.message), "err"); else loadWall();
     }));
+    document.querySelectorAll("[data-rep]").forEach((b) => b.addEventListener("click", () =>
+      window.openReportModal("group_wall_post", b.dataset.rep, "wall post")));
     const pages = Math.max(1, Math.ceil(wallTotal / PAGE_SIZE));
     const pager = document.getElementById("wpager");
     pager.style.display = pages > 1 ? "flex" : "none";

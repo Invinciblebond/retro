@@ -118,6 +118,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     faved = !faved; setFav();
   });
 
+  /* report this game */
+  favBtn.insertAdjacentHTML("afterend", ' <button class="btn ghost" id="report-g" title="Report this game">🚩</button>');
+  document.getElementById("report-g").addEventListener("click", () =>
+    window.openReportModal("game", id, "game"));
+
   /* follows */
   async function wireFollow(btnId, type, target, label) {
     const btn = document.getElementById(btnId);

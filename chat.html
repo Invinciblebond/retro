@@ -140,6 +140,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <button data-th="unfriend">Unfriend</button>
           <button data-th="mute">${mutedSet.has(fid) ? "Unmute" : "Mute"}</button>
           <button data-th="block" class="danger">Block</button>
+          <button data-th="report">Report messages</button>
         </div>
       </div>
       <div class="msgs" id="msgs"><div class="skel" style="height:40px;width:55%;"></div><div class="skel" style="height:40px;width:45%;align-self:flex-end;"></div></div>
@@ -168,6 +169,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (error) return toast(window.retroAuth.friendly(error.message), "err");
         toast(`${f.username} blocked.`, "ok");
         openThread(fid); // re-render with disabled composer
+      } else if (act === "report") {
+        window.openReportModal("chat_message", fid, `messages from ${f.username}`);
       } else if (act === "mute") {
         const wasMuted = mutedSet.has(fid);
         // optimistic update

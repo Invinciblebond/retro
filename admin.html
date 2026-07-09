@@ -45,6 +45,9 @@
         <button data-t="content">Content</button>
         <button data-t="events">Events</button>
         <button data-t="ads">Ad Approvals <span id="ads-badge" style="display:none;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px;">0</span></button>
+        <button data-t="reports">Reports <span id="reports-badge" style="display:none;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px;">0</span></button>
+        <button data-t="ugc">UGC <span id="ugc-badge" style="display:none;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px;">0</span></button>
+        <button data-t="forum">Forum</button>
         <button data-t="log">Mod Log</button>
       </div>
 
@@ -162,6 +165,46 @@
         </div>
       </section>
 
+      <section id="t-reports" style="display:none;">
+        <div class="panel">
+          <h4>Reports queue</h4>
+          <div style="display:flex;gap:10px;margin-bottom:12px;">
+            <select id="rq-status" style="padding:8px 11px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+              <option value="open">Open</option><option value="actioned">Actioned</option><option value="dismissed">Dismissed</option><option value="">All</option>
+            </select>
+            <select id="rq-type" style="padding:8px 11px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--txt);">
+              <option value="">All types</option><option value="user">User</option><option value="game">Game</option><option value="item">Item</option>
+              <option value="chat_message">Chat</option><option value="group_wall_post">Group wall</option>
+              <option value="forum_thread">Forum thread</option><option value="forum_post">Forum post</option>
+            </select>
+          </div>
+          <div class="lst" id="rq-list"><div class="mut">Loading…</div></div>
+        </div>
+      </section>
+
+      <section id="t-ugc" style="display:none;">
+        <div class="panel">
+          <h4>Recently published items (UGC audit trail)</h4>
+          <label style="font-size:12.5px;font-weight:700;display:inline-flex;gap:6px;align-items:center;margin-bottom:12px;">
+            <input type="checkbox" id="ugc-unrev" checked> Unreviewed only
+          </label>
+          <div class="lst" id="ugc-list"><div class="mut">Loading…</div></div>
+        </div>
+      </section>
+
+      <section id="t-forum" style="display:none;">
+        <div class="panel">
+          <h4>Forum categories</h4>
+          <div class="frm" style="grid-template-columns:2fr 3fr 80px auto;display:grid;gap:10px;align-items:center;">
+            <input id="fc-name" placeholder="Category name">
+            <input id="fc-desc" placeholder="Description">
+            <input id="fc-sort" type="number" placeholder="Sort">
+            <button class="btn primary" id="fc-create">Create</button>
+          </div>
+          <div class="lst" id="fc-list" style="margin-top:12px;"></div>
+        </div>
+      </section>
+
       <section id="t-log" style="display:none;">
         <div class="panel"><h4>Moderation log</h4><div class="lst" id="log-list"></div></div>
       </section>
@@ -197,10 +240,138 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* tabs */
   document.querySelectorAll(".atabs button").forEach((b) => b.addEventListener("click", () => {
     document.querySelectorAll(".atabs button").forEach((x) => x.classList.toggle("active", x === b));
-    ["users","catalog","economy","content","events","ads","log"].forEach((t) =>
+    ["users","catalog","economy","content","events","ads","reports","ugc","forum","log"].forEach((t) =>
       document.getElementById("t-" + t).style.display = t === b.dataset.t ? "" : "none");
-    ({ catalog: loadCatalog, economy: () => { loadEconomy(); loadGiftCards(); }, content: loadContent, events: loadEvents, ads: loadAds, log: loadLog })[b.dataset.t]?.();
+    ({ catalog: loadCatalog, economy: () => { loadEconomy(); loadGiftCards(); }, content: loadContent, events: loadEvents,
+       ads: loadAds, reports: loadReports, ugc: loadUgc, forum: loadForumAdmin, log: loadLog })[b.dataset.t]?.();
   }));
+
+  /* ===== Reports ===== */
+  async function refreshReportBadge() {
+    const { data: n } = await sb.rpc("admin_open_report_count");
+    const el = document.getElementById("reports-badge");
+    el.style.display = n > 0 ? "" : "none"; el.textContent = n;
+  }
+  async function loadReports() {
+    refreshReportBadge();
+    const status = document.getElementById("rq-status").value || null;
+    const type = document.getElementById("rq-type").value || null;
+    const { data: rows, error } = await sb.rpc("admin_list_reports", { p_status: status, p_type: type });
+    if (error) return toast(friendly(error.message), "err");
+    document.getElementById("rq-list").innerHTML = (rows || []).map((r) => {
+      const link = r.target_type === "game" ? `game.html?id=${r.target_id}`
+        : r.target_type === "item" ? `item.html?id=${r.target_id}`
+        : r.target_type === "forum_thread" ? `forum.html?thread=${r.target_id}` : null;
+      return `<div class="lrow">
+        <span class="flag adm">${esc(r.target_type)}</span>
+        <b>×${r.report_count}</b>
+        <span class="flag ${r.status === "open" ? "mute" : "adm"}">${r.status.toUpperCase()}</span>
+        <div style="flex:1;min-width:220px;">
+          <span class="mut">${esc(r.reason)} · first by ${esc(r.reporter_username)} · ${new Date(r.created_at).toLocaleString()}</span><br>
+          <span class="mut">target: ${link ? `<a href="${link}" style="color:var(--accent2);">${esc(r.target_id)}</a>` : `<code>${esc(r.target_id)}</code>`}</span>
+          ${r.details ? `<div class="mut" style="white-space:pre-wrap;margin-top:4px;">${esc(r.details).slice(0, 400)}</div>` : ""}
+        </div>
+        ${r.status === "open" ? `<span class="sp">
+          <button class="btn primary small" data-rv-action="${r.id}">Mark actioned</button>
+          <button class="btn ghost small" data-rv-dismiss="${r.id}">Dismiss</button>
+          ${r.target_type === "user" ? `<button class="btn ghost small" data-rv-user="${esc(r.target_id)}">→ User tools</button>` : ""}
+        </span>` : ""}
+      </div>`;
+    }).join("") || '<div class="mut">No reports. 🎉</div>';
+    document.querySelectorAll("[data-rv-action]").forEach((b) => b.addEventListener("click", () =>
+      act("review_report", { p_report: b.dataset.rvAction, p_decision: "actioned" }, "Marked actioned — reporters notified.", loadReports)));
+    document.querySelectorAll("[data-rv-dismiss]").forEach((b) => b.addEventListener("click", () =>
+      act("review_report", { p_report: b.dataset.rvDismiss, p_decision: "dismissed" }, "Dismissed — reporters notified.", loadReports)));
+    document.querySelectorAll("[data-rv-user]").forEach((b) => b.addEventListener("click", async () => {
+      // deep link to the existing ban/mute tools: jump to Users tab pre-searched
+      document.querySelector('.atabs button[data-t="users"]').click();
+      const { data: p } = await sb.from("profiles").select("username").eq("id", b.dataset.rvUser).maybeSingle();
+      const qEl = document.getElementById("u-q");
+      qEl.value = p?.username || b.dataset.rvUser;
+      qEl.dispatchEvent(new Event("input"));
+    }));
+  }
+  document.getElementById("rq-status").addEventListener("change", loadReports);
+  document.getElementById("rq-type").addEventListener("change", loadReports);
+  refreshReportBadge();
+
+  /* ===== UGC audit trail ===== */
+  async function refreshUgcBadge() {
+    const { data: n } = await sb.rpc("admin_ugc_unreviewed_count");
+    const el = document.getElementById("ugc-badge");
+    el.style.display = n > 0 ? "" : "none"; el.textContent = n;
+  }
+  async function loadUgc() {
+    refreshUgcBadge();
+    const only = document.getElementById("ugc-unrev").checked;
+    const { data: rows } = await sb.rpc("admin_ugc_feed", { p_unreviewed_only: only });
+    document.getElementById("ugc-list").innerHTML = (rows || []).map((i) => `
+      <div class="lrow">
+        <img src="${esc(i.image_url)}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff;">
+        <div style="flex:1;min-width:200px;">
+          <b><a href="item.html?id=${i.id}" style="color:var(--txt);">${esc(i.name)}</a></b>
+          ${i.reviewed_at ? '<span class="flag adm">REVIEWED</span>' : '<span class="flag mute">UNREVIEWED</span>'}
+          ${i.on_sale ? "" : '<span class="flag ban">OFF-SALE</span>'}<br>
+          <span class="mut">${esc(i.asset_type)} by <a href="profile.html?id=${i.creator_number}" style="color:var(--accent2);">${esc(i.creator_username)}</a>
+            · R ${i.price} · ${i.sales} sold · published ${new Date(i.created_at).toLocaleString()}</span>
+        </div>
+        <span class="sp">
+          ${!i.reviewed_at ? `<button class="btn primary small" data-ugc-ok="${i.id}">Mark reviewed</button>` : ""}
+          ${i.on_sale ? `<button class="btn ghost small" data-ugc-down="${i.id}">Take down</button>` : ""}
+        </span>
+      </div>`).join("") || '<div class="mut">Nothing to audit.</div>';
+    document.querySelectorAll("[data-ugc-ok]").forEach((b) => b.addEventListener("click", () =>
+      act("admin_review_ugc", { p_item: b.dataset.ugcOk }, "Marked reviewed.", loadUgc)));
+    document.querySelectorAll("[data-ugc-down]").forEach((b) => b.addEventListener("click", () => {
+      const reason = prompt("Takedown reason (sent to the creator):");
+      if (!reason?.trim()) return;
+      act("admin_takedown_ugc", { p_item: b.dataset.ugcDown, p_reason: reason.trim() }, "Taken down, unequipped everywhere, creator notified.", loadUgc);
+    }));
+  }
+  document.getElementById("ugc-unrev").addEventListener("change", loadUgc);
+  refreshUgcBadge();
+
+  /* ===== Forum categories ===== */
+  async function loadForumAdmin() {
+    const { data: cats } = await sb.from("forum_categories").select("*").order("sort_order");
+    document.getElementById("fc-list").innerHTML = (cats || []).map((c) => `
+      <div class="lrow">
+        <b>${esc(c.name)}</b>${c.archived ? ' <span class="flag ban">ARCHIVED</span>' : ""}
+        <span class="mut">${esc(c.description)} · sort ${c.sort_order}</span>
+        <span class="sp">
+          <button class="btn ghost small" data-fc-ren="${c.id}">Rename</button>
+          <button class="btn ghost small" data-fc-sort="${c.id}">Reorder</button>
+          ${c.archived
+            ? `<button class="btn primary small" data-fc-restore="${c.id}">Restore</button>`
+            : `<button class="btn ghost small" data-fc-del="${c.id}">Delete</button>`}
+        </span>
+      </div>`).join("") || '<div class="mut">No categories.</div>';
+    const fc = (args, ok) => act("admin_forum_category", args, ok, loadForumAdmin);
+    document.querySelectorAll("[data-fc-ren]").forEach((b) => b.addEventListener("click", () => {
+      const name = prompt("New name:"); if (!name?.trim()) return;
+      fc({ p_action: "update", p_id: b.dataset.fcRen, p_name: name.trim() }, "Renamed.");
+    }));
+    document.querySelectorAll("[data-fc-sort]").forEach((b) => b.addEventListener("click", () => {
+      const n = parseInt(prompt("Sort order (lower = higher):"), 10); if (!Number.isFinite(n)) return;
+      fc({ p_action: "update", p_id: b.dataset.fcSort, p_sort: n }, "Reordered.");
+    }));
+    document.querySelectorAll("[data-fc-del]").forEach((b) => b.addEventListener("click", () => {
+      if (!confirm("Delete this category? Its threads are archived and recoverable via Restore.")) return;
+      fc({ p_action: "delete", p_id: b.dataset.fcDel }, "Category archived (recoverable).");
+    }));
+    document.querySelectorAll("[data-fc-restore]").forEach((b) => b.addEventListener("click", () =>
+      fc({ p_action: "restore", p_id: b.dataset.fcRestore }, "Category restored with its threads.")));
+  }
+  document.getElementById("fc-create").addEventListener("click", () => {
+    const name = document.getElementById("fc-name").value.trim();
+    if (!name) return toast("Name required.", "err");
+    act("admin_forum_category", { p_action: "create", p_name: name,
+      p_description: document.getElementById("fc-desc").value.trim(),
+      p_sort: parseInt(document.getElementById("fc-sort").value, 10) || 0 }, "Category created.", () => {
+        ["fc-name","fc-desc","fc-sort"].forEach((i) => document.getElementById(i).value = "");
+        loadForumAdmin();
+      });
+  });
 
   /* ===== Ad Approvals ===== */
   async function refreshAdBadge() {

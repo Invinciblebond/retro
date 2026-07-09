@@ -114,7 +114,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("pactions").innerHTML = `
       <a class="btn primary" href="chat.html?u=${p.username}">Message</a>
       <a class="btn ghost" href="trade.html">Trade</a>
-      <button class="btn ghost" id="follow-u">Follow</button>`;
+      <button class="btn ghost" id="follow-u">Follow</button>
+      <button class="btn ghost" id="report-u" title="Report this user">🚩</button>`;
+    document.getElementById("report-u").addEventListener("click", () =>
+      window.openReportModal("user", uid, `@${p.username}`));
     const fb = document.getElementById("follow-u");
     const { data: f } = await sb.from("follows").select("target_id").eq("follower_id", me).eq("target_type", "user").eq("target_id", uid).maybeSingle();
     let on = !!f;

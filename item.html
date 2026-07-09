@@ -235,6 +235,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       toast(onList ? "Added to your wishlist — we'll ping you on price drops & restocks." : "Removed from wishlist.", "ok");
     };
     actions.appendChild(heart);
+
+    const rep = document.createElement("button");
+    rep.className = "btn ghost";
+    rep.style.marginLeft = "8px";
+    rep.title = "Report this item";
+    rep.textContent = "🚩";
+    rep.onclick = () => window.openReportModal("item", id, "item");
+    actions.appendChild(rep);
   }
 
   // Sell (owned unlisted ULimited copies)

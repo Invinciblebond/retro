@@ -308,16 +308,24 @@ async function updateProfile(fields) {
 }
 
 /* ---------- Actions ---------- */
+// referral attribution: ?ref=CODE is captured on any page and persisted through signup
+{
+  const ref = new URLSearchParams(location.search).get("ref");
+  if (ref && /^[a-z0-9-]{4,24}$/i.test(ref)) localStorage.setItem("retro:ref", ref.toLowerCase());
+}
+
 async function signUp({ email, password, username, birthday, gender }) {
+  const ref = new URLSearchParams(location.search).get("ref")?.toLowerCase() || localStorage.getItem("retro:ref") || null;
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { username, birthday, gender },
+      data: { username, birthday, gender, ...(ref ? { ref } : {}) },
       emailRedirectTo: `${location.origin}/home.html`,
     },
   });
   if (error) throw error;
+  localStorage.removeItem("retro:ref");
   return data;
 }
 

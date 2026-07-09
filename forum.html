@@ -161,6 +161,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     view.innerHTML = `
       <h1>${th.pinned ? "📌 " : ""}${th.locked ? "🔒 " : ""}${esc(th.title)}</h1>
       <div class="crumbs"><a href="forum.html">Forum</a> › <a href="forum.html?cat=${th.category_id}" id="bc-cat">category</a> › thread
+        · <button class="btn ghost small" id="th-report">🚩 Report thread</button>
         ${isAdmin ? ` · <button class="btn ghost small" id="adm-pin">${th.pinned?"Unpin":"Pin"}</button>
         <button class="btn ghost small" id="adm-lock">${th.locked?"Unlock":"Lock"}</button>
         <button class="btn ghost small" id="adm-del">Delete thread</button>` : ""}</div>
@@ -228,6 +229,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       else if (action === "delete") nav("cat="+th.category_id);
       else route();
     };
+    document.getElementById("th-report")?.addEventListener("click", () =>
+      window.openReportModal("forum_thread", threadId, "forum thread"));
     document.getElementById("adm-pin")?.addEventListener("click", () => adm("pin", !th.pinned));
     document.getElementById("adm-lock")?.addEventListener("click", () => adm("lock", !th.locked));
     document.getElementById("adm-del")?.addEventListener("click", () => confirm("Delete this thread?") && adm("delete", true));
