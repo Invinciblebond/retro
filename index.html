@@ -5,6 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Utopoly | Play & Create Free Multiplayer Games Online</title>
+    <meta property="og:image" content="https://i.ibb.co/fzQhyvkV/download-4.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://i.ibb.co/fzQhyvkV/download-4.png">
 <meta name="description" content="Play thousands of free multiplayer games in your browser, no download. Create your own worlds, customize your avatar, trade items, and play with friends.">
 <link rel="icon" type="image/png" href="https://i.ibb.co/N6wqhtTn/f079a25a-b9e0-46d8-98f0-cc38807b3c82-removebg-preview.png">
 <script>
@@ -38,6 +43,7 @@
   }
   if (st && !excluded) { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
   if (st && st.vid) { try { document.cookie = KEY + "=" + encodeURIComponent(st.v + "|" + st.vid) + ";max-age=31536000;path=/;SameSite=Lax"; } catch (e) {} }
+  v = "forge"; excluded = true; // TEMP: force forge for testing — remove to restore A/B split
   window.__ab = { exp: EXP, key: KEY, variant: v, state: st, excluded: excluded };
   document.documentElement.classList.add("theme-" + v);
 })();
@@ -94,11 +100,11 @@
     --bg:#05060b; --side:#05060b; --nav:#05060b; --card:#0d0f18; --card2:#12141f;
     --txt:#f2f4f9; --muted:#8b93a9; --line:#232838; --input:#0d0f18; --thumb:#161a26;
     --accent:#e2231a; --accent2:#4fd1ff; --logo:#ffffff;
-    --glass-bg:rgba(255,255,255,.07);
+    --glass-bg:rgba(255,255,255,.045);
     --glass-fallback:rgba(9,10,17,.94);
-    --glass-border:rgba(255,255,255,.16);
-    --glass-edge:rgba(255,255,255,.22);
-    --glass-scrim:linear-gradient(180deg,rgba(2,3,8,.24) 0%,rgba(2,3,8,.06) 55%,rgba(2,3,8,.2) 100%);
+    --glass-border:rgba(255,255,255,.13);
+    --glass-edge:rgba(255,255,255,.18);
+    --glass-scrim:linear-gradient(180deg,rgba(2,3,8,.12) 0%,rgba(2,3,8,.02) 55%,rgba(2,3,8,.1) 100%);
     --glass-shadow:0 8px 40px rgba(0,0,0,.5), 0 0 60px rgba(226,35,26,.10);
     --input-glass:rgba(255,255,255,.07); --input-border:rgba(255,255,255,.2);
     --focus-glow:rgba(79,209,255,.45);
@@ -137,8 +143,8 @@
   .forge-net { position:absolute; inset:0; z-index:0; width:100%; height:100%; opacity:.75; }
   /* soft red/blue ambient glows bleeding through the glass, like the mock */
   .fglow { position:absolute; z-index:0; width:420px; height:420px; border-radius:50%; pointer-events:none; filter:blur(70px); }
-  .fglow.r { right:6%; top:38%; background:radial-gradient(circle, rgba(226,35,26,.28), transparent 70%); }
-  .fglow.b { right:22%; top:16%; background:radial-gradient(circle, rgba(79,209,255,.20), transparent 70%); }
+  .fglow.r { right:6%; top:38%; background:radial-gradient(circle, rgba(226,35,26,.36), transparent 70%); }
+  .fglow.b { right:22%; top:16%; background:radial-gradient(circle, rgba(79,209,255,.26), transparent 70%); }
   .forge-voxels { position:absolute; inset:0; z-index:1; pointer-events:none; perspective:900px; }
   .fvox { position:absolute; width:70px; height:70px; opacity:.55; animation:fvoxDrift 80s ease-in-out infinite; }
   .fvox svg { width:100%; height:100%; filter:drop-shadow(0 0 10px rgba(79,209,255,.18)); }
@@ -165,10 +171,16 @@
     -webkit-backdrop-filter:blur(14px) saturate(150%); backdrop-filter:blur(14px) saturate(150%); }
   .hero-forge .btn.ghost:hover { background:rgba(255,255,255,.13); border-color:var(--accent2); }
   /* feature cards under the CTAs — icon block on top, label below (mock style) */
-  .forge-chips { display:flex; gap:14px; flex-wrap:wrap; }
-  .forge-chip { display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:18px 18px 16px;
-    font-size:13px; font-weight:800; line-height:1.35; color:var(--txt); min-width:148px; border-radius:18px; }
-  .forge-chip svg { width:26px; height:26px; }
+  .forge-chips { display:flex; gap:16px; flex-wrap:wrap; }
+  /* mock-style feature cards: barely-there glass, faint red/blue rim glow */
+  .forge-chip { display:flex; flex-direction:column; align-items:flex-start; gap:14px; padding:22px 20px 18px;
+    font-size:14px; font-weight:800; line-height:1.4; color:var(--txt); min-width:160px; border-radius:20px; }
+  html.theme-forge .forge-chip { background:rgba(255,255,255,.035);
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 8px 30px rgba(0,0,0,.35), 0 0 24px rgba(226,35,26,.08), 0 0 24px rgba(79,209,255,.06),
+      inset 0 1px 0 rgba(255,255,255,.14); }
+  html.theme-forge .forge-chip::before { background:none; } /* no scrim — keep scene visible through card */
+  .forge-chip svg { width:28px; height:28px; }
   .forge-panel { flex:0 0 390px; width:390px; max-width:100%; padding:30px 28px; animation:riseIn .8s .12s cubic-bezier(.2,.9,.25,1) both; }
   .forge-panel > h3 { font-size:24px; font-weight:900; text-align:center; margin-bottom:18px; }
   /* the REAL signup card gets re-parented inside the panel — strip its own
@@ -605,19 +617,19 @@
             <circle cx="10" cy="13" r="7" stroke="var(--net-red)"/><path d="M10 9.5v7M8 11h3a1.5 1.5 0 0 1 0 3H9a1.5 1.5 0 0 0 0 3h3" stroke="var(--net-red)"/>
             <path d="M16 8 20 4m0 0h-3.2M20 4v3.2" stroke="var(--net-blue)"/>
           </svg>
-          Creators<br>keep 85%
+          Developers<br>keep 85%
         </div>
         <div class="forge-chip glass">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9" stroke="var(--net-blue)"/><path d="M3 12h18M12 3c2.6 2.5 3.9 5.6 3.9 9S14.6 18.5 12 21c-2.6-2.5-3.9-5.6-3.9-9S9.4 5.5 12 3z" stroke="var(--net-red)"/>
           </svg>
-          Publish<br>instantly
+          Instant global<br>publishing
         </div>
         <div class="forge-chip glass">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M2.5 9 7 6l5 3 5-3 4.5 3-4.5 3.2" stroke="var(--net-red)"/><path d="M7 6v6.5c1.6 2 3.2 3 5 3s3.4-1 5-3V6" stroke="var(--net-blue)"/><path d="m9.5 13 2.5 2 2.5-2" stroke="var(--net-blue)"/>
           </svg>
-          Real<br>economy
+          Creator-first<br>economy
         </div>
       </div>
     </div>
