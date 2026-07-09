@@ -208,7 +208,7 @@
 
       <section id="t-experiments" style="display:none;">
         <div class="panel">
-          <h4>Landing theme — landing_theme_v1 (dusk vs daylight, 50/50)</h4>
+          <h4>Landing theme — landing_theme_v2 (dusk / daylight / forge — 37.5% / 37.5% / 25%)</h4>
           <div id="xp-note" class="mut" style="font-size:12px;color:var(--muted);margin-bottom:12px;"></div>
           <div id="xp-totals" class="lst"><div class="mut">Loading…</div></div>
         </div>
@@ -222,6 +222,7 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn primary small" id="xp-win-dusk">Conclude: Dusk wins</button>
             <button class="btn primary small" id="xp-win-daylight">Conclude: Daylight wins</button>
+            <button class="btn primary small" id="xp-win-forge">Conclude: Forge wins</button>
             <button class="btn ghost small" id="xp-reopen">Reopen (clear winner)</button>
           </div>
         </div>
@@ -682,7 +683,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   /* ===== Experiments (A/B) ===== */
-  const XP = "landing_theme_v1", XP_VARIANTS = ["dusk", "daylight"], XP_MIN = 100;
+  const XP = "landing_theme_v2", XP_VARIANTS = ["dusk", "daylight", "forge"], XP_MIN = 100;
   async function loadExperiments() {
     const { data, error } = await sb.rpc("admin_ab_results", { p_experiment: XP });
     if (error) return toast(friendly(error.message), "err");
@@ -693,18 +694,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
     const totalVisits = rows.reduce((s, r) => s + r.visits, 0);
     const small = rows.some((r) => r.visits < XP_MIN);
-    const leader = rows[0].cr === rows[1].cr ? null : (rows[0].cr > rows[1].cr ? rows[0] : rows[1]);
-    const other = leader ? rows.find((r) => r !== leader) : null;
+    // Leader = unique top CR across all variants (3-way tie-safe); "lift" compares it
+    // to the best of the remaining variants, not just whichever happens to be second in the array.
+    const topCr = Math.max(...rows.map((r) => r.cr));
+    const topRows = rows.filter((r) => r.cr === topCr);
+    const leader = topRows.length === 1 ? topRows[0] : null;
+    const other = leader ? rows.filter((r) => r !== leader).reduce((best, r) => (!best || r.cr > best.cr ? r : best), null) : null;
     const lift = leader && other && other.cr > 0 ? ((leader.cr - other.cr) / other.cr) * 100 : null;
+    const ICON = { dusk: "🌙", daylight: "🌅", forge: "🔥" };
 
     document.getElementById("xp-note").innerHTML =
-      (winner ? `🏁 Concluded — winner: <b>${esc(winner)}</b> (${data?.concluded_at ? new Date(data.concluded_at).toLocaleString() : ""}). All future visitors get this theme. ` : "🟢 Running — 50/50 split. ") +
+      (winner ? `🏁 Concluded — winner: <b>${esc(winner)}</b> (${data?.concluded_at ? new Date(data.concluded_at).toLocaleString() : ""}). All future visitors get this theme. ` : "🟢 Running — 37.5% / 37.5% / 25% split (dusk / daylight / forge). ") +
       `Total sample: <b>${totalVisits.toLocaleString()}</b> unique visits.` +
       (small ? ` ⚠️ <b>Sample too small to be meaningful</b> — need at least ${XP_MIN} visits per variant.` : "");
 
     document.getElementById("xp-totals").innerHTML = rows.map((r) => `
       <div class="lrow">
-        <b style="text-transform:capitalize;">${r.v === "dusk" ? "🌙" : "🌅"} ${r.v}</b>
+        <b style="text-transform:capitalize;">${ICON[r.v] || "🎯"} ${r.v}</b>
         ${winner === r.v ? '<span class="flag adm">WINNER</span>' : ""}
         ${leader === r && !winner ? '<span class="flag adm">LEADING</span>' : ""}
         <span class="mut">${r.visits.toLocaleString()} unique visits · ${r.signups.toLocaleString()} unique signups ·
@@ -724,7 +730,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const maxCr = Math.max(0.01, ...XP_VARIANTS.flatMap((v) => byV[v]));
     const x = (i) => days.length === 1 ? W / 2 : P + (i * (W - 2 * P)) / (days.length - 1);
     const y = (cr) => H - P - (cr / maxCr) * (H - 2 * P);
-    const colors = { dusk: "var(--accent2, #7fb0e8)", daylight: "#e6a817" };
+    const colors = { dusk: "var(--accent2, #7fb0e8)", daylight: "#e6a817", forge: "#ff4d3d" };
     const line = (v) => byV[v].map((cr, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(cr).toFixed(1)}`).join(" ");
     chart.innerHTML = `
       <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;">
@@ -736,18 +742,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         <text x="${W - P}" y="${H - 8}" font-size="10" fill="var(--muted)" text-anchor="end">${days[days.length - 1]}</text>
       </svg>
       <div class="mut" style="font-size:11px;">
-        <span style="color:${colors.dusk};">●</span> dusk &nbsp; <span style="color:${colors.daylight};">●</span> daylight — daily conversion rate</div>`;
+        <span style="color:${colors.dusk};">●</span> dusk &nbsp; <span style="color:${colors.daylight};">●</span> daylight &nbsp; <span style="color:${colors.forge};">●</span> forge — daily conversion rate</div>`;
   }
   document.getElementById("xp-win-dusk").addEventListener("click", () => {
-    if (!confirm("Conclude landing_theme_v1 with DUSK as the winner? Future visitors all get dusk.")) return;
+    if (!confirm("Conclude landing_theme_v2 with DUSK as the winner? Future visitors all get dusk.")) return;
     act("admin_conclude_experiment", { p_experiment: XP, p_winner: "dusk" }, "Concluded — dusk wins. Logged.", loadExperiments);
   });
   document.getElementById("xp-win-daylight").addEventListener("click", () => {
-    if (!confirm("Conclude landing_theme_v1 with DAYLIGHT as the winner? Future visitors all get daylight.")) return;
+    if (!confirm("Conclude landing_theme_v2 with DAYLIGHT as the winner? Future visitors all get daylight.")) return;
     act("admin_conclude_experiment", { p_experiment: XP, p_winner: "daylight" }, "Concluded — daylight wins. Logged.", loadExperiments);
   });
+  document.getElementById("xp-win-forge").addEventListener("click", () => {
+    if (!confirm("Conclude landing_theme_v2 with FORGE as the winner? Future visitors all get forge.")) return;
+    act("admin_conclude_experiment", { p_experiment: XP, p_winner: "forge" }, "Concluded — forge wins. Logged.", loadExperiments);
+  });
   document.getElementById("xp-reopen").addEventListener("click", () => {
-    if (!confirm("Clear the winner flag and resume the 50/50 experiment?")) return;
+    if (!confirm("Clear the winner flag and resume the weighted experiment (37.5/37.5/25)?")) return;
     act("admin_conclude_experiment", { p_experiment: XP, p_winner: null }, "Experiment reopened.", loadExperiments);
   });
 

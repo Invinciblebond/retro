@@ -1,4 +1,4 @@
-// UTOPOLY — A/B measurement for landing_theme_v1 (fire-and-forget analytics only).
+// UTOPOLY — A/B measurement for landing_theme_v2 (fire-and-forget analytics only).
 // Assignment itself happens pre-paint in an inline <head> script (window.__ab).
 // This file only: fires 'visit' once per visitor, exposes recordSignup(),
 // and syncs the concluded-winner flag for future visits.
@@ -35,7 +35,7 @@
   try {
     sb.rpc("get_ab_winner", { p_experiment: ab.exp }).then(function (res) {
       var winner = res && res.data;
-      if (winner !== "dusk" && winner !== "daylight") return;
+      if (winner !== "dusk" && winner !== "daylight" && winner !== "forge") return;
       try {
         var st = JSON.parse(localStorage.getItem(ab.key) || "{}");
         if (st.winner !== winner) { st.winner = winner; localStorage.setItem(ab.key, JSON.stringify(st)); }

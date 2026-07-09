@@ -8,12 +8,13 @@
 <meta name="description" content="Play thousands of free multiplayer games in your browser, no download. Create your own worlds, customize your avatar, trade items, and play with friends.">
 <link rel="icon" type="image/png" href="https://i.ibb.co/N6wqhtTn/f079a25a-b9e0-46d8-98f0-cc38807b3c82-removebg-preview.png">
 <script>
-/* A/B assignment — landing_theme_v1 (dusk | daylight).
+/* A/B assignment — landing_theme_v2 (dusk | daylight | forge).
    Runs before any CSS/paint: no flicker, no LCP impact, no network.
-   ?theme=dusk|daylight override = QA session, EXCLUDED from experiment data. */
+   Weights: forge 25%, dusk 37.5%, daylight 37.5% (sticky per-visitor).
+   ?theme=dusk|daylight|forge override = QA session, EXCLUDED from experiment data. */
 (function () {
-  var EXP = "landing_theme_v1", KEY = "retro:ab:" + EXP;
-  var VARIANTS = ["dusk", "daylight"];
+  var EXP = "landing_theme_v2", KEY = "retro:ab:" + EXP;
+  var VARIANTS = ["dusk", "daylight", "forge"];
   var qs = new URLSearchParams(location.search);
   var ov = qs.get("theme");
   var st = null;
@@ -27,9 +28,10 @@
   if (VARIANTS.indexOf(ov) > -1) { v = ov; excluded = true; }              // QA override
   else if (st && st.winner && VARIANTS.indexOf(st.winner) > -1) { v = st.winner; excluded = true; } // concluded: everyone gets winner
   else if (st && VARIANTS.indexOf(st.v) > -1) { v = st.v; }                // returning visitor: sticky
-  else {                                                                    // first visit: 50/50
+  else {                                                                    // first visit: weighted split
     var r = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint8Array(1))[0] : Math.floor(Math.random() * 256);
-    v = r < 128 ? "dusk" : "daylight";
+    // 256 * .25 = 64 (forge), 256 * .375 = 96 (dusk), remainder 96 (daylight)
+    v = r < 64 ? "forge" : r < 160 ? "dusk" : "daylight";
     var vid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() :
       "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) { var n = Math.random() * 16 | 0; return (c === "x" ? n : (n & 3 | 8)).toString(16); });
     st = { v: v, vid: vid };
@@ -88,6 +90,105 @@
     --hero-shadow:0 1px 10px rgba(255,244,224,.85);
     --firefly:#ffffff; --wheel-line:#a9683f; --wheel-cab:#e2231a;
   }
+  html.theme-forge body {
+    --bg:#05060b; --side:#05060b; --nav:#05060b; --card:#0d0f18; --card2:#12141f;
+    --txt:#f2f4f9; --muted:#8b93a9; --line:#232838; --input:#0d0f18; --thumb:#161a26;
+    --accent:#e2231a; --accent2:#4fd1ff; --logo:#ffffff;
+    --glass-bg:rgba(255,255,255,.07);
+    --glass-fallback:rgba(9,10,17,.94);
+    --glass-border:rgba(255,255,255,.16);
+    --glass-edge:rgba(255,255,255,.22);
+    --glass-scrim:linear-gradient(180deg,rgba(2,3,8,.24) 0%,rgba(2,3,8,.06) 55%,rgba(2,3,8,.2) 100%);
+    --glass-shadow:0 8px 40px rgba(0,0,0,.5), 0 0 60px rgba(226,35,26,.10);
+    --input-glass:rgba(255,255,255,.07); --input-border:rgba(255,255,255,.2);
+    --focus-glow:rgba(79,209,255,.45);
+    --net-red:#ff4d3d; --net-blue:#4fd1ff;
+  }
+
+  /* ---------- Forge: hide dusk/daylight chrome, show forge chrome (and vice versa) ---------- */
+  .forge-top, .hero-forge, .forge-below { display:none; }
+  html.theme-forge .land-top, html.theme-forge .hero, html.theme-forge .platforms { display:none !important; }
+  html.theme-forge .forge-top { display:flex; }
+  html.theme-forge .hero-forge { display:block; }
+  html.theme-forge .forge-below { display:block; }
+
+  /* ---------- Forge: top nav ---------- */
+  .forge-top { position:sticky; top:0; z-index:100; align-items:center; justify-content:space-between;
+    padding:0 26px; height:64px; border-radius:0; border-left:none; border-right:none; border-top:none;
+    box-shadow:0 8px 30px rgba(0,0,0,.3); }
+  .forge-top .wordmark { text-shadow:0 0 14px rgba(226,35,26,.35), 0 0 22px rgba(79,209,255,.22); }
+  .forge-nav-links { display:flex; gap:26px; }
+  .forge-nav-links a { color:var(--txt); opacity:.8; font-weight:600; font-size:14px; transition:opacity .15s; }
+  .forge-nav-links a:hover { opacity:1; }
+  .forge-login-wrap { position:relative; }
+  .forge-login-btn { padding:9px 20px; border-radius:999px; border:1px solid var(--glass-border); background:var(--glass-bg);
+    color:var(--txt); font-weight:800; font-size:13px; cursor:pointer; font-family:inherit;
+    -webkit-backdrop-filter:blur(14px) saturate(150%); backdrop-filter:blur(14px) saturate(150%); }
+  .forge-login-btn:hover { border-color:var(--accent2); }
+  .forge-login-pop { display:none; position:absolute; top:calc(100% + 10px); right:0; width:260px; padding:16px; z-index:200; }
+  .forge-login-pop.open { display:block; }
+  .forge-login-pop .land-login { display:flex; flex-direction:column; gap:10px; }
+  .forge-login-pop .land-login input { width:100%; }
+  .forge-login-pop .land-login a.btn { text-align:center; }
+
+  /* ---------- Forge: hero ---------- */
+  .hero-forge { position:relative; overflow:hidden; min-height:720px; padding:64px 26px 80px; background:var(--bg); }
+  .hero-forge.paused * { animation-play-state:paused !important; }
+  .forge-net { position:absolute; inset:0; z-index:0; width:100%; height:100%; opacity:.75; }
+  .forge-voxels { position:absolute; inset:0; z-index:1; pointer-events:none; perspective:900px; }
+  .fvox { position:absolute; width:70px; height:70px; opacity:.55; animation:fvoxDrift 80s ease-in-out infinite; }
+  .fvox svg { width:100%; height:100%; filter:drop-shadow(0 0 10px rgba(79,209,255,.18)); }
+  .fvox.v1 { top:8%; right:8%; width:90px; height:90px; animation-duration:70s; }
+  .fvox.v2 { top:32%; right:20%; width:50px; height:50px; animation-duration:95s; animation-delay:-12s; }
+  .fvox.v3 { top:4%; right:28%; width:56px; height:56px; animation-duration:85s; animation-delay:-30s; }
+  .fvox.v4 { bottom:14%; left:6%; width:64px; height:64px; animation-duration:75s; animation-delay:-8s; }
+  .fvox.v5 { bottom:30%; left:16%; width:44px; height:44px; animation-duration:110s; animation-delay:-40s; }
+  @keyframes fvoxDrift {
+    0%,100% { transform:rotateX(15deg) rotateY(0deg) translateY(0); }
+    50% { transform:rotateX(-10deg) rotateY(180deg) translateY(-18px); }
+  }
+  .forge-terrain { position:absolute; left:0; right:0; bottom:-2px; z-index:1; pointer-events:none; opacity:.9; }
+  .forge-terrain svg { width:100%; height:110px; display:block; }
+  .forge-inner { position:relative; z-index:3; display:flex; gap:40px; align-items:center; justify-content:center;
+    flex-wrap:wrap; max-width:1200px; margin:0 auto; }
+  .forge-copy { flex:1 1 480px; max-width:560px; animation:riseIn .8s cubic-bezier(.2,.9,.25,1) both; }
+  .forge-copy h1 { font-size:52px; font-weight:900; line-height:1.08; margin:0 0 18px; color:#fff; }
+  .forge-copy p.lead { font-size:15.5px; line-height:1.7; color:var(--muted); margin-bottom:26px; max-width:460px; }
+  .forge-cta-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:26px; }
+  .forge-chips { display:flex; gap:12px; flex-wrap:wrap; }
+  .forge-chip { display:flex; align-items:center; gap:8px; padding:12px 16px; font-size:12.5px; font-weight:700; color:var(--txt); }
+  .forge-panel { flex:0 0 380px; width:380px; max-width:100%; padding:28px; animation:riseIn .8s .12s cubic-bezier(.2,.9,.25,1) both; }
+  .forge-panel h3 { font-size:19px; font-weight:900; margin-bottom:16px; }
+  .forge-trust { font-size:11.5px; color:var(--muted); text-align:center; margin-top:14px; line-height:1.6; }
+  .forge-loginlink { display:block; text-align:center; font-size:12.5px; color:var(--muted); margin-top:10px; }
+  .forge-loginlink a { color:var(--accent2); font-weight:700; }
+  @media (max-width:760px) {
+    .forge-copy h1 { font-size:36px; }
+    .forge-nav-links { display:none; }
+    .forge-panel { flex:1 1 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fvox, .forge-net { animation:none !important; }
+  }
+
+  /* ---------- Forge: below-the-fold ---------- */
+  .forge-below { padding:56px 24px; }
+  .fb-wrap { max-width:980px; margin:0 auto; }
+  .fb-wrap h2 { font-size:24px; font-weight:900; text-align:center; margin-bottom:26px; color:var(--txt); }
+  .revenue-compare { display:grid; grid-template-columns:1fr 1fr; gap:0; padding:0; overflow:hidden; }
+  .rev-col { padding:28px 26px; }
+  .rev-col.rev-us { background:linear-gradient(160deg, rgba(226,35,26,.14), transparent); }
+  .rev-col h4 { font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+  .rev-pct { font-size:44px; font-weight:900; color:var(--txt); margin-bottom:10px; }
+  .rev-col.rev-us .rev-pct { color:var(--accent2); }
+  .rev-col p { font-size:13.5px; color:var(--muted); line-height:1.6; margin:0 0 8px; }
+  .rev-fine { font-size:12px !important; }
+  @media (max-width:640px) { .revenue-compare { grid-template-columns:1fr; } }
+  .proof-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-top:0; }
+  .proof { padding:22px 16px; text-align:center; }
+  .proof b { display:block; font-size:28px; font-weight:900; color:var(--accent2); }
+  .proof span { font-size:11px; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); font-weight:800; }
+  .final-cta { text-align:center; max-width:460px; }
 
   /* ---------- Glass material ----------
      Fill stays NEARLY transparent; the frosted look comes from backdrop-filter
@@ -300,6 +401,21 @@
   </div>
 </header>
 
+<header class="forge-top glass">
+  <span class="wordmark">UT<span class="chip">O</span>P<span class="chip">O</span>LY</span>
+  <nav class="forge-nav-links">
+    <a href="discover.html">Discover</a>
+    <a href="create.html">Create</a>
+    <a href="dashboard.html">Developers</a>
+    <a href="catalog.html">Marketplace</a>
+    <a href="forum.html">Community</a>
+  </nav>
+  <div class="forge-login-wrap">
+    <button type="button" class="forge-login-btn" id="forge-login-toggle">Login</button>
+    <div class="forge-login-pop glass" id="forge-login-pop"></div>
+  </div>
+</header>
+
 <section class="hero">
   <div class="stars" aria-hidden="true"></div>
   <div class="stars2" aria-hidden="true"></div>
@@ -427,6 +543,55 @@
   </div>
 </section>
 
+<section class="hero-forge" id="hero-forge">
+  <canvas class="forge-net" id="forge-net" aria-hidden="true"></canvas>
+  <div class="forge-voxels" aria-hidden="true">
+    <div class="fvox v1"><svg viewBox="0 0 100 100"><g fill="none" style="stroke:var(--net-blue)" stroke-width="1.4" opacity=".8">
+      <path d="M20 30 L50 15 L80 30 L80 65 L50 80 L20 65 Z"/><path d="M20 30 L50 45 L80 30"/><path d="M50 45 L50 80"/>
+    </g></svg></div>
+    <div class="fvox v2"><svg viewBox="0 0 100 100"><g fill="none" style="stroke:var(--net-red)" stroke-width="1.6" opacity=".7">
+      <path d="M20 30 L50 15 L80 30 L80 65 L50 80 L20 65 Z"/><path d="M20 30 L50 45 L80 30"/><path d="M50 45 L50 80"/>
+    </g></svg></div>
+    <div class="fvox v3"><svg viewBox="0 0 100 100"><g fill="none" style="stroke:var(--net-blue)" stroke-width="1.4" opacity=".6">
+      <path d="M20 30 L50 15 L80 30 L80 65 L50 80 L20 65 Z"/><path d="M20 30 L50 45 L80 30"/><path d="M50 45 L50 80"/>
+    </g></svg></div>
+    <div class="fvox v4"><svg viewBox="0 0 100 100"><g fill="none" style="stroke:var(--net-red)" stroke-width="1.5" opacity=".7">
+      <path d="M20 30 L50 15 L80 30 L80 65 L50 80 L20 65 Z"/><path d="M20 30 L50 45 L80 30"/><path d="M50 45 L50 80"/>
+    </g></svg></div>
+    <div class="fvox v5"><svg viewBox="0 0 100 100"><g fill="none" style="stroke:var(--net-blue)" stroke-width="1.4" opacity=".6">
+      <path d="M20 30 L50 15 L80 30 L80 65 L50 80 L20 65 Z"/><path d="M20 30 L50 45 L80 30"/><path d="M50 45 L50 80"/>
+    </g></svg></div>
+  </div>
+  <div class="forge-terrain" aria-hidden="true">
+    <svg viewBox="0 0 1600 110" preserveAspectRatio="none">
+      <path fill="#0a0d16" d="M0 110 L0 74 L120 74 L120 58 L260 58 L260 74 L420 74 L420 50 L580 50 L580 74 L760 74 L760 62 L940 62 L940 74 L1120 74 L1120 54 L1300 54 L1300 74 L1480 74 L1480 64 L1600 64 L1600 110 Z"/>
+    </svg>
+  </div>
+
+  <div class="forge-inner">
+    <div class="forge-copy">
+      <h1>Build Games.<br>Keep 85%.</h1>
+      <p class="lead">The game platform where developers earn what they deserve. Publish experiences, build communities, sell assets, and keep up to 85% of every sale.</p>
+      <div class="forge-cta-row">
+        <a class="btn primary" href="#hero-forge" data-start-building>Start Building</a>
+        <a class="btn ghost glass" href="#revenue">See Revenue Comparison</a>
+      </div>
+      <div class="forge-chips">
+        <div class="forge-chip glass"><span>💰</span>Creators keep 85%</div>
+        <div class="forge-chip glass"><span>🌐</span>Publish instantly</div>
+        <div class="forge-chip glass"><span>🤝</span>Real economy</div>
+      </div>
+    </div>
+
+    <div class="forge-panel glass">
+      <h3>Join Utopoly</h3>
+      <div id="forge-signup-slot"></div>
+      <span class="forge-loginlink">Already have an account? <a href="#" data-forge-login-link>Log in</a></span>
+      <p class="forge-trust">Free forever. No download.</p>
+    </div>
+  </div>
+</section>
+
 <section class="platforms" id="platforms">
   <h4>Available On</h4>
   <div class="plat-row">
@@ -437,17 +602,56 @@
   </div>
 </section>
 
+<section class="forge-below" id="revenue">
+  <div class="fb-wrap">
+    <h2>What you actually keep</h2>
+    <div class="revenue-compare glass">
+      <div class="rev-col rev-us">
+        <h4>On Utopoly</h4>
+        <div class="rev-pct">85%</div>
+        <p>Sell an item for 100 Retrobux → you keep 85.</p>
+        <p class="rev-fine">Flat <span id="rev-tshirt-fee">5</span> Retrobux fee to publish a T-shirt — no other listing fees.</p>
+      </div>
+      <div class="rev-col rev-them">
+        <h4>Typical platforms</h4>
+        <div class="rev-pct">30–70%</div>
+        <p>Cuts vary widely by platform — and often stack extra listing or distribution fees on top.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="forge-below">
+  <div class="fb-wrap proof-strip">
+    <div class="proof glass"><b id="pf-players">—</b><span>Players</span></div>
+    <div class="proof glass"><b id="pf-games">—</b><span>Games Created</span></div>
+    <div class="proof glass"><b id="pf-items">—</b><span>Catalog Items</span></div>
+  </div>
+</section>
+
+<section class="forge-below">
+  <div class="fb-wrap final-cta">
+    <a class="btn primary block" href="#hero-forge" data-start-building>Start Building</a>
+    <p class="forge-trust">Free forever. No download.</p>
+  </div>
+</section>
+
 <div data-include="footer"></div>
 
 <script>
-  // populate hero tile grid + birthday selects
+  // populate hero tile grid (dusk/daylight only)
   const g = document.querySelector('.tilegrid');
   for (let i = 0; i < 48; i++) { const t = document.createElement('div'); t.className = 'tile'; t.textContent = 'EXPERIENCE'; g.appendChild(t); }
-  const sels = document.querySelectorAll('.bday select');
-  for (let d = 1; d <= 31; d++) sels[1].add(new Option(d, d));
-  for (let y = 2018; y >= 1940; y--) sels[2].add(new Option(y, y));
 
-  // pause all scene animations when the tab is hidden or the hero scrolls out of view
+  // populate birthday selects — scoped per .bday group since forge's re-parented
+  // signup form and the dusk/daylight form both carry a ".bday" wrapper.
+  document.querySelectorAll('.bday').forEach((bday) => {
+    const sels = bday.querySelectorAll('select');
+    for (let d = 1; d <= 31; d++) sels[1].add(new Option(d, d));
+    for (let y = 2018; y >= 1940; y--) sels[2].add(new Option(y, y));
+  });
+
+  // pause dusk/daylight scene animations when the tab is hidden or the hero scrolls out of view
   (function () {
     const hero = document.querySelector('.hero');
     let visible = true, focused = !document.hidden;
@@ -457,11 +661,132 @@
     }
     document.addEventListener('visibilitychange', () => { focused = !document.hidden; sync(); });
   })();
+
+  /* ================= FORGE (landing_theme_v2 third arm) =================
+     Everything below is gated on the assigned variant so the other ~75%
+     of visitors never pay for forge's DOM moves, network canvas, or the
+     two extra Supabase calls. Signup/login logic itself is never touched —
+     we just re-parent the SAME .signup-card / .land-login nodes that
+     auth.js already wires, so its behavior stays byte-for-byte identical. */
+  if (window.__ab && window.__ab.variant === 'forge') {
+    // 1) Move the real signup form into forge's panel, then reskin ONLY
+    //    the visible copy (heading/button text) — safe because this branch
+    //    never runs for dusk/daylight visitors, so their DOM is untouched.
+    const card = document.querySelector('.signup-card');
+    const slot = document.getElementById('forge-signup-slot');
+    if (card && slot) {
+      slot.appendChild(card);
+      const h3 = card.querySelector('h3'); if (h3) h3.textContent = 'Join Utopoly';
+      const submitBtn = card.querySelector('button[type="submit"]'); if (submitBtn) submitBtn.textContent = 'Continue';
+    }
+
+    // 2) Move the real quick-login fields into the nav's popover.
+    const landLogin = document.querySelector('.land-login');
+    const loginSlot = document.getElementById('forge-login-pop');
+    if (landLogin && loginSlot) loginSlot.appendChild(landLogin);
+    const toggleBtn = document.getElementById('forge-login-toggle');
+    const openLogin = () => {
+      loginSlot?.classList.add('open');
+      requestAnimationFrame(() => loginSlot?.querySelector('input')?.focus());
+    };
+    toggleBtn?.addEventListener('click', () => loginSlot?.classList.toggle('open'));
+    document.addEventListener('click', (e) => {
+      if (loginSlot?.classList.contains('open') && !e.target.closest('.forge-login-wrap')) loginSlot.classList.remove('open');
+    });
+    document.querySelector('[data-forge-login-link]')?.addEventListener('click', (e) => { e.preventDefault(); openLogin(); });
+
+    // 3) "Start Building" — scroll to + focus the real signup form (same page, no dead route; ?ref= is preserved automatically since there's no redirect).
+    document.querySelectorAll('[data-start-building]').forEach((el) => el.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('forge-signup-slot')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => document.querySelector('#forge-signup-slot input[type="text"]')?.focus(), 400);
+    }));
+
+    // 4) Background: drifting constellation network (canvas, transform/opacity-free —
+    //    redraw loop only, GPU-light). Skipped entirely under reduced motion.
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const canvas = document.getElementById('forge-net');
+    const heroForge = document.getElementById('hero-forge');
+    if (canvas && heroForge) {
+      const ctx = canvas.getContext('2d');
+      let w, h, nodes, raf = null, running = false;
+      function size() {
+        w = canvas.width = heroForge.clientWidth;
+        h = canvas.height = heroForge.clientHeight;
+      }
+      function makeNodes() {
+        const COUNT = 50;
+        nodes = Array.from({ length: COUNT }, () => ({
+          x: Math.random() * w, y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15,
+          c: Math.random() < 0.5 ? '255,77,61' : '79,209,255',
+        }));
+      }
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        for (const n of nodes) {
+          n.x += n.vx; n.y += n.vy;
+          if (n.x < 0 || n.x > w) n.vx *= -1;
+          if (n.y < 0 || n.y > h) n.vy *= -1;
+        }
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i], b = nodes[j];
+            const dx = a.x - b.x, dy = a.y - b.y, dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 130) {
+              ctx.strokeStyle = `rgba(${a.c},${(1 - dist / 130) * 0.35})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            }
+          }
+          ctx.fillStyle = `rgba(${n.c},.8)`;
+          ctx.beginPath(); ctx.arc(n.x, n.y, 1.6, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      function loop() { draw(); raf = requestAnimationFrame(loop); }
+      function start() { if (running) return; running = true; if (reduceMotion) draw(); else loop(); }
+      function stop() { running = false; if (raf) cancelAnimationFrame(raf); raf = null; }
+      size(); makeNodes(); draw();
+      window.addEventListener('resize', () => { size(); makeNodes(); });
+      // Shared pause state: also freezes the CSS-animated voxel cubes (.hero-forge.paused *)
+      // whenever the tab is hidden or the hero scrolls out of view — same technique as the
+      // dusk/daylight hero above, just applied to forge's own background layer.
+      let visible = true, focused = !document.hidden;
+      const sync = () => {
+        const active = visible && focused;
+        heroForge.classList.toggle('paused', !active);
+        if (!reduceMotion) { active ? start() : stop(); }
+      };
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver((e) => { visible = e[0].isIntersecting; sync(); }, { threshold: 0.05 }).observe(heroForge);
+      }
+      document.addEventListener('visibilitychange', () => { focused = !document.hidden; sync(); });
+      if (!reduceMotion) start();
+    }
+  }
 </script>
 <script src="assets/retro.js?v=0.07"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/env.js?v=0.07"></script>
 <script src="assets/supabaseClient.js?v=0.07"></script>
+<script>
+  // Forge-only: live economy numbers via real cached anon-callable RPCs (never invented).
+  // Placed after supabaseClient.js so window.supabaseClient exists; runs before auth.js,
+  // which is unaffected either way since it doesn't touch these elements.
+  if (window.__ab && window.__ab.variant === 'forge') {
+    const sb = window.supabaseClient;
+    sb?.rpc('cfg_int', { p_key: 'tshirt_creation_fee', p_field: 'amount' }).then(({ data }) => {
+      if (data != null) document.getElementById('rev-tshirt-fee').textContent = data;
+    });
+    sb?.rpc('get_public_stats').then(({ data }) => {
+      if (!data) return;
+      const n = (x) => (x ?? 0).toLocaleString();
+      document.getElementById('pf-players').textContent = n(data.players);
+      document.getElementById('pf-games').textContent = n(data.experiences);
+      document.getElementById('pf-items').textContent = n(data.catalog_items);
+    });
+  }
+</script>
 <script src="assets/auth.js?v=0.07"></script>
 <script src="assets/social.js?v=0.07"></script>
 <script src="assets/i18n.js?v=0.07"></script>
