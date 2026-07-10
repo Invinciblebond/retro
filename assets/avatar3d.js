@@ -60,17 +60,17 @@ export function loadModel(url = MODEL_URL) {
 }
 
 /* ================= Clothing & accessories =================
-   The body meshes keep classic 585×559 clothing-template UV layouts, so a
-   standard template PNG maps straight onto the rig:
-   - shirt template → torso + arms, pants template → legs,
-   - t-shirt → single decal on the front-torso UV region.
-   Templates are composited on an offscreen canvas over the body-color fill,
-   then applied as a CanvasTexture by MUTATING the existing material (skinned
-   meshes keep their material object; body color stays as material.color tint). */
+   IMPORTANT: this GLB's torso UVs are NOT template-mapped (they range far
+   outside 0..1), so clothing can never be applied as a UV texture on the
+   body meshes. T-shirts are therefore rendered the Roblox way: a decal
+   plane parented to the torso bone, floating just off the front surface.
+   Faces DO have usable UVs on the head mesh — the front face maps to the
+   FACE_UV rect below — so faces are composited into that exact region. */
 
-const TEMPLATE_W = 585, TEMPLATE_H = 559;
-// front-torso decal region in classic template space
-const TSHIRT_REGION = { x: 231, y: 74, w: 128, h: 128 };
+// measured from the GLB: head-mesh front-face UV rect (glTF v = down)
+const FACE_UV = { u0: 0.2363, v0: 0.4681, u1: 0.4464, v1: 0.7324 };
+// R6 rig: torso bone origin at hips, torso box spans y 0..2, depth ±0.5, front = +z
+const TSHIRT_DECAL = { size: 1.6, y: 1.0, z: 0.52, bone: "Torso_00" };
 
 function loadImage(url) {
   return new Promise((res, rej) => {
@@ -82,29 +82,19 @@ function loadImage(url) {
   });
 }
 
-/* Composite body color + clothing template PNGs into one texture. */
-export async function composeClothingTexture({ bodyColor = "#f5d29a", shirtUrl = null, pantsUrl = null, tshirtUrl = null } = {}) {
-  const c = document.createElement("canvas");
-  c.width = TEMPLATE_W; c.height = TEMPLATE_H;
-  const ctx = c.getContext("2d");
-  // Bake the body color in as the base fill; material.color stays white on
-  // textured meshes so clothing pixels render true (tint would multiply them).
-  ctx.fillStyle = bodyColor;
-  ctx.fillRect(0, 0, TEMPLATE_W, TEMPLATE_H);
-  for (const url of [shirtUrl, pantsUrl]) {
-    if (!url) continue;
-    try { ctx.drawImage(await loadImage(url), 0, 0, TEMPLATE_W, TEMPLATE_H); } catch {}
-  }
-  if (tshirtUrl) {
-    try {
-      const img = await loadImage(tshirtUrl);
-      ctx.drawImage(img, TSHIRT_REGION.x, TSHIRT_REGION.y, TSHIRT_REGION.w, TSHIRT_REGION.h);
-    } catch {}
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.flipY = false;             // glTF UV convention
+/* T-shirt decal: textured plane parented to the torso bone (see note above). */
+async function makeTshirtDecal(url) {
+  const img = await loadImage(url);
+  const tex = new THREE.Texture(img);
+  tex.needsUpdate = true;
   tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(TSHIRT_DECAL.size, TSHIRT_DECAL.size),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+  );
+  plane.position.set(0, TSHIRT_DECAL.y, TSHIRT_DECAL.z);
+  plane.userData.avatarSlot = "tshirt";
+  return plane;
 }
 
 /* The GLB's embedded head texture has a GREY background (~rgb 126/162), so the
@@ -136,13 +126,16 @@ function whitenFaceMap(srcTex) {
    so skin shows through wherever the PNG is transparent. */
 export async function composeFaceTexture({ bodyColor = "#f5d29a", faceUrl } = {}) {
   const img = await loadImage(faceUrl);
+  const S = 1024;
   const c = document.createElement("canvas");
-  c.width = img.naturalWidth || 512;
-  c.height = img.naturalHeight || 512;
+  c.width = S; c.height = S;
   const ctx = c.getContext("2d");
   ctx.fillStyle = bodyColor;
-  ctx.fillRect(0, 0, c.width, c.height);
-  ctx.drawImage(img, 0, 0, c.width, c.height);
+  ctx.fillRect(0, 0, S, S);
+  // draw the face PNG into the head's FRONT-face UV rect only — the rest of
+  // the head (sides/back/top) samples the bodyColor fill
+  ctx.drawImage(img, FACE_UV.u0 * S, FACE_UV.v0 * S,
+    (FACE_UV.u1 - FACE_UV.u0) * S, (FACE_UV.v1 - FACE_UV.v0) * S);
   const tex = new THREE.CanvasTexture(c);
   tex.flipY = false; // glTF UV convention
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -173,8 +166,6 @@ export async function applyAvatarConfig(model, cfg = {}, items = []) {
   stale.forEach((ch) => ch.parent?.remove(ch));
 
   const bodyColor = cfg.body_color || "#f5d29a";
-  const shirt = equippedItem(cfg, items, "shirt");
-  const pants = equippedItem(cfg, items, "pants");
   const tshirt = equippedItem(cfg, items, "tshirt");
   const face = equippedItem(cfg, items, "face");
 
@@ -182,15 +173,6 @@ export async function applyAvatarConfig(model, cfg = {}, items = []) {
   if (face?.image_url) {
     try { faceTex = await composeFaceTexture({ bodyColor, faceUrl: face.image_url }); } catch {}
   }
-
-  const tex = (shirt?.image_url || pants?.image_url || tshirt?.image_url)
-    ? await composeClothingTexture({
-        bodyColor,
-        shirtUrl: shirt?.image_url || null,
-        pantsUrl: pants?.image_url || null,
-        tshirtUrl: tshirt?.image_url || null,
-      })
-    : null;
 
   model.traverse((child) => {
     if (!child.isMesh || !child.material) return;
@@ -208,21 +190,27 @@ export async function applyAvatarConfig(model, cfg = {}, items = []) {
         child.material.color = new THREE.Color(bodyColor); // default face tinted, as before
       }
       child.material.needsUpdate = true;
-    } else if (tex && /torso|body/i.test(child.material.name || child.name)) {
-      child.material.map = tex;
-      child.material.color = new THREE.Color("#ffffff"); // body color baked into texture
-      child.material.needsUpdate = true;
     } else {
-      // only clear maps WE set (CanvasTexture) — never the GLB's own textures (face, etc.)
+      // body meshes have non-template UVs — never texture them, only tint.
+      // clear maps WE set previously (CanvasTexture), never the GLB's own.
       if (child.material.map?.isCanvasTexture) child.material.map = null;
       child.material.color = new THREE.Color(bodyColor);
       child.material.needsUpdate = true;
     }
   });
 
-  // hats / gear / accessories: separate .glb attached to a bone (default Head_01)
   let skeleton = null;
   model.traverse((ch) => { if (!skeleton && ch.isSkinnedMesh) skeleton = ch.skeleton; });
+
+  // t-shirt: decal plane on the front of the torso, parented to the torso bone
+  if (tshirt?.image_url && skeleton) {
+    const torso = skeleton.getBoneByName(TSHIRT_DECAL.bone);
+    if (torso) {
+      try { torso.add(await makeTshirtDecal(tshirt.image_url)); } catch {}
+    }
+  }
+
+  // hats / gear / accessories: separate .glb attached to a bone (default Head_01)
   for (const slot of ["hat", "gear", "accessory"]) {
     const it = equippedItem(cfg, items, slot);
     if (!it?.mesh_url || !skeleton) continue;
