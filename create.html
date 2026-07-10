@@ -82,6 +82,29 @@
           </div>
         </div>
       </div>
+
+      <div class="panel">
+        <h4>Create a Face</h4>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">Upload a PNG face — it replaces the default face on the avatar's head. Use a transparent background so the skin color shows through. Publishing costs <span class="ric">R</span> <span id="f-fee">10</span> and your Face goes live in the catalog instantly. You automatically own your creation.</p>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;">
+          <div class="frm" style="flex:1;min-width:260px;">
+            <input type="text" id="f-name" maxlength="80" placeholder="Face name">
+            <textarea id="f-desc" maxlength="500" placeholder="Description (optional)"></textarea>
+            <input type="file" id="f-file" accept="image/png">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <input type="number" id="f-price" min="1" placeholder="Price (Retrobux, min 1)" style="width:180px;">
+              <label style="font-size:12.5px;font-weight:700;display:flex;gap:6px;align-items:center;">
+                <input type="checkbox" id="f-offsale"> Off-sale (wear it yourself, don't sell)
+              </label>
+            </div>
+            <button class="btn primary" id="f-publish" style="justify-self:start;">Publish — <span class="ric">R</span> 10</button>
+          </div>
+          <div>
+            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Live preview</div>
+            <div id="f-preview" style="width:230px;height:300px;border:1px solid var(--line);border-radius:10px;background:var(--thumb);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">Upload a PNG to preview</div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -193,6 +216,87 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.retroAuth?.refreshBalances?.();
     } catch (e) { toast(friendly(e.message), "err"); }
     btn.disabled = false; btn.innerHTML = `Publish — <span class="ric">R</span> ${fee}`;
+  });
+
+  /* ===== Face creator: PNG upload -> spinning mannequin preview -> create_face RPC ===== */
+  let faceFee = 10;
+  sb.rpc("cfg_int", { p_key: "face_creation_fee", p_field: "amount" }).then(({ data }) => {
+    if (data != null) { faceFee = data; document.getElementById("f-fee").textContent = data;
+      document.getElementById("f-publish").innerHTML = `Publish — <span class="ric">R</span> ${data}`; }
+  });
+
+  const fFile = document.getElementById("f-file");
+  const fPreview = document.getElementById("f-preview");
+  let faceDataUrl = null, faceFile = null, fViewer = null;
+
+  document.getElementById("f-offsale").addEventListener("change", (e) => {
+    document.getElementById("f-price").disabled = e.target.checked;
+  });
+
+  fFile.addEventListener("change", () => {
+    faceDataUrl = null; faceFile = null;
+    const f = fFile.files?.[0];
+    if (!f) return;
+    if (f.type !== "image/png") { fFile.value = ""; return toast("Faces must be PNG files.", "err"); }
+    if (f.size > 2 * 1024 * 1024) { fFile.value = ""; return toast("PNG too large — keep it under 2 MB.", "err"); }
+    const url = URL.createObjectURL(f);
+    const im = new Image();
+    im.onload = async () => {
+      URL.revokeObjectURL(url);
+      if (im.naturalWidth > 1024 || im.naturalHeight > 1024) {
+        fFile.value = "";
+        return toast(`Max 1024×1024 px (yours is ${im.naturalWidth}×${im.naturalHeight}).`, "err", 5000);
+      }
+      const r = new FileReader();
+      r.onload = async () => {
+        faceDataUrl = r.result; faceFile = f;
+        if (fViewer) { fViewer.dispose(); fViewer = null; }
+        fPreview.innerHTML = "";
+        try {
+          fViewer = await mountViewer(fPreview, {
+            cfg: { body_color: "#f5d29a", equipped: { face: "preview" } },
+            items: [{ id: "preview", image_url: faceDataUrl }],
+            autoRotate: true,
+          });
+        } catch { fPreview.textContent = "3D preview unavailable"; }
+      };
+      r.readAsDataURL(f);
+    };
+    im.onerror = () => { fFile.value = ""; toast("Could not read that PNG.", "err"); };
+    im.src = url;
+  });
+
+  document.getElementById("f-publish").addEventListener("click", async () => {
+    const name = document.getElementById("f-name").value.trim();
+    const offsale = document.getElementById("f-offsale").checked;
+    const price = parseInt(document.getElementById("f-price").value, 10);
+    if (!name) return toast("Give your Face a name.", "err");
+    if (!faceFile) return toast("Upload a PNG face first.", "err");
+    if (!offsale && (!Number.isFinite(price) || price < 1)) return toast("Set a price of at least 1 Retrobux, or mark it off-sale.", "err");
+    const btn = document.getElementById("f-publish");
+    btn.disabled = true; btn.textContent = "Publishing…";
+    try {
+      // sanitized filename: uuid only, never the user's original name
+      const path = `${me}/${crypto.randomUUID()}.png`;
+      const { error: upErr } = await sb.storage.from("faces").upload(path, faceFile, { contentType: "image/png" });
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from("faces").getPublicUrl(path);
+      const { error } = await sb.rpc("create_face", {
+        p_name: name,
+        p_description: document.getElementById("f-desc").value.trim(),
+        p_image_url: pub.publicUrl,
+        p_price: offsale ? 0 : price,
+        p_on_sale: !offsale,
+      });
+      if (error) throw error;
+      toast("Face published! It's live in the catalog now and already in your inventory.", "ok", 6000);
+      ["f-name","f-desc","f-price"].forEach((i) => document.getElementById(i).value = "");
+      fFile.value = ""; faceDataUrl = null; faceFile = null;
+      if (fViewer) { fViewer.dispose(); fViewer = null; }
+      fPreview.textContent = "Upload a PNG to preview";
+      window.retroAuth?.refreshBalances?.();
+    } catch (e) { toast(friendly(e.message), "err"); }
+    btn.disabled = false; btn.innerHTML = `Publish — <span class="ric">R</span> ${faceFee}`;
   });
 });
 </script>

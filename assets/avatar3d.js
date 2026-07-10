@@ -87,9 +87,10 @@ export async function composeClothingTexture({ bodyColor = "#f5d29a", shirtUrl =
   const c = document.createElement("canvas");
   c.width = TEMPLATE_W; c.height = TEMPLATE_H;
   const ctx = c.getContext("2d");
-  // transparent base: the body color shows through as material.color tint,
-  // so only draw the clothing layers. White base under drawn regions keeps
-  // template colors true (tint multiplies the texture).
+  // Bake the body color in as the base fill; material.color stays white on
+  // textured meshes so clothing pixels render true (tint would multiply them).
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(0, 0, TEMPLATE_W, TEMPLATE_H);
   for (const url of [shirtUrl, pantsUrl]) {
     if (!url) continue;
     try { ctx.drawImage(await loadImage(url), 0, 0, TEMPLATE_W, TEMPLATE_H); } catch {}
@@ -102,6 +103,48 @@ export async function composeClothingTexture({ bodyColor = "#f5d29a", shirtUrl =
   }
   const tex = new THREE.CanvasTexture(c);
   tex.flipY = false;             // glTF UV convention
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/* The GLB's embedded head texture has a GREY background (~rgb 126/162), so the
+   bodyColor tint made the head darker than the torso. Normalize it once:
+   bright pixels (background) -> white, dark pixels (eyes/mouth) kept.
+   Tint then yields head skin == torso skin. */
+function whitenFaceMap(srcTex) {
+  const img = srcTex.image;
+  if (!img) return srcTex;
+  const c = document.createElement("canvas");
+  c.width = img.width; c.height = img.height;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+  const id = ctx.getImageData(0, 0, c.width, c.height);
+  const px = id.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+    if (lum > 100) { px[i] = px[i + 1] = px[i + 2] = 255; } // background -> white
+  }
+  ctx.putImageData(id, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.flipY = false;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/* Face texture: body color base + face PNG composited full-frame.
+   Face PNGs are authored to the head UV layout (transparent background),
+   so skin shows through wherever the PNG is transparent. */
+export async function composeFaceTexture({ bodyColor = "#f5d29a", faceUrl } = {}) {
+  const img = await loadImage(faceUrl);
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth || 512;
+  c.height = img.naturalHeight || 512;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  const tex = new THREE.CanvasTexture(c);
+  tex.flipY = false; // glTF UV convention
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
@@ -124,10 +167,21 @@ async function loadAccessory(url) {
    body-color tint, clothing textures, and hat/gear/accessory meshes on bones.
    Children of the rig are picked up automatically by the snapshot pipeline. */
 export async function applyAvatarConfig(model, cfg = {}, items = []) {
+  // remove accessories from a previous apply (live re-config)
+  const stale = [];
+  model.traverse((ch) => { if (ch.userData?.avatarSlot) stale.push(ch); });
+  stale.forEach((ch) => ch.parent?.remove(ch));
+
   const bodyColor = cfg.body_color || "#f5d29a";
   const shirt = equippedItem(cfg, items, "shirt");
   const pants = equippedItem(cfg, items, "pants");
   const tshirt = equippedItem(cfg, items, "tshirt");
+  const face = equippedItem(cfg, items, "face");
+
+  let faceTex = null;
+  if (face?.image_url) {
+    try { faceTex = await composeFaceTexture({ bodyColor, faceUrl: face.image_url }); } catch {}
+  }
 
   const tex = (shirt?.image_url || pants?.image_url || tshirt?.image_url)
     ? await composeClothingTexture({
@@ -141,10 +195,27 @@ export async function applyAvatarConfig(model, cfg = {}, items = []) {
   model.traverse((child) => {
     if (!child.isMesh || !child.material) return;
     // keep the SAME material object — replacing it breaks skinned meshes
-    child.material.color = new THREE.Color(bodyColor);
-    if (tex && /torso|body/i.test(child.material.name || child.name)) {
+    if (/head/i.test(child.material.name || child.name)) {
+      // remember the GLB's default face (background whitened so the skin
+      // tint matches the torso exactly) so unequipping restores it live
+      if (child.material.userData.defaultFaceMap === undefined)
+        child.material.userData.defaultFaceMap = child.material.map ? whitenFaceMap(child.material.map) : null;
+      if (faceTex) {
+        child.material.map = faceTex;
+        child.material.color = new THREE.Color("#ffffff"); // skin baked into texture
+      } else {
+        child.material.map = child.material.userData.defaultFaceMap;
+        child.material.color = new THREE.Color(bodyColor); // default face tinted, as before
+      }
+      child.material.needsUpdate = true;
+    } else if (tex && /torso|body/i.test(child.material.name || child.name)) {
       child.material.map = tex;
-      child.material.transparent = true;
+      child.material.color = new THREE.Color("#ffffff"); // body color baked into texture
+      child.material.needsUpdate = true;
+    } else {
+      // only clear maps WE set (CanvasTexture) — never the GLB's own textures (face, etc.)
+      if (child.material.map?.isCanvasTexture) child.material.map = null;
+      child.material.color = new THREE.Color(bodyColor);
       child.material.needsUpdate = true;
     }
   });
@@ -224,6 +295,11 @@ export async function mountViewer(container, { url = MODEL_URL, cfg = null, item
     renderer.render(scene, camera);
   })();
   return {
+    // live re-apply config (color/clothing/accessories) without remount —
+    // keeps camera angle and orbit state
+    async update(newCfg, newItems) {
+      await applyAvatarConfig(model, newCfg || cfg, newItems || items);
+    },
     dispose() {
       cancelAnimationFrame(raf);
       controls.dispose();

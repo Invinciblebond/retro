@@ -137,7 +137,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   toggleBtn.addEventListener("click", () => (mode === "2d" ? show3D() : show2D()));
-  const render = () => { if (mode === "2d" && !snapUrl && !has3D) stageBody.innerHTML = window.renderAvatarSVG(cfg, items); };
+
+  /* live preview: re-render immediately on any color/item change.
+     3D mode re-applies config in place (camera untouched);
+     2D mode re-snapshots. Serialized so rapid clicks don't race. */
+  let renderBusy = false, renderQueued = false;
+  async function render() {
+    if (renderBusy) { renderQueued = true; return; }
+    renderBusy = true;
+    try {
+      if (mode === "3d" && viewer?.update) await viewer.update(cfg, items);
+      else if (has3D) await show2D();
+      else stageBody.innerHTML = window.renderAvatarSVG(cfg, items); // no GLB: live SVG beats stale snapshot
+    } finally {
+      renderBusy = false;
+      if (renderQueued) { renderQueued = false; render(); }
+    }
+  }
   await show2D();
 
   /* colors */

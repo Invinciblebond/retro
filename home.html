@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" href="https://i.ibb.co/N6wqhtTn/f079a25a-b9e0-46d8-98f0-cc38807b3c82-removebg-preview.png">
 <link rel="stylesheet" href="assets/retro.css?v=0.07">
 <style>
-  .home-grid { display:flex; gap:24px; padding:24px 28px 40px; max-width:1400px; }
+  .home-grid { display:flex; gap:24px; padding:24px 28px 40px; width:100%; }
   .feed { flex:1; min-width:0; }
   .right-rail { width:270px; flex-shrink:0; }
 
@@ -40,6 +40,7 @@
   .news p { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:10px; }
   .news .ntitle { font-size:13.5px; font-weight:800; color:var(--txt); margin-bottom:4px; }
   @media (max-width:1100px){ .right-rail{ display:none; } }
+  @media (max-width:700px){ .home-grid{ padding:16px; flex-direction:column; } .profile-meta h2{ font-size:24px; } }
 </style>
 </head>
 <body class="theme-1" data-page="home">
