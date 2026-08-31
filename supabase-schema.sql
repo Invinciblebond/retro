@@ -1,5 +1,5 @@
 -- ============================================================
---  AuraHealth — auth + profile schema
+--  Utopoly — auth + profile schema
 --  Project: iowxqmkgnmhrccuaqson
 --  Run once in the Supabase SQL Editor. Safe to re-run.
 -- ============================================================

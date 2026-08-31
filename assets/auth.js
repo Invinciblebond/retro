@@ -1,4 +1,4 @@
-// AuraHealth — global auth: signup, login, session persistence, route protection.
+// Utopoly — global auth: signup, login, session persistence, route protection.
 // Classic script; relies on window.supabaseClient from assets/supabaseClient.js.
 // Wrapped in an IIFE so `supabase` doesn't collide with the UMD library global.
 (() => {
@@ -8,7 +8,7 @@ const page = document.body.dataset.page || "app";
 if (!supabase) {
   // Your tracker data lives in your account, so a page that can't reach
   // Supabase must not render as if you were signed in.
-  console.error("AuraHealth auth: no Supabase client");
+  console.error("Utopoly auth: no Supabase client");
   if (page !== "landing") {
     document.documentElement.innerHTML = `<body style="margin:0;background:#121212;color:#ededed;
       font-family:Inter,system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:24px">
@@ -16,7 +16,7 @@ if (!supabase) {
         <div style="font-size:38px;margin-bottom:12px">📡</div>
         <h1 style="font-size:18px;font-weight:700;margin:0 0 8px">Can't reach your account</h1>
         <p style="font-size:13.5px;line-height:1.6;color:#a0a0a0;margin:0 0 18px">
-          AuraHealth couldn't load its connection to Supabase — usually a dropped network or a blocker
+          Utopoly couldn't load its connection to Supabase — usually a dropped network or a blocker
           stopping the CDN. Your data is safe; the page just won't open without it.
         </p>
         <button onclick="location.reload()" style="padding:9px 18px;border-radius:8px;border:none;
@@ -33,7 +33,13 @@ const PUBLIC_PAGES = ["landing", "reset"];
 const isPublic = PUBLIC_PAGES.includes(page);
 
 const HOME = "Log.html";
-const PLACEHOLDER_DOMAIN = "users.aurahealth.local";
+// New username-only accounts get this internal address. The former
+// aurahealth domain is still recognised so existing accounts keep working.
+const PLACEHOLDER_DOMAIN = "users.utopoly.local";
+const PLACEHOLDER_DOMAINS = ["users.utopoly.local", "users.aurahealth.local"];
+function isPlaceholderEmail(addr) {
+  return PLACEHOLDER_DOMAINS.some((d) => String(addr || "").endsWith("@" + d));
+}
 
 /* ---------- Injected styles: toasts, modal, password meter ---------- */
 const style = document.createElement("style");
@@ -205,7 +211,7 @@ async function applyAuthUI(session) {
   }
   const profile = await loadProfile(user);
   const name = profile.display_name || profile.username;
-  const realEmail = user.email?.endsWith(`@${PLACEHOLDER_DOMAIN}`) ? "" : (user.email || "");
+  const realEmail = isPlaceholderEmail(user.email) ? "" : (user.email || "");
 
   document.querySelectorAll("[data-user-name]").forEach((el) => { el.textContent = name; });
   document.querySelectorAll("[data-user-handle]").forEach((el) => { el.textContent = "@" + profile.username; });
@@ -656,7 +662,7 @@ function mountPill() {
 function verifyNudge(session) {
   const user = session?.user;
   if (!user || user.email_confirmed_at || sessionStorage.getItem("aura:nudged")) return;
-  if (user.email?.endsWith(`@${PLACEHOLDER_DOMAIN}`)) return; // no real email to verify
+  if (isPlaceholderEmail(user.email)) return; // no real email to verify
   sessionStorage.setItem("aura:nudged", "1");
   setTimeout(() => {
     const t = toast(`Verify <b>${user.email}</b> when you get a sec. <a href="#" id="nudge-resend">Resend link</a>`, "info", 9000);

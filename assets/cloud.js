@@ -1,4 +1,4 @@
-// AuraHealth — structured cloud persistence.
+// Utopoly — structured cloud persistence.
 //
 // The trackers keep using their in-browser SQLite (sql.js) or JSON state as the
 // working copy; this module mirrors that working copy into real Postgres tables

@@ -1,4 +1,4 @@
-// AuraHealth — per-account storage.
+// Utopoly — per-account storage.
 //
 // The trackers were written against localStorage and know nothing about
 // accounts. Rather than rewrite eight apps, this shims localStorage so every
@@ -97,7 +97,7 @@
   try {
     Object.defineProperty(window, "localStorage", { value: shim, configurable: true, writable: false });
   } catch (e) {
-    console.warn("AuraHealth: could not scope localStorage — data stays shared on this browser.");
+    console.warn("Utopoly: could not scope localStorage — data stays shared on this browser.");
     return;
   }
 
@@ -146,7 +146,7 @@
         await client.from("user_state").delete().eq("user_id", uid).in("k", gone);
       }
     } catch (err) {
-      console.warn("AuraHealth sync: push failed", err.message || err);
+      console.warn("Utopoly sync: push failed", err.message || err);
       batch.forEach(function (k) { dirty[k] = true; });  // retry on the next tick
     } finally {
       pushing = false;
@@ -190,7 +190,7 @@
         }
       }
     } catch (err) {
-      console.warn("AuraHealth sync: unavailable —", err.message || err);
+      console.warn("Utopoly sync: unavailable —", err.message || err);
     }
     addEventListener("beforeunload", function () { if (Object.keys(dirty).length) push(); });
   }

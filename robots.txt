@@ -1,0 +1,17 @@
+# Utopoly
+User-agent: *
+Allow: /$
+Allow: /assets/
+
+# Everything below needs a signed-in session; crawlers only ever see a
+# redirect back to the landing page.
+Disallow: /Log.html
+Disallow: /Progress.html
+Disallow: /calorie_tracker.html
+Disallow: /History.html
+Disallow: /cycletracker.html
+Disallow: /CainTracker.html
+Disallow: /claudethink.html
+Disallow: /reset.html
+
+Sitemap: https://utopoly.com/sitemap.xml

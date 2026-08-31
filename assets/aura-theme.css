@@ -1,5 +1,5 @@
 /* ============================================================================
-   AuraHealth — theme overlay for the tracker apps.
+   Utopoly — theme overlay for the tracker apps.
    Loaded LAST in <head> so it repaints each app's existing surfaces onto the
    black/dot-grid canvas without touching any of their behaviour.
    Colour only: no layout, sizing or interaction is changed here.

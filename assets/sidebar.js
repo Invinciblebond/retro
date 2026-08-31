@@ -1,5 +1,5 @@
 /* ============================================================================
- * assets/sidebar.js — AuraHealth shared sidebar
+ * assets/sidebar.js — Utopoly shared sidebar
  * ----------------------------------------------------------------------------
  * SINGLE SOURCE OF TRUTH. Edit the NAV array and every page updates.
  * Drop `<script src="assets/sidebar.js"></script>` where the rail should sit —
@@ -83,7 +83,7 @@
             '<svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" fill="#060606"/></svg>' +
           '</span>' +
           '<span class="sb-wordmark">' +
-            '<b>AuraHealth</b>' +
+            '<b>Utopoly</b>' +
             '<i>Personal tracking</i>' +
           '</span>' +
         '</a>' +
