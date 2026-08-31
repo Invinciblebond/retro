@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html class="dark" lang="en">
 <head>
+<script src="assets/sync.js"></script>
+
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>AuraHealth — Board</title>
@@ -177,7 +179,7 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(6,11,8,
 #gold-strip span.gs-lbl{color:#6a8070;font-weight:700;font-size:9px;letter-spacing:.06em;text-transform:uppercase;}
 </style>
 </head>
-<body>
+<body data-page="app">
 
 <header>
   <div style="display:flex;align-items:center;gap:28px;">
@@ -1956,5 +1958,9 @@ setInterval(()=>{fetchGoldPrices();fetchCryptoPrices();renderAll();}, 3*60*1000)
   renderAll();
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
 </body>
 </html>

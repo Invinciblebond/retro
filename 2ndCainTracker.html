@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="assets/sync.js"></script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CAIN.FINANCE — Project Command Center</title>
@@ -666,7 +668,7 @@
   }
 </style>
 </head>
-<body>
+<body data-page="app">
 <div class="glow-1"></div>
 <div class="glow-2"></div>
 
@@ -988,5 +990,9 @@ renderPhases();
 renderTimeline();
 updateStats();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
 </body>
 </html>
