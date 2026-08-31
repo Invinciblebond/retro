@@ -192,3 +192,13 @@ create policy "user_state is private"
   on public.user_state for all to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- ============================================================
+--  9. Per-tracker relational tables
+--  Applied via MCP migrations:
+--    aura_progress_tables, aura_tracker_tables, aura_remaining_tables,
+--    aura_rls_all_tracker_tables, aura_think_tables_real_shape
+--  See the Supabase dashboard for the authoritative definitions.
+--  Every table is (user_id, …) keyed with an owner-only RLS policy:
+--    using (auth.uid() = user_id) with check (auth.uid() = user_id)
+-- ============================================================

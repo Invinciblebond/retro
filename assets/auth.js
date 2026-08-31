@@ -615,7 +615,11 @@ function wireLanding() {
 // The tracker pages have their own full-screen layouts, so instead of editing
 // each one we drop in a small fixed control: back to the dashboard, and log out.
 function mountPill() {
-  if (isLanding || page === "dashboard" || document.getElementById("aura-pill")) return;
+  // Not on the landing page, the dashboard, the recovery page, or anywhere
+  // the shared sidebar already provides these controls.
+  if (isLanding || page === "dashboard" || page === "reset") return;
+  if (document.getElementById("aura-sidebar")) return;
+  if (document.getElementById("aura-pill")) return;
   const css = document.createElement("style");
   css.textContent = `
     #aura-pill{position:fixed;left:14px;bottom:14px;z-index:9500;display:flex;align-items:center;gap:2px;
@@ -670,7 +674,12 @@ function verifyNudge(session) {
   await applyAuthUI(session);
   if (isLanding) wireLanding();
   else { mountPill(); verifyNudge(session); }
-  // Mirror this account's tracker data (assets/sync.js, loaded in <head>)
+  // Structured per-account persistence (assets/cloud.js)
+  if (window.AuraCloud) {
+    if (session) window.AuraCloud.attach(supabase, session.user.id);
+    else window.AuraCloud.noSession();
+  }
+  // Legacy blob mirror — only for keys no tracker has migrated yet
   if (session && window.auraSync) window.auraSync.start(supabase);
 })();
 

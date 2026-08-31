@@ -2,10 +2,15 @@
 <html class="dark" lang="en">
 <head>
 <script src="assets/sync.js"></script>
+<script src="assets/cloud.js"></script>
 
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>AuraHealth — Calorie Tracker</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="theme-color" content="#121212"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -99,19 +104,16 @@
   ::-webkit-scrollbar-thumb { background:#3c4a42; border-radius:2px; }
   #db-status { transition: opacity 0.5s; }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="assets/aura-theme.css" rel="stylesheet"/>
 </head>
 <body class="font-body-md text-body-md antialiased pb-24" data-page="app">
+<script src="assets/sidebar.js"></script>
 
 <!-- Top Nav -->
 <nav class="fixed top-0 w-full z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 flex justify-between items-center px-6 h-16">
   <div class="font-sans text-sm tracking-tight flex items-center gap-4">
     <span class="text-xl font-bold tracking-tighter text-emerald-400">AuraHealth</span>
-    <div class="hidden md:flex gap-6 ml-8">
-      <a class="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors" href="#">Dashboard</a>
-      <a class="text-zinc-500 hover:text-emerald-300 transition-colors" href="history.html">History</a>
-      <a class="text-zinc-500 hover:text-emerald-300 transition-colors" href="cycletracker.html">CycleTracker</a>
-      <a class="text-zinc-500 hover:text-emerald-300 transition-colors" href="Progresstracker.html">Plans</a>
-    </div>
   </div>
   <div class="flex items-center gap-4">
     <span id="db-status" class="font-label-sm text-label-sm text-on-surface-variant opacity-0">Saved ✓</span>
@@ -128,7 +130,7 @@
   <!-- Header -->
   <header class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
     <div>
-      <h1 class="font-headline-lg text-headline-lg text-on-background">Calorie tracker</h1>
+      <h1 class="font-headline-lg text-headline-lg text-on-background">Calorie Tracker</h1>
       <div class="flex items-center gap-3 mt-1">
         <p class="font-label-sm text-label-sm text-on-surface-variant" id="date-subtitle">Loading...</p>
         <div class="flex items-center gap-1">
@@ -234,7 +236,7 @@
         <h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Protein Goal</h3>
         <div class="flex items-baseline gap-2">
           <span class="font-headline-lg text-headline-lg text-on-surface" id="protein-val">0</span>
-          <span class="font-label-sm text-label-sm text-on-surface-variant">/ 180g</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer hover:text-on-surface transition-colors" id="protein-target" onclick="editGoal('protein')" title="Click to change your goal">/ 180g</span>
         </div>
       </div>
       <div class="w-full h-1 bg-surface-container-lowest rounded-full mt-4 overflow-hidden">
@@ -246,7 +248,7 @@
         <h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Daily Calorie Goal</h3>
         <div class="flex items-baseline gap-2">
           <span class="font-headline-lg text-headline-lg text-on-surface" id="goal-val">0</span>
-          <span class="font-label-sm text-label-sm text-on-surface-variant">/ 2,000 kcal</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer hover:text-on-surface transition-colors" id="goal-target" onclick="editGoal('calorie')" title="Click to change your goal">/ 2,000 kcal</span>
         </div>
       </div>
       <div class="w-full h-1 bg-surface-container-lowest rounded-full mt-4 overflow-hidden">
@@ -436,6 +438,16 @@ function hourToLabel(h) {
 }
 
 // ─── SQLite init ──────────────────────────────────────────────────────────────
+const CLOUD = window.AuraCloud && window.AuraCloud.sqlite({ tables: [
+  { local:'entries', remote:'calorie_entries', key:['id'],
+    cols:['id','date','type','label','cal','hour','protein'] },
+  { local:'daily_log', remote:'calorie_daily_log', key:['date'],
+    cols:['date','weight_kg','note'] },
+  { local:'favorites', remote:'calorie_favorites', key:['id'],
+    cols:['id','type','label','cal','protein'] },
+]});
+const GOALS = window.AuraCloud && window.AuraCloud.kv('calorie_settings');
+
 async function initDB() {
   const SQL = await initSqlJs({
     locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`
@@ -475,6 +487,9 @@ async function initDB() {
     protein REAL NOT NULL DEFAULT 0
   )`);
 
+  // pull this account's rows down before the first render
+  if (CLOUD) { try { await CLOUD.hydrate(db); } catch(e) { console.warn('[cloud] hydrate', e); } }
+
   saveDB();
 }
 
@@ -482,6 +497,7 @@ function saveDB() {
   const data = db.export();
   const b64 = btoa(String.fromCharCode(...data));
   localStorage.setItem('aura_db', b64);
+  if (CLOUD) CLOUD.push(db);
   const st = document.getElementById('db-status');
   st.style.opacity = '1';
   setTimeout(() => { st.style.opacity = '0'; }, 1800);
@@ -729,9 +745,42 @@ function renderChart(burnt, consumed) {
   });
 }
 
+// Goals live on the account (calorie_settings); these are the fallbacks.
+let goalCalorie = 2000, goalProtein = 180;
+
+async function loadGoals() {
+  if (!GOALS) return;
+  try {
+    const saved = await GOALS.all();
+    if (saved.calorie_goal) goalCalorie = Number(saved.calorie_goal) || goalCalorie;
+    if (saved.protein_goal) goalProtein = Number(saved.protein_goal) || goalProtein;
+  } catch (e) { console.warn('[cloud] goals', e); }
+  paintGoalTargets();
+}
+
+function paintGoalTargets() {
+  const g = document.getElementById('goal-target');
+  if (g) g.textContent = '/ ' + goalCalorie.toLocaleString() + ' kcal';
+  const p = document.getElementById('protein-target');
+  if (p) p.textContent = '/ ' + goalProtein + 'g';
+}
+
+async function editGoal(which) {
+  const isCal = which === 'calorie';
+  const cur = isCal ? goalCalorie : goalProtein;
+  const raw = prompt(isCal ? 'Daily calorie goal (kcal):' : 'Daily protein goal (grams):', cur);
+  if (raw === null) return;
+  const val = Math.round(Number(raw));
+  if (!isFinite(val) || val <= 0) return;
+  if (isCal) goalCalorie = val; else goalProtein = val;
+  paintGoalTargets();
+  if (GOALS) { try { await GOALS.set(isCal ? 'calorie_goal' : 'protein_goal', val); } catch (e) { console.warn('[cloud] goal save', e); } }
+  renderDay(currentDate);
+}
+
 function renderInsights(consumedTotal, proteinTotal) {
-  const goal = 2000;
-  const proteinPct = Math.min(100, Math.round(proteinTotal / 180 * 100));
+  const goal = goalCalorie;
+  const proteinPct = Math.min(100, Math.round(proteinTotal / goalProtein * 100));
   const goalPct    = Math.min(100, Math.round(consumedTotal / goal * 100));
   const remaining  = Math.max(0, goal - consumedTotal);
   const remPct     = Math.round(remaining / goal * 100);
@@ -943,6 +992,7 @@ document.addEventListener('visibilitychange', () => {
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 (async () => {
   await initDB();
+  await loadGoals();
   renderDay(todayStr());
   scheduleAutoAdvance();
 })();

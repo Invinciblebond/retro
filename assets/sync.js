@@ -14,6 +14,15 @@
   var AUTH_KEY = "aura.auth";           // where supabase-js parks the session
   var SKIP = /^(aura[.:]|sb-|supabase\.)/; // never namespace our own keys
 
+  // Keys whose contents now live in real Postgres tables (assets/cloud.js).
+  // They stay in localStorage as the fast local working copy, but mirroring the
+  // blob as well would double-store megabytes for no benefit.
+  var CLOUD_BACKED = {
+    "aura_db": 1, "aura_db_v3": 1, "aura_db_v4": 1,
+    "aura_cycle_db": 1, "aura_planning_db_v1": 1,
+    "cpb_v2": 1, "tron_wallet": 1, "cain_phase_state_v1": 1
+  };
+
   /* ---------- who is signed in (synchronous — no network) ---------- */
   function currentUid() {
     try {
@@ -59,7 +68,7 @@
     getItem: function (k) { return LS.getItem(real(k)); },
     setItem: function (k, v) {
       LS.setItem(real(k), v);
-      if (!SKIP.test(k)) { dirty[k] = true; if (onDirty) onDirty(); }
+      if (!SKIP.test(k) && !CLOUD_BACKED[k]) { dirty[k] = true; if (onDirty) onDirty(); }
     },
     removeItem: function (k) {
       LS.removeItem(real(k));
@@ -100,7 +109,7 @@
     var out = {};
     for (var i = 0; i < LS.length; i++) {
       var k = LS.key(i);
-      if (k && isMine(k)) out[bare(k)] = LS.getItem(k);
+      if (k && isMine(k) && !CLOUD_BACKED[bare(k)]) out[bare(k)] = LS.getItem(k);
     }
     return out;
   }

@@ -2,10 +2,15 @@
 <html class="dark" lang="en">
 <head>
 <script src="assets/sync.js"></script>
+<script src="assets/cloud.js"></script>
 
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>PULSE — Cycle Tracker</title>
+<title>AuraHealth — CycleManager</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="theme-color" content="#121212"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries">
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
@@ -71,17 +76,15 @@
   .route-nasal { background:rgba(167,139,250,0.15); color:#a78bfa; }
   .route-topical { background:rgba(232,121,249,0.15); color:#e879f9; }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="assets/aura-theme.css" rel="stylesheet"/>
 </head>
 <body class="font-body-md text-on-background min-h-screen" data-page="app">
+<script src="assets/sidebar.js"></script>
 
 <header class="bg-[#0a0f0c] sticky top-0 z-50 border-b border-neutral-800 flex justify-between items-center h-16 px-6 w-full">
   <div class="flex items-center gap-8">
-    <span class="text-xl font-black tracking-tighter text-[#2CCB92]">PULSE</span>
-    <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
-      <a class="text-neutral-500 hover:text-neutral-300 transition-colors" href="calorie_tracker.html">Dashboard</a>
-      <a class="text-neutral-500 hover:text-neutral-300 transition-colors" href="history.html">History</a>
-      <a class="text-[#2CCB92] border-b-2 border-[#2CCB92] pb-1" href="#">Cycle Tracker</a>
-    </nav>
+    <span class="text-xl font-black tracking-tighter text-[#2CCB92]">CycleManager</span>
   </div>
   <div class="flex items-center gap-3">
     <span id="save-flash" class="text-xs text-on-surface-variant opacity-0">Saved ✓</span>
@@ -100,7 +103,7 @@
 <main class="max-w-7xl mx-auto px-6 py-8 pb-28 lg:pb-8">
   <div class="mb-xl flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
     <div>
-      <h1 class="font-headline-lg text-headline-lg text-on-surface">Cycle Tracker</h1>
+      <h1 class="font-headline-lg text-headline-lg text-on-surface">CycleManager</h1>
       <p class="text-on-surface-variant font-body-md mt-1">Monitor your active compounds and circulation levels.</p>
     </div>
     <button onclick="openLogDose(null)" class="shrink-0 py-2.5 px-5 bg-[#2CCB92]/10 text-[#2CCB92] border border-[#2CCB92]/30 rounded-lg text-label-sm font-black flex items-center gap-2 hover:bg-[#2CCB92]/20 transition-all active:scale-95">
@@ -157,8 +160,8 @@
 </main>
 
 <nav class="md:hidden bg-[#0a0f0c]/95 backdrop-blur-md fixed bottom-0 w-full z-50 border-t border-neutral-800 flex justify-around items-center pb-safe py-2">
-  <a href="aura-calorie-tracker.html" class="flex flex-col items-center text-neutral-500 py-1"><span class="material-symbols-outlined">grid_view</span><span class="text-[10px] uppercase font-bold">Dashboard</span></a>
-  <a href="history.html" class="flex flex-col items-center text-neutral-500 py-1"><span class="material-symbols-outlined">calendar_month</span><span class="text-[10px] uppercase font-bold">History</span></a>
+  <a href="calorie_tracker.html" class="flex flex-col items-center text-neutral-500 py-1"><span class="material-symbols-outlined">grid_view</span><span class="text-[10px] uppercase font-bold">Dashboard</span></a>
+  <a href="History.html" class="flex flex-col items-center text-neutral-500 py-1"><span class="material-symbols-outlined">calendar_month</span><span class="text-[10px] uppercase font-bold">History</span></a>
   <a href="#" class="flex flex-col items-center text-[#2CCB92] py-1"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">biotech</span><span class="text-[10px] uppercase font-bold">Cycle</span></a>
 </nav>
 
@@ -266,6 +269,14 @@ function hoursAgo(iso){return(Date.now()-new Date(iso).getTime())/3600000}
 function flashSave(){const e=document.getElementById('save-flash');e.style.opacity='1';setTimeout(()=>e.style.opacity='0',1800)}
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
+// ── cloud mirror (per-account Postgres tables) ────────────────────────────────
+const CLOUD = window.AuraCloud && window.AuraCloud.sqlite({ tables: [
+  { local:'compounds', remote:'cycle_compounds', key:['id'],
+    cols:['id','name','protocol','dosage','unit','half_life_h','peak_time_h','route','site','color','active','created_at'] },
+  { local:'compound_logs', remote:'cycle_logs', key:['id'],
+    cols:['id','compound_id','logged_at','dosage','site','note'] },
+]});
+
 async function initDB(){
   const SQL=await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
   const saved=localStorage.getItem(DB_KEY);
@@ -273,9 +284,11 @@ async function initDB(){
   db.run(`CREATE TABLE IF NOT EXISTS compounds(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,protocol TEXT DEFAULT '',dosage REAL NOT NULL,unit TEXT DEFAULT 'mcg',half_life_h REAL NOT NULL,peak_time_h REAL DEFAULT 1,route TEXT DEFAULT 'SUBQ',site TEXT DEFAULT '',color TEXT DEFAULT '#2CCB92',active INTEGER DEFAULT 1,created_at TEXT NOT NULL)`);
   try{db.run('ALTER TABLE compounds ADD COLUMN peak_time_h REAL DEFAULT 1')}catch(e){}
   db.run(`CREATE TABLE IF NOT EXISTS compound_logs(id INTEGER PRIMARY KEY AUTOINCREMENT,compound_id INTEGER NOT NULL,logged_at TEXT NOT NULL,dosage REAL,site TEXT,note TEXT DEFAULT '',FOREIGN KEY(compound_id) REFERENCES compounds(id))`);
+  // pull this account's rows down before anything renders
+  if (CLOUD) { try { await CLOUD.hydrate(db); } catch(e) { console.warn('[cloud] hydrate', e); } }
   saveDB()
 }
-function saveDB(){const d=db.export();localStorage.setItem(DB_KEY,btoa(String.fromCharCode(...d)));flashSave()}
+function saveDB(){const d=db.export();localStorage.setItem(DB_KEY,btoa(String.fromCharCode(...d)));if(CLOUD)CLOUD.push(db);flashSave()}
 function q(sql,p){const r=db.exec(sql,p);return r.length?r[0].values:[]}
 function getCompounds(){return q('SELECT id,name,protocol,dosage,unit,half_life_h,peak_time_h,route,site,color,active FROM compounds WHERE active=1 ORDER BY id').map(r=>({id:r[0],name:r[1],protocol:r[2],dosage:r[3],unit:r[4],half_life_h:r[5],peak_time_h:r[6]||1,route:r[7],site:r[8],color:r[9],active:r[10]}))}
 function getCompoundById(id){const r=q('SELECT id,name,protocol,dosage,unit,half_life_h,peak_time_h,route,site,color FROM compounds WHERE id=?',[id]);if(!r.length)return null;return{id:r[0][0],name:r[0][1],protocol:r[0][2],dosage:r[0][3],unit:r[0][4],half_life_h:r[0][5],peak_time_h:r[0][6]||1,route:r[0][7],site:r[0][8],color:r[0][9]}}

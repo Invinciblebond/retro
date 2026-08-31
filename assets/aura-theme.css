@@ -1,0 +1,131 @@
+/* ============================================================================
+   AuraHealth — theme overlay for the tracker apps.
+   Loaded LAST in <head> so it repaints each app's existing surfaces onto the
+   black/dot-grid canvas without touching any of their behaviour.
+   Colour only: no layout, sizing or interaction is changed here.
+   ========================================================================== */
+:root{
+  --aura-black:#060606;
+  --aura-rail:#0a0a0a;
+  --aura-line:rgba(255,255,255,0.10);
+  --aura-line-soft:rgba(255,255,255,0.06);
+  --aura-muted:#888888;
+  --aura-accent:#00ffa3;
+}
+
+html,body{background-color:#060606!important}
+body{
+  color:#e6e6e6;
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background-image:radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+  background-size:24px 24px;
+  background-attachment:fixed;
+}
+
+/* scrollbars match the shell */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
+::selection{background:rgba(0,255,163,.25);color:#fff}
+
+/* ── Tailwind-token surfaces used by the calorie / history / cycle pages ──── */
+.bg-background,.bg-surface,.bg-surface-container-lowest{background-color:transparent!important}
+.bg-surface-container,.bg-surface-container-low,.bg-surface-container-high,.bg-surface-container-highest{
+  background-color:rgba(255,255,255,0.03)!important;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.border-outline-variant,.border-outline{border-color:rgba(255,255,255,0.10)!important}
+.text-on-background,.text-on-surface{color:#e8e8e8!important}
+.text-on-surface-variant{color:#888!important}
+
+/* rounded corners across the board, to match the shell's plates */
+.rounded-xl{border-radius:18px!important}
+.rounded-2xl{border-radius:22px!important}
+
+/* ── hand-rolled surfaces (Progress / Planning / Memory) ─────────────────── */
+.card,.modal-box,.panel,.col,.column,.sidebar,.topbar,.toolbar{
+  border-color:rgba(255,255,255,0.10)!important;
+}
+.modal-bg{background:rgba(0,0,0,.72)!important;backdrop-filter:blur(10px)!important}
+.modal-box{background:#0d0d0d!important;border-radius:22px!important}
+
+/* form controls inherit the shell's treatment */
+.fi,input[type=text],input[type=email],input[type=password],input[type=number],
+input[type=date],input[type=datetime-local],select,textarea{
+  background:rgba(255,255,255,0.05)!important;
+  border-color:rgba(255,255,255,0.10)!important;
+  color:#fff!important;
+  border-radius:12px!important;
+}
+.fi:focus,input:focus,select:focus,textarea:focus{
+  border-color:rgba(255,255,255,0.28)!important;
+  box-shadow:0 0 0 3px rgba(255,255,255,0.05)!important;
+}
+input[type=checkbox],input[type=range]{accent-color:#00ffa3!important}
+
+/* accent-coloured affordances become the Cain green */
+.btn-primary,.icon-btn.active,.type-pill.on{
+  background:rgba(0,255,163,.10)!important;
+  color:#00ffa3!important;
+  border-color:rgba(0,255,163,.24)!important;
+}
+.btn-primary:hover{background:rgba(0,255,163,.18)!important}
+
+/* ── the sidebar owns the left edge ──────────────────────────────────────── */
+/* Body padding shifts normal flow, but position:fixed furniture ignores it and
+   would slide under the rail. Offset those explicitly. Overlays (.modal-bg and
+   friends) are deliberately left alone — they should cover the whole screen. */
+body.aura-rail > footer,
+body.aura-rail > .ticker,
+body.aura-rail > .statusbar{left:220px!important}
+body.aura-rail-collapsed > footer,
+body.aura-rail-collapsed > .ticker,
+body.aura-rail-collapsed > .statusbar{left:56px!important}
+@media(max-width:820px){
+  body.aura-rail > footer,
+  body.aura-rail-collapsed > footer,
+  body.aura-rail > .ticker,
+  body.aura-rail-collapsed > .ticker{left:0!important}
+}
+body.aura-rail #db-status,
+body.aura-rail #save-flash{left:auto;right:16px}
+
+/* ============================================================================
+   Memory Visualizer — the prompt canvas shipped in light mode. These ids are
+   unique to that page, so scoping by id is enough to bring it onto the black
+   canvas without touching any of its behaviour.
+   ========================================================================== */
+#canvas-wrap{
+  background-color:#080808!important;
+  background-image:radial-gradient(circle, rgba(255,255,255,0.09) 1px, transparent 1px)!important;
+}
+#hdr,#toolbar,#sidebar,.sb-sec-hdr,#card-editor{
+  background:#0d0d0d!important;
+  border-color:rgba(255,255,255,0.08)!important;
+  color:#e6e6e6!important;
+}
+#toolbar *,#sidebar .sb-sec-hdr{color:#e6e6e6}
+#hdr,#hdr .hdr-title,#hdr > div,#hdr > div > span{color:#e6e6e6!important}
+/* header buttons keep their own light chrome unless it's repainted too */
+#hdr button,#hdr .btn{background:rgba(255,255,255,0.06)!important;color:#e6e6e6!important;
+  border-color:rgba(255,255,255,0.12)!important}
+#hdr button:hover,#hdr .btn:hover{background:rgba(255,255,255,0.12)!important}
+.sb-sec{border-color:rgba(255,255,255,0.08)!important}
+.sb-sec-hdr:hover{background:rgba(255,255,255,0.05)!important}
+
+/* cards keep their colour coding, but on dark bodies instead of white */
+#nodes-layer .card{
+  background:#141414!important;
+  border-color:rgba(255,255,255,0.14)!important;
+  box-shadow:0 4px 16px rgba(0,0,0,.5)!important;
+  color:#e6e6e6!important;
+}
+#nodes-layer .card .card-title{color:#f0f0f0!important}
+#nodes-layer .card .card-body,
+#nodes-layer .card .card-body *{color:#9a9a9a!important}
+#nodes-layer .card textarea,
+#nodes-layer .card input{background:transparent!important;color:#e6e6e6!important}
+
+/* the scribbles were dark ink on paper — lift them onto the dark canvas */
+#nodes-layer .scribble{color:#9a9a9a!important}

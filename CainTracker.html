@@ -2,10 +2,15 @@
 <html class="dark" lang="en">
 <head>
 <script src="assets/sync.js"></script>
+<script src="assets/cloud.js"></script>
 
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Cain — Planning Board</title>
+<title>AuraHealth — Planning Boards</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="theme-color" content="#121212"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
@@ -160,19 +165,15 @@ header{background:#060b08;border-bottom:1px solid #182018;position:sticky;top:0;
 /* ── HELP HINT ── */
 #help-hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#0a1210;border:1px solid #182018;border-radius:8px;padding:6px 16px;font-size:10px;color:#2e3e36;font-weight:600;letter-spacing:.04em;pointer-events:none;z-index:40;white-space:nowrap;}
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="assets/aura-theme.css" rel="stylesheet"/>
 </head>
 <body data-page="app">
+<script src="assets/sidebar.js"></script>
 
 <header>
   <div style="display:flex;align-items:center;gap:28px;">
     <span style="font-size:19px;font-weight:900;color:#42d494;letter-spacing:-.04em;">AuraHealth</span>
-    <nav style="display:flex;gap:3px;">
-      <a href="#" class="nav-link">Board</a>
-      <a href="#" class="nav-link">Calorie Tracker</a>
-      <a href="#" class="nav-link">History</a>
-      <a href="#" class="nav-link">Cycle Tracker</a>
-      <a href="#" class="nav-link active">Planning</a>
-    </nav>
   </div>
   <div style="display:flex;align-items:center;gap:9px;">
     <span id="sf" class="sf">Saved ✓</span>
@@ -359,6 +360,17 @@ function showToast(msg){const t=document.getElementById('copy-toast');t.textCont
 // ──────────────────────────────────────────────────
 //  DB
 // ──────────────────────────────────────────────────
+const CLOUD = window.AuraCloud && window.AuraCloud.sqlite({ tables: [
+  { local:'planning_boards', remote:'planning_boards', key:['id'],
+    cols:['id','name','position','created_at'] },
+  { local:'planning_nodes', remote:'planning_nodes', key:['id'],
+    cols:['id','board_id','title','body','x','y','w','color','node_type','z_index','created_at'] },
+  { local:'planning_edges', remote:'planning_edges', key:['id'],
+    cols:['id','board_id','from_node','to_node','from_port','to_port','label','style','created_at'] },
+  { local:'planning_view', remote:'planning_view', key:['board_id'],
+    cols:['board_id','zoom','pan_x','pan_y'] },
+]});
+
 async function initDB() {
   const SQL = await initSqlJs({locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
   const saved = localStorage.getItem('aura_planning_db_v1');
@@ -368,6 +380,9 @@ async function initDB() {
   db.run(`CREATE TABLE IF NOT EXISTS planning_nodes(id INTEGER PRIMARY KEY AUTOINCREMENT, board_id INTEGER NOT NULL, title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', x REAL NOT NULL DEFAULT 100, y REAL NOT NULL DEFAULT 100, w REAL NOT NULL DEFAULT 180, color TEXT NOT NULL DEFAULT '', node_type TEXT NOT NULL DEFAULT 'default', z_index INTEGER NOT NULL DEFAULT 10, created_at TEXT NOT NULL)`);
   db.run(`CREATE TABLE IF NOT EXISTS planning_edges(id INTEGER PRIMARY KEY AUTOINCREMENT, board_id INTEGER NOT NULL, from_node INTEGER NOT NULL, to_node INTEGER NOT NULL, from_port TEXT NOT NULL DEFAULT 's', to_port TEXT NOT NULL DEFAULT 'n', label TEXT NOT NULL DEFAULT '', style TEXT NOT NULL DEFAULT 'curved', created_at TEXT NOT NULL)`);
   db.run(`CREATE TABLE IF NOT EXISTS planning_view(board_id INTEGER PRIMARY KEY, zoom REAL NOT NULL DEFAULT 1, pan_x REAL NOT NULL DEFAULT 0, pan_y REAL NOT NULL DEFAULT 0)`);
+
+  // hydrate before the seed check, so a second device doesn't create a duplicate board
+  if (CLOUD) { try { await CLOUD.hydrate(db); } catch(e) { console.warn('[cloud] hydrate', e); } }
 
   if (!qs('SELECT COUNT(*) FROM planning_boards')[0][0]) {
     db.run("INSERT INTO planning_boards(name,position,created_at)VALUES('My Plan',0,?)", [new Date().toISOString()]);
@@ -379,6 +394,7 @@ async function initDB() {
 function saveDB() {
   const d = db.export();
   try { localStorage.setItem('aura_planning_db_v1', btoa(String.fromCharCode(...d))); flash(); } catch(e) { console.warn('Storage full'); }
+  if (CLOUD) CLOUD.push(db);
 }
 
 function qs(sql, p) { const r = db.exec(sql, p||[]); return r.length ? r[0].values : []; }
@@ -1251,9 +1267,10 @@ document.addEventListener('click', e => {
     nodeZIndex++;
     db.run('INSERT INTO planning_nodes(board_id,title,body,x,y,w,color,node_type,z_index,created_at)VALUES(?,?,?,?,?,?,?,?,?,?)',
       [curBoardId,'Notes','Keep track of ideas here',380,240,180,'amber','sticky',nodeZIndex,new Date().toISOString()]);
-    const n1 = qs('SELECT id FROM planning_nodes WHERE board_id=? ORDER BY id')[0][0];
-    const n2 = qs('SELECT id FROM planning_nodes WHERE board_id=? ORDER BY id')[1][0];
-    const n3 = qs('SELECT id FROM planning_nodes WHERE board_id=? ORDER BY id')[2][0];
+    // One bound query for all three ids — the board_id placeholder must be
+    // supplied, otherwise sql.js returns no rows and the seed throws.
+    const seeded = qs('SELECT id FROM planning_nodes WHERE board_id=? ORDER BY id', [curBoardId]);
+    const n1 = seeded[0][0], n2 = seeded[1][0], n3 = seeded[2][0];
     db.run('INSERT INTO planning_edges(board_id,from_node,to_node,from_port,to_port,label,style,created_at)VALUES(?,?,?,?,?,?,?,?)',
       [curBoardId,n1,n2,'e','w','leads to','curved',new Date().toISOString()]);
     db.run('INSERT INTO planning_edges(board_id,from_node,to_node,from_port,to_port,label,style,created_at)VALUES(?,?,?,?,?,?,?,?)',

@@ -2,10 +2,15 @@
 <html class="dark" lang="en">
 <head>
 <script src="assets/sync.js"></script>
+<script src="assets/cloud.js"></script>
 
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AuraHealth — Board</title>
+<title>AuraHealth — Main Boards</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="theme-color" content="#121212"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
@@ -178,18 +183,15 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(6,11,8,
 #gold-strip span.gs-val{color:#d4ddd8;font-weight:600;}
 #gold-strip span.gs-lbl{color:#6a8070;font-weight:700;font-size:9px;letter-spacing:.06em;text-transform:uppercase;}
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="assets/aura-theme.css" rel="stylesheet"/>
 </head>
 <body data-page="app">
+<script src="assets/sidebar.js"></script>
 
 <header>
   <div style="display:flex;align-items:center;gap:28px;">
     <span style="font-size:19px;font-weight:900;color:#42d494;letter-spacing:-.04em;">AuraHealth</span>
-    <nav style="display:flex;gap:3px;">
-      <a href="#" class="nav-link active">Board</a>
-      <a href="#" class="nav-link">Calorie Tracker</a>
-      <a href="#" class="nav-link">History</a>
-      <a href="#" class="nav-link">Cycle Tracker</a>
-    </nav>
   </div>
   <div style="display:flex;align-items:center;gap:9px;">
     <span id="sf" class="sf">Saved ✓</span>
@@ -1115,6 +1117,25 @@ const AuraStore = (function(){
           get state(){return state;}, get supported(){return supported;}};
 })();
 
+// ── Cloud mirror (per-account Postgres tables) ────────────────────────────────
+const CLOUD = window.AuraCloud && window.AuraCloud.sqlite({ tables: [
+  { local:'boards', remote:'progress_boards', key:['id'],
+    cols:['id','name','position','created_at'] },
+  { local:'board_columns', remote:'progress_columns', key:['id'],
+    cols:['id','board_id','title','col_type','position','color_hex'] },
+  { local:'board_cards', remote:'progress_cards', key:['id'],
+    cols:['id','column_id','title','body','completed','card_type','status',
+          'link_url','link_title','link_favicon','image_data','deadline','is_major_deadline',
+          'tags','color_hex','progress','position','created_at',
+          'nw_value','nw_type','nw_rate','nw_unit','nw_purchase_date','nw_subtype',
+          'nw_gold_karat','nw_gold_grams','nw_crypto_symbol','nw_crypto_amount',
+          'nw_defi_platform','nw_defi_apr'] },
+  { local:'board_settings', remote:'progress_settings', key:['key'],
+    cols:['key','value'] },
+  { local:'activity_log', remote:'progress_activity', key:['id'],
+    cols:['id','board_id','action','card_title','col_title','ts'] },
+]});
+
 // ── DB init ───────────────────────────────────────────────────────────────────
 async function initDB(){
   const SQL=await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
@@ -1137,6 +1158,13 @@ async function initDB(){
       if(cards)cards.values.forEach(r=>db.run('INSERT OR IGNORE INTO board_cards(id,column_id,title,body,completed,card_type,status,link_url,link_title,link_favicon,image_data,deadline,is_major_deadline,tags,color_hex,progress,position,created_at,nw_value,nw_type,nw_rate,nw_unit,nw_purchase_date)VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         [r[0],r[1],r[2],r[3]||'',r[4]||0,r[5]||'default',r[6]||'drafting',r[7]||'',r[8]||'',r[9]||'',r[10]||'',r[11]||'',r[12]||0,r[13]||'',r[14]||'',r[15]||0,r[16]||0,r[17]||new Date().toISOString(),r[18]||0,r[19]||'flat',r[20]||0,r[21]||'pct',r[22]||'']));
     }catch(e){console.warn('Migration v3→v4 failed',e);}
+  }
+
+  // Pull the account's rows down before seeding defaults, so a second device
+  // adopts the existing board instead of creating a fresh one.
+  if (CLOUD) {
+    try { await CLOUD.hydrate(db); }
+    catch(e) { console.warn('[cloud] hydrate failed', e); }
   }
 
   ensureDefaults();
@@ -1187,7 +1215,10 @@ function ensureDefaults(){
 
 // Writes to the .sqlite file on disk + an IndexedDB mirror. Debounced internally,
 // so the 25 call sites can keep calling it synchronously as before.
-function saveDB(){ try{ AuraStore.save(db.export()); }catch(e){ console.error('[store] export failed',e); } }
+function saveDB(){
+  try{ AuraStore.save(db.export()); }catch(e){ console.error('[store] export failed',e); }
+  if(CLOUD) CLOUD.push(db);
+}
 function logActivity(action,cardTitle,colTitle){
   db.run('INSERT INTO activity_log(board_id,action,card_title,col_title,ts)VALUES(?,?,?,?,?)',[curBoardId,action,cardTitle||'',colTitle||'',new Date().toISOString()]);
   db.run('DELETE FROM activity_log WHERE board_id=? AND id NOT IN (SELECT id FROM activity_log WHERE board_id=? ORDER BY id DESC LIMIT 200)',[curBoardId,curBoardId]);
