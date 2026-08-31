@@ -33,6 +33,15 @@ body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a1a1a;display:fle
 /* ── HEADER ── */
 #hdr{height:52px;background:#fff;border-bottom:1.5px solid #e2e2de;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;flex-shrink:0}
 .hdr-title{font-size:13px;font-weight:700;color:#1a1a1a;letter-spacing:-.02em}
+#board-tabs{display:flex;align-items:center;gap:3px;margin-left:8px;padding-left:10px;border-left:1.5px solid #e2e2de;max-width:46vw;overflow-x:auto;scrollbar-width:none}
+#board-tabs::-webkit-scrollbar{display:none}
+.board-tab{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:7px;border:1px solid transparent;
+  background:transparent;font:inherit;font-size:12px;color:#6b6b6b;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s}
+.board-tab:hover{background:#f1f1ee;color:#1a1a1a}
+.board-tab.on{background:#1a1a1a;color:#fff;font-weight:600}
+.board-tab .bt-x{opacity:.55;font-size:13px;line-height:1;padding:0 1px;border-radius:4px}
+.board-tab .bt-x:hover{opacity:1;background:rgba(255,255,255,.18)}
+.board-tab:not(.on) .bt-x:hover{background:#e2e2de}
 .hdr-right{display:flex;align-items:center;gap:8px}
 .hbtn{padding:5px 14px;font-size:12px;font-weight:600;border:1.5px solid #e2e2de;border-radius:8px;background:#fff;cursor:pointer;color:#444;font-family:inherit;transition:background .12s}
 .hbtn:hover{background:#f5f4f0}
@@ -196,7 +205,10 @@ textarea.ed-inp{resize:vertical;min-height:58px;line-height:1.5}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <span class="hdr-title">Memory Visualizer</span>
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div id="board-tabs" role="tablist" aria-label="Boards"></div>
+    <button class="ibtn" id="board-add" title="New board" onclick="newBoard()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+    </button>
   </div>
   <div class="hdr-right">
     <button class="hbtn" onclick="exportBoard()">Export</button>
@@ -263,7 +275,7 @@ textarea.ed-inp{resize:vertical;min-height:58px;line-height:1.5}
     <line id="conn-preview" x1="0" y1="0" x2="0" y2="0" stroke="rgba(37,99,235,.55)" stroke-width="1.6" stroke-dasharray="5,4" display="none"/>
   </svg>
   <div id="nodes-layer"></div>
-  <div id="conn-hint">Click a card to start — then click another card to connect</div>
+  <div id="conn-hint">Click a card to start, then click another card to connect</div>
 
   <!-- ZOOM -->
   <div id="zoom-ctrl">
@@ -370,8 +382,21 @@ textarea.ed-inp{resize:vertical;min-height:58px;line-height:1.5}
 // ═══════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════
-const STORE = 'cpb_v2';
+const STORE = 'cpb_v2';          // legacy single-board key, migrated on first load
+const STORE_V3 = 'cpb_v3';      // { boards:[{id,name,state}], active }
 let state = { cards:[], connections:[], scribbles:[], notes:'', nid:1, cid:1, sid:1 };
+// Multi-board: `state` always points at the active board's state object, so
+// every existing card/edge routine keeps working untouched.
+let boards = [], activeBoard = null;
+
+function emptyBoardState() {
+  return { cards:[], connections:[], scribbles:[], notes:'', nid:1, cid:1, sid:1 };
+}
+function makeBoard(name, st) {
+  return { id: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+           name: name || 'Board', state: st || emptyBoardState() };
+}
+function currentBoard() { return boards.find(b => b.id === activeBoard) || boards[0]; }
 
 // ═══════════════════════════════════════
 //  VIEWPORT
@@ -400,7 +425,11 @@ const T_META  = window.AuraCloud && window.AuraCloud.kv('think_meta');
 let cloudTimer = null;
 
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify(state)); } catch(e) {}
+  var b = currentBoard();
+  if (b) b.state = state;
+  try {
+    localStorage.setItem(STORE_V3, JSON.stringify({ boards: boards, active: activeBoard }));
+  } catch(e) {}
   cloudSave();
 }
 
@@ -426,6 +455,10 @@ function cloudSave() {
         T_META.setMany({
           notes: state.notes || '',
           nid: state.nid || 1, cid: state.cid || 1, sid: state.sid || 1,
+          // Every board travels as one JSON value; the row tables above stay a
+          // queryable mirror of whichever board is open.
+          boards: JSON.stringify(boards),
+          active_board: activeBoard || '',
         }),
       ]);
     } catch (e) { console.warn('[cloud] prompt board save', e); }
@@ -440,6 +473,17 @@ async function cloudLoad() {
       T_CARDS.all('id'), T_CONNS.all('id'), T_SCRIB.all('id'), T_META.all(),
     ]);
     if (!cards.length && !conns.length && !scrib.length && !Object.keys(meta).length) return false;
+    if (meta.boards) {
+      try {
+        const parsed = JSON.parse(meta.boards);
+        if (Array.isArray(parsed) && parsed.length) {
+          boards = parsed;
+          activeBoard = boards.some(b => b.id === meta.active_board) ? meta.active_board : boards[0].id;
+          state = currentBoard().state;
+          return true;
+        }
+      } catch (e) { console.warn('[cloud] boards blob', e); }
+    }
     state = {
       cards: cards.map(c => ({
         id:c.id, type:c.type, x:c.x, y:c.y, w:c.w || undefined, h:c.h || undefined,
@@ -453,6 +497,8 @@ async function cloudLoad() {
       notes: meta.notes || '',
       nid: Number(meta.nid) || 1, cid: Number(meta.cid) || 1, sid: Number(meta.sid) || 1,
     };
+    boards = [makeBoard('Board 1', state)];
+    activeBoard = boards[0].id;
     return true;
   } catch (e) { console.warn('[cloud] prompt board load', e); return false; }
 }
@@ -731,7 +777,7 @@ function startConnection(cardId, port, ev) {
 function handleConnectClick(cardId) {
   if (!connFrom) {
     connFrom = {id: cardId, port: 's'};
-    document.getElementById('conn-hint').textContent = 'Now click another card to connect — or click a port dot';
+    document.getElementById('conn-hint').textContent = 'Now click another card to connect, or click a port dot';
     document.getElementById('card-' + cardId).classList.add('selected');
   } else {
     if (connFrom.id !== cardId) {
@@ -844,7 +890,7 @@ function updateSidebar() {
   if (card) {
     ed.style.display = 'block';
     ed.innerHTML = `
-      <div class="ed-lbl ${card.type}">${LABELS[card.type]} — Edit</div>
+      <div class="ed-lbl ${card.type}">Edit ${LABELS[card.type]}</div>
       <input class="ed-inp" placeholder="Title" value="${esc(card.title||'')}" oninput="updateField(${card.id},'title',this.value)">
       <textarea class="ed-inp" rows="4" placeholder="Body / content…" oninput="updateField(${card.id},'body',this.value)">${esc(card.body||'')}</textarea>
       <div class="ed-row">
@@ -1088,16 +1134,30 @@ function copyOut() {
 //  EXPORT / IMPORT
 // ═══════════════════════════════════════
 function exportBoard() {
+  const b = currentBoard();
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
-  a.download = 'prompt-board.json'; a.click();
+  a.download = (b ? b.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase() : 'prompt-board') + '.json';
+  a.click();
 }
 function importBoard() {
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = '.json';
   inp.onchange = e => {
     const fr = new FileReader();
-    fr.onload = ev => { try { state = JSON.parse(ev.target.result); pushHist(); rerender(); } catch { toast('Invalid JSON'); } };
+    fr.onload = ev => {
+      try {
+        const loaded = JSON.parse(ev.target.result);
+        const name = (e.target.files[0].name || 'Imported').replace(/\.json$/i,'');
+        const cur = currentBoard();
+        if (cur) cur.state = state;
+        const b = makeBoard(name, loaded);
+        boards.push(b);
+        activeBoard = b.id; state = b.state;
+        selCardId = null; hist = []; histIdx = -1;
+        renderTabs(); pushHist(); rerender(); setTimeout(fitAll, 40);
+      } catch { toast('Invalid JSON'); }
+    };
     fr.readAsText(e.target.files[0]);
   };
   inp.click();
@@ -1138,11 +1198,106 @@ document.addEventListener('keydown', ev => {
 // ═══════════════════════════════════════
 function loadState() {
   try {
+    const v3 = localStorage.getItem(STORE_V3);
+    if (v3) {
+      const d = JSON.parse(v3);
+      if (d && Array.isArray(d.boards) && d.boards.length) {
+        boards = d.boards;
+        activeBoard = boards.some(b => b.id === d.active) ? d.active : boards[0].id;
+        state = currentBoard().state;
+        return true;
+      }
+    }
+    // migrate a pre-multi-board save
     const s = localStorage.getItem(STORE);
-    if (s) { state = JSON.parse(s); return true; }
+    if (s) {
+      state = JSON.parse(s);
+      boards = [makeBoard('Board 1', state)];
+      activeBoard = boards[0].id;
+      return true;
+    }
   } catch(e) {}
   return false;
 }
+
+// ═══════════════════════════════════════
+//  BOARDS
+// ═══════════════════════════════════════
+function renderTabs() {
+  const wrap = document.getElementById('board-tabs');
+  if (!wrap) return;
+  wrap.innerHTML = boards.map(b =>
+    '<button type="button" role="tab" class="board-tab' + (b.id === activeBoard ? ' on' : '') + '"' +
+    ' data-id="' + b.id + '" title="Double-click to rename">' +
+    '<span class="bt-name">' + esc(b.name) + '</span>' +
+    (boards.length > 1 ? '<span class="bt-x" data-close="1" title="Delete board">&times;</span>' : '') +
+    '</button>'
+  ).join('');
+}
+
+function switchBoard(id) {
+  if (id === activeBoard) return;
+  const b = currentBoard();
+  if (b) b.state = state;
+  activeBoard = id;
+  state = currentBoard().state;
+  selCardId = null; connFrom = null;
+  hist = []; histIdx = -1;
+  pushHist();
+  renderTabs(); rerender();
+  setTimeout(fitAll, 40);
+}
+
+function newBoard() {
+  const b = makeBoard('Board ' + (boards.length + 1));
+  boards.push(b);
+  const cur = currentBoard();
+  if (cur) cur.state = state;
+  activeBoard = b.id;
+  state = b.state;
+  selCardId = null; connFrom = null;
+  hist = []; histIdx = -1;
+  pushHist();
+  renderTabs(); rerender();
+  toast('New board');
+}
+
+function renameBoard(id) {
+  const b = boards.find(x => x.id === id);
+  if (!b) return;
+  const name = prompt('Board name', b.name);
+  if (name === null) return;
+  b.name = name.trim() || b.name;
+  renderTabs(); save();
+}
+
+function deleteBoard(id) {
+  if (boards.length <= 1) { toast('Keep at least one board'); return; }
+  const b = boards.find(x => x.id === id);
+  if (!b || !confirm('Delete "' + b.name + '"? This cannot be undone.')) return;
+  const wasActive = id === activeBoard;
+  boards = boards.filter(x => x.id !== id);
+  if (wasActive) {
+    activeBoard = boards[0].id;
+    state = currentBoard().state;
+    selCardId = null; connFrom = null;
+    hist = []; histIdx = -1;
+    pushHist();
+    rerender();
+  }
+  renderTabs(); save();
+}
+
+document.addEventListener('click', ev => {
+  const tab = ev.target.closest && ev.target.closest('.board-tab');
+  if (!tab) return;
+  if (ev.target.dataset && ev.target.dataset.close) { deleteBoard(tab.dataset.id); return; }
+  switchBoard(tab.dataset.id);
+});
+document.addEventListener('dblclick', ev => {
+  const tab = ev.target.closest && ev.target.closest('.board-tab');
+  if (tab) renameBoard(tab.dataset.id);
+});
 
 function loadDefaults() {
   state = {
@@ -1176,6 +1331,12 @@ function loadDefaults() {
 (async function init() {
   const fromCloud = await cloudLoad();
   if (!fromCloud && !loadState()) { loadDefaults(); }
+  if (!boards.length) {
+    boards = [makeBoard('Board 1', state)];
+    activeBoard = boards[0].id;
+  }
+  state = currentBoard().state;
+  renderTabs();
   pushHist();
   rerender();
   setTimeout(fitAll, 100);

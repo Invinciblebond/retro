@@ -204,7 +204,7 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(6,11,8,
 
 <header>
   <div style="display:flex;align-items:center;gap:28px;">
-    <span style="font-size:19px;font-weight:900;color:#42d494;letter-spacing:-.04em;">Utopoly</span>
+    <span style="font-size:19px;font-weight:900;color:#42d494;letter-spacing:-.04em;">Main Boards</span>
   </div>
   <div style="display:flex;align-items:center;gap:9px;">
     <span id="sf" class="sf">Saved ✓</span>
@@ -746,7 +746,7 @@ function populateCryptoSelect() {
   if (!sel) return;
   const cur = sel.value;
   sel.innerHTML = Object.values(cryptoPrices).sort((a,b)=>a.rank-b.rank)
-    .map(t=>`<option value="${t.symbol}">${t.symbol} — ${t.name} ($${fmt2(t.price_usd)})</option>`).join('');
+    .map(t=>`<option value="${t.symbol}">${t.symbol} · ${t.name} ($${fmt2(t.price_usd)})</option>`).join('');
   if (cur && cryptoPrices[cur]) sel.value = cur;
 }
 
@@ -910,7 +910,7 @@ const AuraStore = (function(){
     else if(state==='idb')    setStatus('warn','Connect file',   'Your data is safe in this browser, but not yet written to a file on disk. Click to pick a save file.');
     else if(state==='denied') setStatus('warn','Reconnect file', 'Click to re-grant access to '+FILE_NAME+'.');
     else if(state==='unsupported') setStatus('warn','Browser storage','This browser cannot write files directly. Data is stored in IndexedDB. Click to download a backup.');
-    else if(state==='error')  setStatus('err', 'Save error',     'Last write failed — click to download a backup copy now.');
+    else if(state==='error')  setStatus('err', 'Save error',     'Last write failed. Click to download a backup copy now.');
   }
 
   function isSqlite(bytes){
@@ -1072,7 +1072,7 @@ const AuraStore = (function(){
     }catch(e){
       console.error('[store] adopt failed',e);
       db = prev;                 // roll back — never leave the app on a broken db
-      showToast('Could not read that file — keeping current data');
+      showToast('Could not read that file, keeping current data');
     }
   }
 

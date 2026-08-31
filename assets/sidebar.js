@@ -21,6 +21,10 @@
       icon:'<path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>' },
     { label:'CycleManager', href:'cycletracker.html', match:['cycletracker.html'],
       icon:'<path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>' },
+    { label:'Body Composition', href:'Body.html', match:['Body.html'],
+      icon:'<path d="M12 3a2 2 0 100 4 2 2 0 000-4zM7 21v-5l-2-3 1.5-4A2 2 0 018.4 7.6L12 8l3.6-.4a2 2 0 011.9 1.4L19 13l-2 3v5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>' },
+    { label:'Scheduler', href:'Scheduler.html', match:['Scheduler.html'],
+      icon:'<path d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>' },
     { label:'Planning Boards', href:'CainTracker.html', match:['CainTracker.html'],
       icon:'<path d="M9 4H5a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zM19 14h-4a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1v-4a1 1 0 00-1-1zM10 7h4a2 2 0 012 2v5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>' },
     { label:'Memory Visualizer', href:'claudethink.html', match:['claudethink.html'],
@@ -84,12 +88,15 @@
           '</span>' +
           '<span class="sb-wordmark">' +
             '<b>Utopoly</b>' +
-            '<i>Personal tracking</i>' +
           '</span>' +
         '</a>' +
         '<nav class="sb-nav">' + rows + '</nav>' +
       '</div>' +
       '<div class="sb-foot">' +
+        '<a class="' + (here() === 'Settings.html' ? ROW_ACTIVE : ROW_IDLE) + '" href="Settings.html">' +
+          '<svg class="sb-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2"/></svg>' +
+          '<span class="sb-label">Settings</span>' +
+        '</a>' +
         '<button type="button" class="sb-row" id="sb-logout" data-logout>' +
           '<svg class="sb-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 17l5-5-5-5M20 12H9M12 3H5v18h7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>' +
           '<span class="sb-label">Log out</span>' +
@@ -122,7 +129,10 @@
       'font-family:inherit;font-size:13px;font-weight:400;color:#888;background:transparent;border:none;',
       'cursor:pointer;text-align:left;white-space:nowrap;transition:color .15s,background-color .15s}',
     '#aura-sidebar .sb-row:hover{color:#fff;background:rgba(255,255,255,0.04)}',
-    '#aura-sidebar .sb-row.active{background:rgba(255,255,255,0.05);color:#fff;font-weight:500}',
+    '#aura-sidebar .sb-row.active{background:rgba(0,255,163,0.10);color:#fff;font-weight:600;position:relative}',
+    '#aura-sidebar .sb-row.active .sb-ico{color:#00ffa3}',
+    '#aura-sidebar .sb-row.active::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);\
+      width:3px;height:17px;border-radius:0 3px 3px 0;background:#00ffa3}',
     '#aura-sidebar .sb-ico{width:19px;height:19px;flex-shrink:0}',
     '#aura-sidebar .sb-caret{width:13px;height:13px;margin-left:auto;flex-shrink:0;opacity:.6;transition:transform .2s ease}',
     '#aura-sidebar .sb-group.open .sb-caret{transform:rotate(180deg)}',
@@ -213,6 +223,8 @@
       b.setAttribute('aria-label', 'Menu');
       b.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-width="2"/></svg>';
       b.addEventListener('click', function () { aside.classList.toggle('open'); });
+      // Pages with their own fixed bottom bar would otherwise cover this button.
+      if (document.querySelector('nav[class*="bottom-0"]')) b.style.bottom = '88px';
       document.body.appendChild(b);
     });
   }

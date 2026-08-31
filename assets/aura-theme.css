@@ -129,3 +129,11 @@ body.aura-rail #save-flash{left:auto;right:16px}
 
 /* the scribbles were dark ink on paper — lift them onto the dark canvas */
 #nodes-layer .scribble{color:#9a9a9a!important}
+
+/* board tabs live inside #hdr, whose generic button rule would otherwise
+   repaint them all the same shade */
+#hdr #board-tabs{border-left-color:rgba(255,255,255,0.1)!important}
+#hdr .board-tab{background:transparent!important;border-color:transparent!important;color:#9a9a9a!important}
+#hdr .board-tab:hover{background:rgba(255,255,255,0.08)!important;color:#fff!important}
+#hdr .board-tab.on{background:#00ffa3!important;color:#0a0a0a!important;border-color:transparent!important}
+#hdr .board-tab.on:hover{background:#00e595!important;color:#0a0a0a!important}

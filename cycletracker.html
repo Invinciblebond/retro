@@ -71,6 +71,10 @@
 </script>
 <style>
   body { background-color:#0e1511; }
+  /* compact scale: the page has to fit one screen without scrolling the shell */
+  .text-metric-xl { font-size:28px; line-height:34px; }
+  .text-headline-lg { font-size:20px; line-height:26px; }
+  .compound-card { padding:12px !important; gap:10px !important; }
   .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align:middle; }
   input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
   input[type=datetime-local]::-webkit-calendar-picker-indicator { filter:invert(0.6); cursor:pointer; }
@@ -113,8 +117,8 @@
   </div>
 </header>
 
-<main class="max-w-7xl mx-auto px-6 py-8 pb-28 lg:pb-8">
-  <div class="mb-xl flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+<main class="max-w-6xl mx-auto px-5 py-6 pb-28 lg:pb-6">
+  <div class="mb-5 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
     <div>
       <h1 class="font-headline-lg text-headline-lg text-on-surface">CycleManager</h1>
       <p class="text-on-surface-variant font-body-md mt-1">Monitor your active compounds and circulation levels.</p>
@@ -124,10 +128,10 @@
     </button>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
-    <div class="lg:col-span-8 flex flex-col gap-lg">
-      <div class="grid grid-cols-2 gap-md">
-        <div class="bg-[#1a1a1a] border border-[#2c2c2c] p-lg rounded-xl">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div class="lg:col-span-8 flex flex-col gap-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-[#1a1a1a] border border-[#2c2c2c] p-4 rounded-xl">
           <div class="flex justify-between items-start mb-2">
             <span class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-widest">Active Compounds</span>
             <span class="material-symbols-outlined text-primary">science</span>
@@ -138,7 +142,7 @@
             <span id="active-label">No compounds added</span>
           </div>
         </div>
-        <div class="bg-[#1a1a1a] border border-[#2c2c2c] p-lg rounded-xl">
+        <div class="bg-[#1a1a1a] border border-[#2c2c2c] p-4 rounded-xl">
           <div class="flex justify-between items-start mb-2">
             <span class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-widest">Last Dose</span>
             <span class="material-symbols-outlined text-secondary">history</span>
@@ -149,10 +153,10 @@
       </div>
       <div class="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl overflow-hidden">
         <div class="p-lg flex justify-between items-start">
-          <div><h3 class="font-bold text-on-surface">Circulation Levels</h3><p class="text-label-sm text-on-surface-variant mt-0.5">Absorption + elimination model — 48h window</p></div>
+          <div><h3 class="font-bold text-on-surface">Circulation Levels</h3><p class="text-label-sm text-on-surface-variant mt-0.5">Absorption + elimination model over a 48h window</p></div>
           <div class="flex items-center gap-2"><div id="chart-legend" class="flex flex-wrap gap-2 justify-end max-w-xs"></div><span class="pill bg-[#2CCB92]/10 text-[#2CCB92] border border-[#2CCB92]/20">LIVE</span></div>
         </div>
-        <div class="relative px-lg pb-lg" style="height:260px">
+        <div class="relative px-lg pb-lg" style="height:196px">
           <div id="chart-empty" class="absolute inset-0 flex flex-col items-center justify-center text-on-surface-variant"><span class="material-symbols-outlined mb-2" style="font-size:36px;opacity:0.3">show_chart</span><p class="text-label-sm">Log a dose to see the decay curve</p></div>
           <canvas id="cycleChart" style="display:none" role="img"></canvas>
         </div>
@@ -160,22 +164,42 @@
           <span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t-24">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t-18">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t-12">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t-6">—</span><span class="text-[10px] font-bold font-mono text-[#2CCB92]">NOW</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t+6">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t+12">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t+18">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t+24">—</span>
         </div>
       </div>
-      <div class="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl p-lg">
-        <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-on-surface">Recent Dose Log</h3><span class="text-label-sm text-on-surface-variant" id="log-count">0 entries</span></div>
-        <div id="log-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"><div class="text-label-sm text-on-surface-variant text-center py-4" id="log-empty">No doses logged yet.</div></div>
+      <div class="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl p-4">
+        <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-on-surface">Recent Dose Log</h3><span class="text-label-sm text-on-surface-variant" id="log-count">0 entries</span></div>
+        <div id="log-list" class="space-y-1.5 max-h-44 overflow-y-auto pr-1"><div class="text-label-sm text-on-surface-variant text-center py-4" id="log-empty">No doses logged yet.</div></div>
       </div>
     </div>
-    <div class="lg:col-span-4 flex flex-col gap-md">
+    <div class="lg:col-span-4 flex flex-col gap-3">
       <div class="flex justify-between items-center"><h3 class="font-bold text-on-surface">My Compounds</h3><button onclick="openAddCompound()" class="text-[#2CCB92] text-label-sm font-black flex items-center gap-1 hover:text-primary transition-colors active:scale-95"><span class="material-symbols-outlined" style="font-size:16px">add</span>ADD</button></div>
-      <div id="compound-list" class="flex flex-col gap-md"><div class="text-label-sm text-on-surface-variant text-center py-8 border border-dashed border-outline-variant rounded-xl" id="compound-empty">No compounds added yet.<br/><button onclick="openAddCompound()" class="text-primary mt-2 font-bold hover:underline">Add your first compound →</button></div></div>
+      <div id="compound-list" class="flex flex-col gap-3"><div class="text-label-sm text-on-surface-variant text-center py-8 border border-dashed border-outline-variant rounded-xl" id="compound-empty">No compounds added yet.<br/><button onclick="openAddCompound()" class="text-primary mt-2 font-bold hover:underline">Add your first compound →</button></div></div>
     </div>
   </div>
 </main>
 
+<!-- Mobile bar. Dashboard is Log.html, and the last button opens the shared
+     sidebar so every other tool is one tap away. -->
 <nav class="md:hidden bg-[#0a0f0c]/95 backdrop-blur-md fixed bottom-0 w-full z-50 border-t border-neutral-800 flex justify-around items-center pb-safe py-2">
-  <a href="calorie_tracker.html" class="flex flex-col items-center text-neutral-500 py-1"><span class="material-symbols-outlined">grid_view</span><span class="text-[10px] uppercase font-bold">Dashboard</span></a>
-  <a href="History.html" class="flex flex-col items-center text-neutral-500 py-1"><span class="material-symbols-outlined">calendar_month</span><span class="text-[10px] uppercase font-bold">History</span></a>
-  <a href="#" class="flex flex-col items-center text-[#2CCB92] py-1"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">biotech</span><span class="text-[10px] uppercase font-bold">Cycle</span></a>
+  <a href="Log.html" class="flex flex-col items-center text-neutral-500 py-1 px-2">
+    <span class="material-symbols-outlined">grid_view</span>
+    <span class="text-[10px] uppercase font-bold">Dashboard</span>
+  </a>
+  <a href="calorie_tracker.html" class="flex flex-col items-center text-neutral-500 py-1 px-2">
+    <span class="material-symbols-outlined">local_fire_department</span>
+    <span class="text-[10px] uppercase font-bold">Calories</span>
+  </a>
+  <span aria-current="page" class="flex flex-col items-center text-[#2CCB92] bg-[#2CCB92]/10 rounded-xl py-1 px-3">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">biotech</span>
+    <span class="text-[10px] uppercase font-bold">Cycle</span>
+  </span>
+  <a href="Body.html" class="flex flex-col items-center text-neutral-500 py-1 px-2">
+    <span class="material-symbols-outlined">monitor_weight</span>
+    <span class="text-[10px] uppercase font-bold">Body</span>
+  </a>
+  <button type="button" onclick="window.auraSidebar &amp;&amp; window.auraSidebar.toggleMobile()"
+    class="flex flex-col items-center text-neutral-500 py-1 px-2" aria-label="Open menu">
+    <span class="material-symbols-outlined">menu</span>
+    <span class="text-[10px] uppercase font-bold">More</span>
+  </button>
 </nav>
 
 <!-- ADD COMPOUND MODAL with library search -->
@@ -223,7 +247,7 @@
   <div class="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl max-h-[92vh] overflow-y-auto">
     <div class="flex justify-between items-center mb-5"><div><h3 class="font-bold text-on-surface" id="log-modal-title">Log Dose</h3><p class="text-label-sm text-on-surface-variant" id="log-modal-sub">Select a compound</p></div><button onclick="closeModal('modal-log')" class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">close</button></div>
     <input type="hidden" id="log-compound-id"/>
-    <div class="space-y-3 mb-4"><label class="field-label">Compound</label><select id="log-compound-select" class="field-input w-full" onchange="onLogCompoundSelect()"><option value="">— Select a compound —</option></select></div>
+    <div class="space-y-3 mb-4"><label class="field-label">Compound</label><select id="log-compound-select" class="field-input w-full" onchange="onLogCompoundSelect()"><option value="">Select a compound —</option></select></div>
     <div class="space-y-3">
       <div><label class="field-label">Date &amp; Time</label><input type="datetime-local" id="log-datetime" class="field-input w-full"/></div>
       <div class="grid grid-cols-2 gap-3"><div><label class="field-label">Dosage</label><input type="number" id="log-dosage" placeholder="Default" min="0" step="any" class="field-input w-full"/></div><div><label class="field-label">Injection Site</label><input type="text" id="log-site" placeholder="Same as default" class="field-input w-full"/></div></div>
@@ -392,7 +416,7 @@ function submitCompound(){
 function deleteCompound(id){if(!confirm('Delete this compound and all its logs?'))return;db.run('DELETE FROM compound_logs WHERE compound_id=?',[id]);db.run('DELETE FROM compounds WHERE id=?',[id]);saveDB();if(cycleChart){cycleChart.destroy();cycleChart=null}renderAll()}
 
 // ─── Log Dose ────────────────────────────────────────────────────────────────
-function populateLogCompoundSelect(){const sel=document.getElementById('log-compound-select');const compounds=getCompounds();sel.innerHTML='<option value="">— Select a compound —</option>'+compounds.map(c=>`<option value="${c.id}">${escH(c.name)} (${c.dosage} ${c.unit})</option>`).join('')}
+function populateLogCompoundSelect(){const sel=document.getElementById('log-compound-select');const compounds=getCompounds();sel.innerHTML='<option value="">Select a compound —</option>'+compounds.map(c=>`<option value="${c.id}">${escH(c.name)} (${c.dosage} ${c.unit})</option>`).join('')}
 function onLogCompoundSelect(){const id=document.getElementById('log-compound-select').value;if(!id){document.getElementById('log-dosage').placeholder='Default';document.getElementById('log-site').placeholder='Same as default';return}const c=getCompoundById(id);if(!c)return;document.getElementById('log-dosage').placeholder=`${c.dosage} ${c.unit} (default)`;document.getElementById('log-site').placeholder=c.site||'e.g. Abdomen'}
 function openLogDose(compoundId){populateLogCompoundSelect();document.getElementById('log-compound-id').value=compoundId||'';document.getElementById('log-compound-select').value=compoundId||'';document.getElementById('log-modal-title').textContent='Log Dose';document.getElementById('log-modal-sub').textContent=compoundId?'':'Select a compound';document.getElementById('log-datetime').value=localDatetimeStr();document.getElementById('log-dosage').value='';document.getElementById('log-dosage').placeholder='Default';document.getElementById('log-site').value='';document.getElementById('log-site').placeholder='Same as default';document.getElementById('log-note').value='';document.getElementById('log-error').classList.add('hidden');if(compoundId)onLogCompoundSelect();openModal('modal-log');setTimeout(()=>document.getElementById('log-datetime').focus(),50)}
 function submitLog(){const compoundId=document.getElementById('log-compound-select').value;if(!compoundId){document.getElementById('log-error').classList.remove('hidden');return}const datetimeVal=document.getElementById('log-datetime').value;if(!datetimeVal)return;const dosageVal=parseFloat(document.getElementById('log-dosage').value)||null;const siteVal=document.getElementById('log-site').value.trim()||null;const noteVal=document.getElementById('log-note').value.trim();db.run('INSERT INTO compound_logs(compound_id,logged_at,dosage,site,note)VALUES(?,?,?,?,?)',[compoundId,new Date(datetimeVal).toISOString(),dosageVal,siteVal,noteVal]);saveDB();closeModal('modal-log');if(cycleChart){cycleChart.destroy();cycleChart=null}renderAll()}

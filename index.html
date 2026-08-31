@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Utopoly</title>
-<meta name="description" content="Utopoly is a suite of fast, focused personal trackers — boards, calories, cycles and planning — behind one account that follows you across devices."/>
+<meta name="description" content="Utopoly is one daily management suite: boards, scheduler, calories, cycles and planning, behind a single account that follows you across devices."/>
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
 <meta name="theme-color" content="#060606"/>
 <link rel="canonical" href="https://utopoly.com/"/>
@@ -12,11 +12,11 @@
 <meta property="og:site_name" content="Utopoly"/>
 <meta property="og:url" content="https://utopoly.com/"/>
 <meta property="og:title" content="Utopoly"/>
-<meta property="og:description" content="Utopoly is a suite of fast, focused personal trackers — boards, calories, cycles and planning — behind one account that follows you across devices."/>
+<meta property="og:description" content="Utopoly is one daily management suite: boards, scheduler, calories, cycles and planning, behind a single account that follows you across devices."/>
 <meta property="og:image" content="https://i.ibb.co/wNgRmrNp/Screenshot-2026-08-31-at-11-40-11-AM.png"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Utopoly"/>
-<meta name="twitter:description" content="Utopoly is a suite of fast, focused personal trackers — boards, calories, cycles and planning — behind one account that follows you across devices."/>
+<meta name="twitter:description" content="Utopoly is one daily management suite: boards, scheduler, calories, cycles and planning, behind a single account that follows you across devices."/>
 <meta name="twitter:image" content="https://i.ibb.co/wNgRmrNp/Screenshot-2026-08-31-at-11-40-11-AM.png"/>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
@@ -107,6 +107,30 @@ section{max-width:var(--content);margin:0 auto;padding:64px 32px}
 .shead p{font-size:14px;color:var(--muted);max-width:520px;line-height:1.6}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:14px}
 
+/* group headings, same rhythm as the dashboard grid */
+.ghead{display:flex;align-items:baseline;gap:12px;margin:34px 0 13px}
+.ghead:first-of-type{margin-top:0}
+.ghead b{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#e8e8e8}
+.ghead em{font-style:normal;font-size:12px;color:var(--faint)}
+.ghead .rule{flex:1;height:1px;background:var(--line-soft)}
+
+/* tiles carry a hover preview: a small mock of what the tool looks like */
+.tile{position:relative}
+.tile .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}
+.tile .chip{font-size:10px;padding:3px 8px;border-radius:999px;color:var(--muted);
+  background:rgba(255,255,255,.05);border:1px solid var(--line-soft)}
+.prev{
+  position:absolute;left:50%;bottom:calc(100% + 10px);transform:translate(-50%,6px) scale(.97);
+  width:250px;padding:10px;border-radius:14px;background:#0c0c0c;border:1px solid var(--line);
+  box-shadow:0 20px 50px rgba(0,0,0,.65);opacity:0;pointer-events:none;z-index:20;
+  transition:opacity .16s ease,transform .16s ease}
+.tile:hover .prev,.tile:focus-visible .prev{opacity:1;transform:translate(-50%,0) scale(1)}
+.tile.below .prev{top:calc(100% + 10px);bottom:auto}
+.prev svg{display:block;width:100%;height:auto;border-radius:8px}
+.prev p{font-size:10.5px;color:var(--faint);margin-top:8px;line-height:1.5}
+@media(hover:none){.prev{display:none}}
+@media(max-width:720px){.prev{display:none}}
+
 /* others */
 .others{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
 .promo{padding:30px;border-radius:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:180px}
@@ -128,7 +152,7 @@ footer{border-top:1px solid var(--line-soft);padding:26px 32px 40px;max-width:va
       "@id": "https://utopoly.com/#website",
       "url": "https://utopoly.com/",
       "name": "Utopoly",
-      "description": "A suite of fast, focused personal trackers behind one account.",
+      "description": "A multi-suite daily management tool: plan the day, run the week, track the body.",
       "inLanguage": "en"
     },
     {
@@ -138,14 +162,16 @@ footer{border-top:1px solid var(--line-soft);padding:26px 32px 40px;max-width:va
       "applicationCategory": "HealthApplication",
       "operatingSystem": "Any modern web browser",
       "image": "https://i.ibb.co/wNgRmrNp/Screenshot-2026-08-31-at-11-40-11-AM.png",
-      "description": "Utopoly bundles progress boards, a calorie tracker, caloric history, a cycle manager, planning boards and a prompt canvas behind a single account that syncs across devices.",
+      "description": "Utopoly bundles progress boards, a week scheduler, a calorie tracker, caloric history, a cycle manager, planning boards and a prompt canvas behind a single account that syncs across devices.",
       "featureList": [
-        "Main Boards — drag-and-drop goal and routine tracking",
-        "Calorie Tracker — burnt versus consumed with daily calorie and protein goals",
-        "Caloric History — one timeline across every logged day",
-        "CycleManager — compounds, dose logs and modelled circulation levels",
-        "Planning Boards — a node canvas for long-running work",
-        "Memory Visualizer — map prompts, outputs and notes on an infinite canvas"
+        "Main Boards: drag-and-drop goal and routine tracking",
+        "Scheduler: an hour-by-hour week planner with repeating blocks",
+        "Calorie Tracker: burnt versus consumed with daily calorie and protein goals",
+        "Caloric History: one timeline across every logged day",
+        "CycleManager: compounds, dose logs and modelled circulation levels",
+        "Body Composition: weight, body fat and height with a smoothed trend",
+        "Planning Boards: a node canvas for long-running work",
+        "Memory Visualizer: map prompts, outputs and notes on an infinite canvas"
       ],
       "offers": {
         "@type": "Offer",
@@ -174,13 +200,13 @@ footer{border-top:1px solid var(--line-soft);padding:26px 32px 40px;max-width:va
 
 <div class="hero">
   <div>
-    <span class="pill" style="margin-bottom:22px"><span class="dot live" style="color:var(--accent)"></span>Your account, your data</span>
-    <h1>Track everything<br/>that matters.<br/><span class="g">In one place.</span></h1>
-    <p class="lede">Boards, calories, cycles and planning — the tools you actually open, behind a single account that keeps you signed in across every device.</p>
+    <span class="pill" style="margin-bottom:22px"><span class="dot live" style="color:var(--accent)"></span>One account, eight tools</span>
+    <h1>Run your whole day<br/>from <span class="g">one dashboard.</span></h1>
+    <p class="lede">Utopoly is a multi-suite daily management tool. Plan the week in the scheduler, push work across boards, log food and compounds, then watch the trend build. Every tool opens from the same grid and saves to the same account.</p>
     <div class="ticks">
-      <div class="tick"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/></svg>Six tools, one login</div>
+      <div class="tick"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/></svg>Schedule, plan and track in one place</div>
       <div class="tick"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/></svg>Your data follows you between devices</div>
-      <div class="tick"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/></svg>Email optional — a username is enough</div>
+      <div class="tick"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/></svg>Email optional: a username is enough</div>
     </div>
   </div>
 
@@ -226,7 +252,7 @@ footer{border-top:1px solid var(--line-soft);padding:26px 32px 40px;max-width:va
           <div class="fld" style="margin-top:10px">
             <input name="email" type="email" autocomplete="email" placeholder="you@example.com"/>
           </div>
-          <p class="hint">No email needed — you'll log in with your username. Adding one lets you recover the account later.</p>
+          <p class="hint">No email needed: you'll log in with your username. Adding one lets you recover the account later.</p>
         </details>
         <button class="btn btn-white btn-block" type="submit" style="margin-top:16px">Create account</button>
       </form>
@@ -275,41 +301,18 @@ footer{border-top:1px solid var(--line-soft);padding:26px 32px 40px;max-width:va
 <section id="tools">
   <div class="shead rv">
     <div class="sect-title">The suite</div>
-    <h2>Six tools. One system.</h2>
-    <p>Every tracker opens instantly from your dashboard and keeps its own history on your account.</p>
+    <h2>Eight tools. One daily system.</h2>
+    <p>This is the same grid you land on after signing in. Hover any tool to see what it looks like inside.</p>
   </div>
-  <div class="grid">
-    <div class="tile rv" style="--c:#00ffa3">
-      <div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 5a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v8a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div>
-      <h3>Main Boards</h3>
-      <p>Drag-and-drop columns for goals, routines and everything currently in flight.</p>
-    </div>
-    <div class="tile rv" style="--c:#f5a623">
-      <div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div>
-      <h3>Calorie Tracker</h3>
-      <p>Burnt versus consumed, with daily calorie and protein goals that live on your account.</p>
-    </div>
-    <div class="tile rv" style="--c:#38bdf8">
-      <div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div>
-      <h3>Caloric History</h3>
-      <p>One timeline across every day you logged, so the trend stops hiding.</p>
-    </div>
-    <div class="tile rv" style="--c:#f472b6">
-      <div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div>
-      <h3>CycleManager</h3>
-      <p>Compounds, dose logs and modelled circulation levels over time.</p>
-    </div>
-    <div class="tile rv" style="--c:#a78bfa">
-      <div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 4H5a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zM19 14h-4a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1v-4a1 1 0 00-1-1zM10 7h4a2 2 0 012 2v5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div>
-      <h3>Planning Boards</h3>
-      <p>A node canvas for long-running work — connect the pieces and see the shape.</p>
-    </div>
-    <div class="tile rv" style="--c:#00ffa3">
-      <div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 3a4 4 0 00-4 4v1a3 3 0 000 6v1a4 4 0 008 0v-1a3 3 0 000-6V7a4 4 0 00-4-4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div>
-      <h3>Memory Visualizer</h3>
-      <p>Map prompts, outputs and notes on an infinite canvas you can actually navigate.</p>
-    </div>
-  </div>
+
+  <div class="ghead rv"><b>Plan</b><em>Run the day and the week</em><span class="rule"></span></div>
+  <div class="grid"><div class="tile rv" tabindex="0" style="--c:#00ffa3"><div class="prev"><svg viewBox="0 0 230 118" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><rect width="230" height="118" rx="8" fill="#0a0a0a"/><rect x="10" y="14" width="66" height="92" rx="6" fill="#111" stroke="rgba(255,255,255,.07)"/><rect x="18" y="22" width="30" height="5" rx="2.5" fill="#00ffa3" opacity=".7"/><rect x="18" y="34" width="50" height="15" rx="4" fill="#181818" stroke="rgba(255,255,255,.06)"/><rect x="23" y="39" width="30" height="4" rx="2" fill="#4a4a4a"/><rect x="18" y="54" width="50" height="15" rx="4" fill="#181818" stroke="rgba(255,255,255,.06)"/><rect x="23" y="59" width="22" height="4" rx="2" fill="#4a4a4a"/><rect x="18" y="74" width="50" height="15" rx="4" fill="#181818" stroke="rgba(255,255,255,.06)"/><rect x="23" y="79" width="34" height="4" rx="2" fill="#4a4a4a"/><rect x="82" y="14" width="66" height="92" rx="6" fill="#111" stroke="rgba(255,255,255,.07)"/><rect x="90" y="22" width="30" height="5" rx="2.5" fill="#00ffa3" opacity=".7"/><rect x="90" y="34" width="50" height="15" rx="4" fill="#181818" stroke="rgba(255,255,255,.06)"/><rect x="95" y="39" width="26" height="4" rx="2" fill="#4a4a4a"/><rect x="90" y="54" width="50" height="15" rx="4" fill="#181818" stroke="rgba(255,255,255,.06)"/><rect x="95" y="59" width="32" height="4" rx="2" fill="#4a4a4a"/><rect x="154" y="14" width="66" height="92" rx="6" fill="#111" stroke="rgba(255,255,255,.07)"/><rect x="162" y="22" width="30" height="5" rx="2.5" fill="#00ffa3" opacity=".7"/><rect x="162" y="34" width="50" height="15" rx="4" fill="#181818" stroke="rgba(255,255,255,.06)"/><rect x="167" y="39" width="30" height="4" rx="2" fill="#4a4a4a"/><rect x="162" y="54" width="50" height="15" rx="4" fill="#181818" stroke="rgba(255,255,255,.06)"/><rect x="167" y="59" width="20" height="4" rx="2" fill="#4a4a4a"/><rect x="162" y="74" width="50" height="15" rx="4" fill="#181818" stroke="rgba(255,255,255,.06)"/><rect x="167" y="79" width="26" height="4" rx="2" fill="#4a4a4a"/></svg><p>Columns you drag work across, one board per area of life.</p></div><div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 5a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v8a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div><h3>Main Boards</h3><p>Drag-and-drop columns for goals, routines and everything currently in flight.</p><div class="chips"><span class="chip">Kanban</span><span class="chip">Multi-board</span></div></div><div class="tile rv" tabindex="0" style="--c:#38bdf8"><div class="prev"><svg viewBox="0 0 230 118" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><rect width="230" height="118" rx="8" fill="#0a0a0a"/><line x1="38" y1="10" x2="38" y2="110" stroke="rgba(255,255,255,.06)"/><line x1="65" y1="10" x2="65" y2="110" stroke="rgba(255,255,255,.06)"/><line x1="92" y1="10" x2="92" y2="110" stroke="rgba(255,255,255,.06)"/><line x1="119" y1="10" x2="119" y2="110" stroke="rgba(255,255,255,.06)"/><line x1="146" y1="10" x2="146" y2="110" stroke="rgba(255,255,255,.06)"/><line x1="173" y1="10" x2="173" y2="110" stroke="rgba(255,255,255,.06)"/><line x1="200" y1="10" x2="200" y2="110" stroke="rgba(255,255,255,.06)"/><line x1="227" y1="10" x2="227" y2="110" stroke="rgba(255,255,255,.06)"/><line x1="10" y1="24" x2="224" y2="24" stroke="rgba(255,255,255,.05)"/><line x1="10" y1="41" x2="224" y2="41" stroke="rgba(255,255,255,.05)"/><line x1="10" y1="58" x2="224" y2="58" stroke="rgba(255,255,255,.05)"/><line x1="10" y1="75" x2="224" y2="75" stroke="rgba(255,255,255,.05)"/><line x1="10" y1="92" x2="224" y2="92" stroke="rgba(255,255,255,.05)"/><line x1="10" y1="109" x2="224" y2="109" stroke="rgba(255,255,255,.05)"/><rect x="41" y="28" width="23" height="30" rx="4" fill="#00ffa3" opacity=".55"/><rect x="68" y="45" width="23" height="22" rx="4" fill="#38bdf8" opacity=".55"/><rect x="95" y="28" width="23" height="40" rx="4" fill="#a78bfa" opacity=".55"/><rect x="122" y="62" width="23" height="26" rx="4" fill="#f5a623" opacity=".55"/><rect x="149" y="36" width="23" height="32" rx="4" fill="#00ffa3" opacity=".55"/><rect x="176" y="70" width="23" height="22" rx="4" fill="#f472b6" opacity=".55"/><line x1="10" y1="58" x2="224" y2="58" stroke="#00ffa3" stroke-width="1.2" stroke-dasharray="3 3"/></svg><p>The week at a glance, with a live line marking right now.</p></div><div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div><h3>Scheduler</h3><p>An hour-by-hour week planner. Drop blocks on the grid, repeat them daily or weekly, and read the day off the agenda rail.</p><div class="chips"><span class="chip">Week view</span><span class="chip">Repeats</span></div></div><div class="tile rv" tabindex="0" style="--c:#a78bfa"><div class="prev"><svg viewBox="0 0 230 118" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><rect width="230" height="118" rx="8" fill="#0a0a0a"/><line x1="60" y1="40" x2="128" y2="34" stroke="rgba(255,255,255,.22)"/><line x1="60" y1="52" x2="120" y2="86" stroke="rgba(255,255,255,.22)"/><line x1="150" y1="48" x2="160" y2="74" stroke="rgba(255,255,255,.22)"/><rect x="16" y="32" width="46" height="26" rx="6" fill="#131313" stroke="#a78bfa" opacity=".95"/><rect x="23" y="39" width="22" height="4" rx="2" fill="#a78bfa"/><rect x="23" y="48" width="14" height="3" rx="1.5" fill="#3d3d3d"/><rect x="128" y="20" width="62" height="26" rx="6" fill="#131313" stroke="#00ffa3" opacity=".95"/><rect x="135" y="27" width="38" height="4" rx="2" fill="#00ffa3"/><rect x="135" y="36" width="30" height="3" rx="1.5" fill="#3d3d3d"/><rect x="96" y="74" width="58" height="26" rx="6" fill="#131313" stroke="#38bdf8" opacity=".95"/><rect x="103" y="81" width="34" height="4" rx="2" fill="#38bdf8"/><rect x="103" y="90" width="26" height="3" rx="1.5" fill="#3d3d3d"/><rect x="160" y="64" width="54" height="26" rx="6" fill="#131313" stroke="#f5a623" opacity=".95"/><rect x="167" y="71" width="30" height="4" rx="2" fill="#f5a623"/><rect x="167" y="80" width="22" height="3" rx="1.5" fill="#3d3d3d"/></svg><p>Nodes and links for plans too big for a checklist.</p></div><div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 4H5a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zM19 14h-4a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1v-4a1 1 0 00-1-1zM10 7h4a2 2 0 012 2v5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div><h3>Planning Boards</h3><p>A node canvas for long-running work: connect the pieces and see the shape.</p><div class="chips"><span class="chip">Nodes</span><span class="chip">Canvas</span></div></div></div>
+
+  <div class="ghead rv"><b>Health</b><em>Daily tracking</em><span class="rule"></span></div>
+  <div class="grid"><div class="tile rv" tabindex="0" style="--c:#f5a623"><div class="prev"><svg viewBox="0 0 230 118" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><rect width="230" height="118" rx="8" fill="#0a0a0a"/><rect x="12" y="14" width="100" height="42" rx="7" fill="#111" stroke="rgba(255,255,255,.07)"/><rect x="20" y="22" width="34" height="4" rx="2" fill="#3a3a3a"/><rect x="20" y="32" width="52" height="12" rx="3" fill="#f5a623" opacity=".8"/><rect x="120" y="14" width="98" height="42" rx="7" fill="#111" stroke="rgba(255,255,255,.07)"/><rect x="128" y="22" width="30" height="4" rx="2" fill="#3a3a3a"/><rect x="128" y="32" width="40" height="12" rx="3" fill="#00ffa3" opacity=".75"/><rect x="12" y="64" width="206" height="14" rx="5" fill="#131313" stroke="rgba(255,255,255,.05)"/><circle cx="24" cy="71" r="3.5" fill="#f5a623"/><rect x="34" y="69" width="64" height="4" rx="2" fill="#4a4a4a"/><rect x="12" y="82" width="206" height="14" rx="5" fill="#131313" stroke="rgba(255,255,255,.05)"/><circle cx="24" cy="89" r="3.5" fill="#38bdf8"/><rect x="34" y="87" width="86" height="4" rx="2" fill="#4a4a4a"/><rect x="12" y="100" width="206" height="14" rx="5" fill="#131313" stroke="rgba(255,255,255,.05)"/><circle cx="24" cy="107" r="3.5" fill="#00ffa3"/><rect x="34" y="105" width="52" height="4" rx="2" fill="#4a4a4a"/></svg><p>Today’s net, meal by meal, against your own targets.</p></div><div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div><h3>Calorie Tracker</h3><p>Burnt versus consumed, with daily calorie and protein goals that live on your account.</p><div class="chips"><span class="chip">Macros</span><span class="chip">Goals</span></div></div><div class="tile rv" tabindex="0" style="--c:#38bdf8"><div class="prev"><svg viewBox="0 0 230 118" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><rect width="230" height="118" rx="8" fill="#0a0a0a"/><polyline fill="none" stroke="#38bdf8" stroke-width="2" points="12,88 45,72 78,80 111,52 144,60 177,34 210,42"/><polyline fill="none" stroke="#f5a623" stroke-width="1.6" opacity=".6" points="12,96 45,90 78,84 111,88 144,74 177,78 210,66"/><circle cx="12" cy="88" r="2.6" fill="#38bdf8"/><circle cx="45" cy="72" r="2.6" fill="#38bdf8"/><circle cx="78" cy="80" r="2.6" fill="#38bdf8"/><circle cx="111" cy="52" r="2.6" fill="#38bdf8"/><circle cx="144" cy="60" r="2.6" fill="#38bdf8"/><circle cx="177" cy="34" r="2.6" fill="#38bdf8"/><circle cx="210" cy="42" r="2.6" fill="#38bdf8"/><line x1="12" y1="106" x2="218" y2="106" stroke="rgba(255,255,255,.09)"/></svg><p>Every logged day on one line: intake, burn and the streak.</p></div><div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div><h3>Caloric History</h3><p>One timeline across every day you logged, so the trend stops hiding.</p><div class="chips"><span class="chip">Timeline</span><span class="chip">Streaks</span></div></div><div class="tile rv" tabindex="0" style="--c:#c9b87a"><div class="prev"><svg viewBox="0 0 230 118" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><rect width="230" height="118" rx="8" fill="#0a0a0a"/><line x1="12" y1="106" x2="218" y2="106" stroke="rgba(255,255,255,.09)"/><polyline fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1.4" points="14,42 44,56 74,44 104,62 134,54 164,72 194,64 214,78"/><circle cx="14" cy="42" r="2.4" fill="rgba(255,255,255,.4)"/><circle cx="44" cy="56" r="2.4" fill="rgba(255,255,255,.4)"/><circle cx="74" cy="44" r="2.4" fill="rgba(255,255,255,.4)"/><circle cx="104" cy="62" r="2.4" fill="rgba(255,255,255,.4)"/><circle cx="134" cy="54" r="2.4" fill="rgba(255,255,255,.4)"/><circle cx="164" cy="72" r="2.4" fill="rgba(255,255,255,.4)"/><circle cx="194" cy="64" r="2.4" fill="rgba(255,255,255,.4)"/><circle cx="214" cy="78" r="2.4" fill="rgba(255,255,255,.4)"/><path d="M14 46 C 50 52, 80 54, 110 60 S 170 70, 214 74" fill="none" stroke="#c9b87a" stroke-width="2.2"/><text x="14" y="24" fill="#c9b87a" font-size="9" font-family="Inter,sans-serif">trend</text></svg><p>The smoothed line is the signal; the scale is the noise.</p></div><div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 3a2 2 0 100 4 2 2 0 000-4zM7 21v-5l-2-3 1.5-4A2 2 0 018.4 7.6L12 8l3.6-.4a2 2 0 011.9 1.4L19 13l-2 3v5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div><h3>Body Composition</h3><p>Weight, body fat and height on one trend line, with BMI and lean mass worked out for you.</p><div class="chips"><span class="chip">Weight</span><span class="chip">Body fat</span></div></div><div class="tile rv" tabindex="0" style="--c:#f472b6"><div class="prev"><svg viewBox="0 0 230 118" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><rect width="230" height="118" rx="8" fill="#0a0a0a"/><path d="M12 100 C 40 100, 52 26, 78 34 S 120 96, 150 66 S 196 40, 218 58" fill="none" stroke="#f472b6" stroke-width="2"/><path d="M12 104 C 46 104, 60 66, 96 74 S 150 100, 218 82" fill="none" stroke="#a78bfa" stroke-width="1.6" opacity=".65"/><line x1="115" y1="12" x2="115" y2="108" stroke="#00ffa3" stroke-width="1.2" stroke-dasharray="3 3"/><text x="120" y="22" fill="#00ffa3" font-size="8" font-family="Inter,sans-serif">now</text></svg><p>Modelled absorption and decay, so you read the curve.</p></div><div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div><h3>CycleManager</h3><p>Compounds, dose logs and modelled circulation levels over time.</p><div class="chips"><span class="chip">Compounds</span><span class="chip">Levels</span></div></div></div>
+
+  <div class="ghead rv"><b>Thinking</b><em>Everything else in flight</em><span class="rule"></span></div>
+  <div class="grid"><div class="tile rv" tabindex="0" style="--c:#00ffa3"><div class="prev"><svg viewBox="0 0 230 118" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><rect width="230" height="118" rx="8" fill="#0a0a0a"/><rect x="10" y="10" width="66" height="16" rx="5" fill="#00ffa3" opacity=".22"/><rect x="80" y="10" width="52" height="16" rx="5" fill="#161616" stroke="rgba(255,255,255,.08)"/><rect x="136" y="10" width="52" height="16" rx="5" fill="#161616" stroke="rgba(255,255,255,.08)"/><line x1="70" y1="60" x2="130" y2="52" stroke="rgba(255,255,255,.2)"/><line x1="70" y1="72" x2="122" y2="94" stroke="rgba(255,255,255,.2)"/><rect x="12" y="50" width="60" height="28" rx="6" fill="#131313" stroke="#a78bfa"/><rect x="19" y="57" width="34" height="4" rx="2" fill="#a78bfa"/><rect x="19" y="66" width="44" height="3" rx="1.5" fill="#3d3d3d"/><rect x="130" y="38" width="60" height="28" rx="6" fill="#131313" stroke="#00ffa3"/><rect x="137" y="45" width="34" height="4" rx="2" fill="#00ffa3"/><rect x="137" y="54" width="44" height="3" rx="1.5" fill="#3d3d3d"/><rect x="120" y="80" width="60" height="28" rx="6" fill="#131313" stroke="#38bdf8"/><rect x="127" y="87" width="34" height="4" rx="2" fill="#38bdf8"/><rect x="127" y="96" width="44" height="3" rx="1.5" fill="#3d3d3d"/></svg><p>Tabs across the top: one canvas per line of thinking.</p></div><div class="tile-ico"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 3a4 4 0 00-4 4v1a3 3 0 000 6v1a4 4 0 008 0v-1a3 3 0 000-6V7a4 4 0 00-4-4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div><h3>Memory Visualizer</h3><p>Map prompts, outputs and notes on an infinite canvas, now with a board per project.</p><div class="chips"><span class="chip">Prompts</span><span class="chip">Multi-board</span></div></div></div>
 </section>
 
 <section id="others">
@@ -370,6 +373,17 @@ document.getElementById('show-forgot').addEventListener('click',function(){
   setTimeout(function(){document.getElementById('fp-email').focus()},60);
 });
 document.getElementById('back-to-login').addEventListener('click',function(){showTab('login')});
+
+// A preview sits above its tile unless the tile is near the top of the
+// viewport, where there is no room for it.
+document.querySelectorAll('.tile').forEach(function(t){
+  t.addEventListener('mouseenter',function(){
+    t.classList.toggle('below', t.getBoundingClientRect().top < 240);
+  });
+  t.addEventListener('focus',function(){
+    t.classList.toggle('below', t.getBoundingClientRect().top < 240);
+  });
+});
 
 var top_=document.getElementById('top');
 addEventListener('scroll',function(){top_.classList.toggle('stuck',scrollY>10)},{passive:true});

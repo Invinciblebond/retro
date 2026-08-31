@@ -20,7 +20,9 @@
   var CLOUD_BACKED = {
     "aura_db": 1, "aura_db_v3": 1, "aura_db_v4": 1,
     "aura_cycle_db": 1, "aura_planning_db_v1": 1,
-    "cpb_v2": 1, "tron_wallet": 1, "cain_phase_state_v1": 1
+    "cpb_v2": 1, "cpb_v3": 1, "tron_wallet": 1, "cain_phase_state_v1": 1,
+    // owned by assets/prefs.js, which pulls them from app_prefs / calorie_settings
+    "aura_prefs_v1": 1, "aura_goals_v1": 1
   };
 
   /* ---------- who is signed in (synchronous — no network) ---------- */

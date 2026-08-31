@@ -16,7 +16,7 @@ if (!supabase) {
         <div style="font-size:38px;margin-bottom:12px">📡</div>
         <h1 style="font-size:18px;font-weight:700;margin:0 0 8px">Can't reach your account</h1>
         <p style="font-size:13.5px;line-height:1.6;color:#a0a0a0;margin:0 0 18px">
-          Utopoly couldn't load its connection to Supabase — usually a dropped network or a blocker
+          Utopoly couldn't load its connection to Supabase. Usually a dropped network or a blocker
           stopping the CDN. Your data is safe; the page just won't open without it.
         </p>
         <button onclick="location.reload()" style="padding:9px 18px;border-radius:8px;border:none;
@@ -100,13 +100,13 @@ function toast(msg, type = "info", ms = 4200) {
 /* ---------- Friendly error copy ---------- */
 function friendly(raw = "") {
   const m = raw.toLowerCase();
-  if (m.includes("invalid login credentials")) return "That combo didn't work — give it another shot.";
-  if (m.includes("email not confirmed")) return "Almost there — confirm your email first (check your inbox).";
-  if (m.includes("rate limit") || m.includes("too many")) return "Slow down a sec — try again in a moment.";
-  if (m.includes("network") || m.includes("failed to fetch")) return "Can't reach the server — check your connection and retry.";
+  if (m.includes("invalid login credentials")) return "That combo didn't work. Give it another shot.";
+  if (m.includes("email not confirmed")) return "Almost there: confirm your email first (check your inbox).";
+  if (m.includes("rate limit") || m.includes("too many")) return "Slow down a sec, then try again in a moment.";
+  if (m.includes("network") || m.includes("failed to fetch")) return "Can't reach the server. Check your connection and retry.";
   if (m.includes("at least") || m.includes("password should")) return "Passwords need at least 8 characters.";
-  if (m.includes("already registered")) return "That email already has an account — log in instead.";
-  return raw || "Something went sideways — try again.";
+  if (m.includes("already registered")) return "That email already has an account, so log in instead.";
+  return raw || "Something went sideways. Try again.";
 }
 
 /* ---------- Success modal ---------- */
@@ -246,7 +246,7 @@ async function logIn(identifier, password) {
       const { data, error } = await supabase.rpc("get_login_email", { p_username: identifier });
       if (error) throw error;
       if (data === "not_found") throw new Error("No account with that username.");
-      if (data === "use_email") throw new Error("That account signed up with an email — enter the email address instead.");
+      if (data === "use_email") throw new Error("That account signed up with an email, so enter the email address instead.");
       email = data;
     } catch (err) {
       // RPC not installed yet — fall back to the placeholder address pattern.
@@ -397,7 +397,7 @@ async function getSession() {
 /* ---------- Landing wiring ---------- */
 function wireLanding() {
   if (new URLSearchParams(location.search).get("auth") === "required") {
-    toast("You need an account to open that page — log in or sign up below.", "info", 6000);
+    toast("You need an account to open that page. Log in or sign up below.", "info", 6000);
   }
 
   /* ----- Log in ----- */
@@ -467,7 +467,7 @@ function wireLanding() {
         const { data, error } = await supabase.rpc("username_available", { name_to_check: v });
         if (error) throw error;
         unameOk = !!data;
-        unameStatus.textContent = data ? "✓ Username available" : "✗ Taken — try another";
+        unameStatus.textContent = data ? "✓ Username available" : "✗ Taken, try another";
         unameStatus.style.color = data ? "#3ecf8e" : "#f56565";
       } catch { unameStatus.textContent = ""; }
     }, 550);
@@ -522,7 +522,7 @@ function wireLanding() {
   async function flushPendingAvatar() {
     if (!pendingAvatar) return;
     try { await uploadAvatar(pendingAvatar); }
-    catch (err) { console.warn("avatar upload failed", err); toast("Account made, but the avatar didn't upload — add it from your dashboard.", "info", 6000); }
+    catch (err) { console.warn("avatar upload failed", err); toast("Account made, but the avatar didn't upload. Add it from your dashboard.", "info", 6000); }
   }
 
   // ----- Forgot password -----
@@ -566,7 +566,7 @@ function wireLanding() {
       const { error } = await supabase.auth.resend({ type: "signup", email });
       setLoading(b, false);
       const st = document.getElementById("resend-status");
-      st.textContent = error ? friendly(error.message) : "Sent — give it a minute.";
+      st.textContent = error ? friendly(error.message) : "Sent. Give it a minute.";
       st.style.color = error ? "#f56565" : "#3ecf8e";
     });
   }
@@ -581,7 +581,7 @@ function wireLanding() {
     if (username.length < 3 || !/^[a-z0-9_]+$/i.test(username))
       return toast("Usernames need 3+ characters (letters, numbers and _ only).", "err");
     if (password.length < 8) return toast("Passwords need at least 8 characters.", "err");
-    if (unameOk === false) return toast("That username is taken — pick another first.", "err");
+    if (unameOk === false) return toast("That username is taken, so pick another first.", "err");
     // No email? Generate an internal address; they log in with their username.
     if (!email) email = `${username.toLowerCase()}@${PLACEHOLDER_DOMAIN}`;
 
@@ -592,19 +592,19 @@ function wireLanding() {
       // Supabase returns a user with zero identities when the email already exists
       if (user && Array.isArray(user.identities) && user.identities.length === 0) {
         setLoading(submitBtn, false);
-        return toast(`<b>${email}</b> already has an account — log in instead.`, "info", 7000);
+        return toast(`<b>${email}</b> already has an account, so log in instead.`, "info", 7000);
       }
 
       const welcome = displayName || username;
       if (session) {
         await flushPendingAvatar();
-        successModal(`Welcome, ${welcome}`, "Your account is ready — jumping in…", goDest, 1500);
+        successModal(`Welcome, ${welcome}`, "Your account is ready, jumping in…", goDest, 1500);
       } else {
         // No session returned: try signing in with the credentials just chosen.
         try {
           await logIn(email, password);
           await flushPendingAvatar();
-          successModal(`Welcome, ${welcome}`, "Your account is ready — jumping in…", goDest, 1500);
+          successModal(`Welcome, ${welcome}`, "Your account is ready, jumping in…", goDest, 1500);
         } catch {
           setLoading(submitBtn, false);
           showMailPanel(email); // the project requires email confirmation

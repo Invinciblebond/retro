@@ -3,6 +3,7 @@
 <head>
 <script src="assets/sync.js"></script>
 <script src="assets/cloud.js"></script>
+<script src="assets/prefs.js"></script>
 
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -88,7 +89,7 @@
 
 <!-- Nav -->
 <header class="flex justify-between items-center px-6 h-16 w-full z-50 bg-neutral-950 text-emerald-400 font-inter antialiased tracking-tight fixed top-0 border-b border-neutral-800">
-  <div class="text-xl font-bold text-emerald-400 tracking-wider">Utopoly</div>
+  <div class="text-xl font-bold text-emerald-400 tracking-wider">Caloric History</div>
   <div class="flex items-center space-x-4">
     <button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">settings</button>
     <button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">account_circle</button>
@@ -101,7 +102,7 @@
   <div class="flex flex-col md:flex-row md:items-end justify-between mb-xl gap-md">
     <div>
       <h1 class="font-headline-lg text-headline-lg text-on-background mb-xs">Caloric History</h1>
-      <p class="font-label-sm text-label-sm text-on-surface-variant">All logged days — goals: 1,750 kcal net · 150g protein</p>
+      <p class="font-label-sm text-label-sm text-on-surface-variant" id="goal-line">All logged days</p>
     </div>
     <div class="flex items-center bg-surface-container border border-outline-variant rounded-xl px-md py-sm gap-sm">
       <span class="material-symbols-outlined text-primary" style="font-size:18px">database</span>
@@ -164,10 +165,23 @@
 </nav>
 
 <script>
-const CAL_GOAL   = 1750;
-const CAL_LOW    = 1700;
-const CAL_HIGH   = 1800;
-const PRO_GOAL   = 150;
+// Goals come from the account (AuraPrefs), so this page agrees with the tracker.
+// The band is +/- 3% of the calorie goal, which is the tolerance a day is
+// realistically logged to.
+let CAL_GOAL = 2000, CAL_LOW = 1940, CAL_HIGH = 2060, PRO_GOAL = 180;
+
+function applyGoals() {
+  if (!window.AuraPrefs) return;
+  const g = window.AuraPrefs.goals();
+  CAL_GOAL = g.calorie || CAL_GOAL;
+  PRO_GOAL = g.protein || PRO_GOAL;
+  CAL_LOW  = Math.round(CAL_GOAL * 0.97);
+  CAL_HIGH = Math.round(CAL_GOAL * 1.03);
+  const line = document.getElementById('goal-line');
+  if (line) line.textContent = 'All logged days · goals: ' +
+    CAL_GOAL.toLocaleString() + ' kcal net · ' + PRO_GOAL + 'g protein';
+}
+applyGoals();
 
 let db = null;
 
@@ -430,6 +444,11 @@ document.addEventListener('visibilitychange', () => {
 (async () => {
   await initDB();
   render();
+  if (window.AuraPrefs) {
+    await window.AuraPrefs.ready;   // account goals may differ from the local copy
+    applyGoals();
+    render();
+  }
   scheduleAutoRefresh();
 })();
 </script>

@@ -3,6 +3,7 @@
 <head>
 <script src="assets/sync.js"></script>
 <script src="assets/cloud.js"></script>
+<script src="assets/prefs.js"></script>
 
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -126,7 +127,7 @@
 <!-- Top Nav -->
 <nav class="fixed top-0 w-full z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 flex justify-between items-center px-6 h-16">
   <div class="font-sans text-sm tracking-tight flex items-center gap-4">
-    <span class="text-xl font-bold tracking-tighter text-emerald-400">Utopoly</span>
+    <span class="text-xl font-bold tracking-tighter text-emerald-400">Calorie Tracker</span>
   </div>
   <div class="flex items-center gap-4">
     <span id="db-status" class="font-label-sm text-label-sm text-on-surface-variant opacity-0">Saved ✓</span>
@@ -249,7 +250,7 @@
         <h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Protein Goal</h3>
         <div class="flex items-baseline gap-2">
           <span class="font-headline-lg text-headline-lg text-on-surface" id="protein-val">0</span>
-          <span class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer hover:text-on-surface transition-colors" id="protein-target" onclick="editGoal('protein')" title="Click to change your goal">/ 180g</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer hover:text-on-surface transition-colors border-b border-dashed border-outline-variant" id="protein-target" onclick="openGoalModal()" title="Change your goals" role="button" tabindex="0">/ 180g</span>
         </div>
       </div>
       <div class="w-full h-1 bg-surface-container-lowest rounded-full mt-4 overflow-hidden">
@@ -261,7 +262,7 @@
         <h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Daily Calorie Goal</h3>
         <div class="flex items-baseline gap-2">
           <span class="font-headline-lg text-headline-lg text-on-surface" id="goal-val">0</span>
-          <span class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer hover:text-on-surface transition-colors" id="goal-target" onclick="editGoal('calorie')" title="Click to change your goal">/ 2,000 kcal</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer hover:text-on-surface transition-colors border-b border-dashed border-outline-variant" id="goal-target" onclick="openGoalModal()" title="Change your goals" role="button" tabindex="0">/ 2,000 kcal</span>
         </div>
       </div>
       <div class="w-full h-1 bg-surface-container-lowest rounded-full mt-4 overflow-hidden">
@@ -411,6 +412,51 @@
       <button onclick="closeModal()" class="flex-1 bg-surface-container border border-outline-variant rounded-lg py-2 font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant transition-all active:scale-95">Cancel</button>
       <button onclick="submitEntry()" id="modal-submit" class="flex-1 rounded-lg py-2 font-label-sm text-label-sm font-semibold transition-all active:scale-95">Save entry</button>
     </div>
+  </div>
+</div>
+
+<!-- Goals Modal -->
+<div id="goal-modal" class="fixed inset-0 z-[100] flex items-center justify-center modal-backdrop" style="display:none !important; background:rgba(9,16,12,0.8)">
+  <div class="bg-surface-container-high border border-outline-variant rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-1">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-primary"></span>
+        <h3 class="font-headline-lg text-headline-lg text-on-background">Daily goals</h3>
+      </div>
+      <button onclick="closeGoalModal()" class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">close</button>
+    </div>
+    <p class="font-label-sm text-label-sm text-on-surface-variant mb-5">Saved to your account. Caloric history reads these too.</p>
+
+    <div class="space-y-4">
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest block mb-1" for="goal-cal-input">Calorie goal (kcal)</label>
+        <input type="number" id="goal-cal-input" min="800" max="12000" step="10"
+          class="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary transition-colors"/>
+      </div>
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest block mb-1" for="goal-pro-input">Protein goal (g)</label>
+        <input type="number" id="goal-pro-input" min="10" max="500" step="1"
+          class="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary transition-colors"/>
+      </div>
+
+      <div id="goal-maintenance" class="hidden rounded-lg border border-outline-variant bg-surface-container p-3">
+        <p class="font-label-sm text-label-sm text-on-surface-variant" id="goal-maintenance-text"></p>
+        <div class="flex gap-2 mt-3">
+          <button type="button" onclick="applyMaintenance(0)" class="flex-1 bg-surface-container-highest border border-outline-variant rounded-lg py-1.5 font-label-sm text-label-sm text-on-surface hover:bg-surface-variant transition-all active:scale-95">Maintain</button>
+          <button type="button" onclick="applyMaintenance(-500)" class="flex-1 bg-surface-container-highest border border-outline-variant rounded-lg py-1.5 font-label-sm text-label-sm text-on-surface hover:bg-surface-variant transition-all active:scale-95">Cut 500</button>
+          <button type="button" onclick="applyMaintenance(300)" class="flex-1 bg-surface-container-highest border border-outline-variant rounded-lg py-1.5 font-label-sm text-label-sm text-on-surface hover:bg-surface-variant transition-all active:scale-95">Gain 300</button>
+        </div>
+      </div>
+
+      <p class="font-label-sm text-label-sm text-on-surface-variant" id="goal-hint-line"></p>
+      <div id="goal-error" class="font-label-sm text-label-sm text-error hidden">Give both goals a sensible number.</div>
+    </div>
+
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeGoalModal()" class="flex-1 bg-surface-container border border-outline-variant rounded-lg py-2 font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant transition-all active:scale-95">Cancel</button>
+      <button onclick="saveGoals()" class="flex-1 rounded-lg py-2 font-label-sm text-label-sm font-semibold transition-all active:scale-95 bg-primary text-on-primary">Save goals</button>
+    </div>
+    <a href="Settings.html#goals" class="block text-center font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors mt-4">More settings</a>
   </div>
 </div>
 
@@ -758,17 +804,26 @@ function renderChart(burnt, consumed) {
   });
 }
 
-// Goals live on the account (calorie_settings); these are the fallbacks.
+// Goals live on the account. AuraPrefs owns them and mirrors them to the
+// calorie_settings table, so Settings and Caloric History see the same numbers.
 let goalCalorie = 2000, goalProtein = 180;
 
+function readGoals() {
+  if (!window.AuraPrefs) return;
+  const g = window.AuraPrefs.goals();
+  goalCalorie = g.calorie || goalCalorie;
+  goalProtein = g.protein || goalProtein;
+}
+
 async function loadGoals() {
-  if (!GOALS) return;
-  try {
-    const saved = await GOALS.all();
-    if (saved.calorie_goal) goalCalorie = Number(saved.calorie_goal) || goalCalorie;
-    if (saved.protein_goal) goalProtein = Number(saved.protein_goal) || goalProtein;
-  } catch (e) { console.warn('[cloud] goals', e); }
+  readGoals();
   paintGoalTargets();
+  if (window.AuraPrefs) {
+    await window.AuraPrefs.ready;
+    readGoals();
+    paintGoalTargets();
+    renderDay(currentDate);
+  }
 }
 
 function paintGoalTargets() {
@@ -778,18 +833,78 @@ function paintGoalTargets() {
   if (p) p.textContent = '/ ' + goalProtein + 'g';
 }
 
-async function editGoal(which) {
-  const isCal = which === 'calorie';
-  const cur = isCal ? goalCalorie : goalProtein;
-  const raw = prompt(isCal ? 'Daily calorie goal (kcal):' : 'Daily protein goal (grams):', cur);
-  if (raw === null) return;
-  const val = Math.round(Number(raw));
-  if (!isFinite(val) || val <= 0) return;
-  if (isCal) goalCalorie = val; else goalProtein = val;
-  paintGoalTargets();
-  if (GOALS) { try { await GOALS.set(isCal ? 'calorie_goal' : 'protein_goal', val); } catch (e) { console.warn('[cloud] goal save', e); } }
-  renderDay(currentDate);
+/* ---------- goal modal ---------- */
+// Latest weigh-in from the body composition log, when there is one.
+function latestBodyEntry() {
+  try {
+    const list = JSON.parse(localStorage.getItem('aura_body_log_v1') || '[]');
+    if (!Array.isArray(list) || !list.length) return null;
+    return list.slice().sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+  } catch (e) { return null; }
 }
+function maintenanceEstimate() {
+  if (!window.AuraPrefs) return null;
+  const latest = latestBodyEntry();
+  if (!latest) return null;
+  const bf = (JSON.parse(localStorage.getItem('aura_body_log_v1') || '[]')
+    .filter(e => e.bodyfat).sort((a, b) => (a.date < b.date ? 1 : -1))[0] || {}).bodyfat || null;
+  return window.AuraPrefs.tdee(Number(latest.weight_kg), bf);
+}
+
+function openGoalModal() {
+  document.getElementById('goal-cal-input').value = goalCalorie;
+  document.getElementById('goal-pro-input').value = goalProtein;
+  document.getElementById('goal-error').classList.add('hidden');
+
+  const maint = maintenanceEstimate();
+  const box = document.getElementById('goal-maintenance');
+  if (maint) {
+    box.classList.remove('hidden');
+    document.getElementById('goal-maintenance-text').textContent =
+      'Your maintenance works out at about ' + maint.toLocaleString() + ' kcal a day, from your body profile and latest weigh-in.';
+  } else {
+    box.classList.add('hidden');
+  }
+  document.getElementById('goal-hint-line').textContent = maint
+    ? ''
+    : 'Add your height and birth date in Settings, plus one weigh-in, and this will suggest a maintenance figure.';
+
+  document.getElementById('goal-modal').style.setProperty('display', 'flex', 'important');
+  setTimeout(() => document.getElementById('goal-cal-input').focus(), 40);
+}
+function closeGoalModal() {
+  document.getElementById('goal-modal').style.setProperty('display', 'none', 'important');
+}
+function applyMaintenance(delta) {
+  const maint = maintenanceEstimate();
+  if (!maint) return;
+  document.getElementById('goal-cal-input').value = Math.max(1000, maint + delta);
+}
+function saveGoals() {
+  const cal = Math.round(Number(document.getElementById('goal-cal-input').value));
+  const pro = Math.round(Number(document.getElementById('goal-pro-input').value));
+  const err = document.getElementById('goal-error');
+  if (!isFinite(cal) || cal < 800 || !isFinite(pro) || pro < 10) {
+    err.textContent = 'Calories need to be at least 800, protein at least 10 g.';
+    err.classList.remove('hidden');
+    return;
+  }
+  goalCalorie = cal; goalProtein = pro;
+  if (window.AuraPrefs) window.AuraPrefs.setGoals({ calorie: cal, protein: pro });
+  else if (GOALS) GOALS.setMany({ calorie_goal: cal, protein_goal: pro });
+  paintGoalTargets();
+  closeGoalModal();
+  renderDay(currentDate);
+  if (window.auraAuth) window.auraAuth.toast('Goals saved.', 'ok');
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeGoalModal();
+});
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.id === 'goal-target') { e.preventDefault(); openGoalModal(); }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.id === 'protein-target') { e.preventDefault(); openGoalModal(); }
+});
 
 function renderInsights(consumedTotal, proteinTotal) {
   const goal = goalCalorie;
