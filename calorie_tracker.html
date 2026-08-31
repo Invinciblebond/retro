@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AuraHealth — Calorie Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-primary-fixed": "#002114",
+          "primary-fixed": "#6afcbf",
+          "background": "#0e1511",
+          "inverse-surface": "#dde4dd",
+          "outline": "#86948b",
+          "on-background": "#dde4dd",
+          "tertiary-container": "#ff996e",
+          "on-secondary-fixed": "#2b1700",
+          "surface-container-lowest": "#09100c",
+          "on-primary": "#003825",
+          "on-surface": "#dde4dd",
+          "error": "#ffb4ab",
+          "on-tertiary-fixed-variant": "#79310e",
+          "on-error-container": "#ffdad6",
+          "inverse-primary": "#006c4a",
+          "on-error": "#690005",
+          "secondary-container": "#fa9b00",
+          "on-tertiary": "#591d00",
+          "tertiary": "#ffc1a8",
+          "inverse-on-surface": "#2b322e",
+          "on-secondary-container": "#623a00",
+          "on-tertiary-fixed": "#370e00",
+          "error-container": "#93000a",
+          "secondary": "#ffc07a",
+          "on-primary-container": "#005036",
+          "on-secondary-fixed-variant": "#673d00",
+          "surface-variant": "#2f3632",
+          "primary-container": "#2ccb92",
+          "tertiary-fixed-dim": "#ffb598",
+          "surface-bright": "#333b36",
+          "on-primary-fixed-variant": "#005137",
+          "tertiary-fixed": "#ffdbce",
+          "surface-dim": "#0e1511",
+          "secondary-fixed": "#ffddbb",
+          "primary": "#54e8ac",
+          "on-surface-variant": "#bbcac0",
+          "primary-fixed-dim": "#48dfa4",
+          "outline-variant": "#3c4a42",
+          "on-secondary": "#482900",
+          "surface": "#0e1511",
+          "secondary-fixed-dim": "#ffb868",
+          "surface-container-highest": "#2f3632",
+          "surface-container": "#1a211d",
+          "on-tertiary-container": "#772f0c",
+          "surface-container-high": "#242c27",
+          "surface-container-low": "#161d19",
+          "surface-tint": "#48dfa4"
+        },
+        borderRadius: {
+          DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"
+        },
+        spacing: {
+          lg: "24px", "container-padding": "20px", unit: "4px",
+          gutter: "16px", sm: "8px", xs: "4px", md: "16px", xl: "32px"
+        },
+        fontFamily: {
+          "data-mono": ["Inter"], "metric-xl": ["Inter"], "body-md": ["Inter"],
+          "headline-lg": ["Inter"], "label-sm": ["Inter"]
+        },
+        fontSize: {
+          "data-mono": ["14px", { lineHeight:"20px", letterSpacing:"0.05em", fontWeight:"600" }],
+          "metric-xl": ["36px", { lineHeight:"44px", letterSpacing:"-0.03em", fontWeight:"700" }],
+          "body-md": ["16px", { lineHeight:"24px", letterSpacing:"0em", fontWeight:"400" }],
+          "headline-lg": ["24px", { lineHeight:"32px", letterSpacing:"-0.02em", fontWeight:"600" }],
+          "label-sm": ["13px", { lineHeight:"18px", letterSpacing:"0.01em", fontWeight:"500" }]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  body { background-color:#0e1511; color:#dde4dd; }
+  input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor:pointer; }
+  input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor:pointer; }
+  .entry-row { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+  .modal-backdrop { backdrop-filter: blur(4px); }
+  ::-webkit-scrollbar { width:4px; } ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#3c4a42; border-radius:2px; }
+  #db-status { transition: opacity 0.5s; }
+</style>
+</head>
+<body class="font-body-md text-body-md antialiased pb-24">
+
+<!-- Top Nav -->
+<nav class="fixed top-0 w-full z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 flex justify-between items-center px-6 h-16">
+  <div class="font-sans text-sm tracking-tight flex items-center gap-4">
+    <span class="text-xl font-bold tracking-tighter text-emerald-400">AuraHealth</span>
+    <div class="hidden md:flex gap-6 ml-8">
+      <a class="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors" href="#">Dashboard</a>
+      <a class="text-zinc-500 hover:text-emerald-300 transition-colors" href="history.html">History</a>
+      <a class="text-zinc-500 hover:text-emerald-300 transition-colors" href="cycletracker.html">CycleTracker</a>
+      <a class="text-zinc-500 hover:text-emerald-300 transition-colors" href="Progresstracker.html">Plans</a>
+    </div>
+  </div>
+  <div class="flex items-center gap-4">
+    <span id="db-status" class="font-label-sm text-label-sm text-on-surface-variant opacity-0">Saved ✓</span>
+    <button class="material-symbols-outlined text-zinc-500 hover:text-emerald-300 transition-colors">notifications</button>
+    <button class="material-symbols-outlined text-zinc-500 hover:text-emerald-300 transition-colors">settings</button>
+    <div class="w-8 h-8 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center">
+      <span class="material-symbols-outlined text-primary" style="font-size:18px">person</span>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-6 pt-24 space-y-gutter">
+
+  <!-- Header -->
+  <header class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+    <div>
+      <h1 class="font-headline-lg text-headline-lg text-on-background">Calorie tracker</h1>
+      <div class="flex items-center gap-3 mt-1">
+        <p class="font-label-sm text-label-sm text-on-surface-variant" id="date-subtitle">Loading...</p>
+        <div class="flex items-center gap-1">
+          <button onclick="shiftDate(-1)" class="text-on-surface-variant hover:text-primary transition-colors material-symbols-outlined" style="font-size:18px">chevron_left</button>
+          <input type="date" id="date-picker"
+            class="bg-surface-container-high border border-outline-variant rounded-lg px-2 py-1 font-label-sm text-label-sm text-on-surface focus:outline-none focus:border-primary transition-colors"
+            onchange="onDateChange()"/>
+          <button onclick="shiftDate(1)" class="text-on-surface-variant hover:text-primary transition-colors material-symbols-outlined" style="font-size:18px">chevron_right</button>
+        </div>
+      </div>
+    </div>
+    <div class="bg-surface-container-high border border-outline-variant rounded-xl p-4 flex flex-col items-end">
+      <span class="font-label-sm text-label-sm text-primary-fixed uppercase tracking-widest">Net Calories</span>
+      <span class="font-metric-xl text-metric-xl text-on-surface" id="net-calories">0</span>
+    </div>
+  </header>
+
+  <!-- Two columns -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+
+    <!-- Burnt -->
+    <section class="bg-surface-container border border-outline-variant rounded-xl p-lg space-y-md">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-primary"></span>
+          <h2 class="font-headline-lg text-headline-lg text-on-background">Burnt</h2>
+        </div>
+        <button onclick="openModal('burnt')" class="flex items-center gap-1 bg-surface-container-highest hover:bg-surface-variant border border-outline-variant rounded-lg px-3 py-1 text-primary transition-all active:scale-95">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">add_circle</span>
+          <span class="font-label-sm text-label-sm uppercase">Add</span>
+        </button>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <span class="font-metric-xl text-metric-xl text-primary" id="burnt-total">0</span>
+        <span class="font-label-sm text-label-sm text-on-surface-variant">kcal</span>
+      </div>
+      <div id="burnt-list" class="space-y-sm max-h-64 overflow-y-auto pr-1">
+        <div class="font-label-sm text-label-sm text-on-surface-variant py-2 text-center" id="burnt-empty">No activities logged yet</div>
+      </div>
+    </section>
+
+    <!-- Consumed -->
+    <section class="bg-surface-container border border-outline-variant rounded-xl p-lg space-y-md">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-secondary"></span>
+          <h2 class="font-headline-lg text-headline-lg text-on-background">Consumed</h2>
+        </div>
+        <button onclick="openModal('consumed')" class="flex items-center gap-1 bg-surface-container-highest hover:bg-surface-variant border border-outline-variant rounded-lg px-3 py-1 text-secondary transition-all active:scale-95">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">add_circle</span>
+          <span class="font-label-sm text-label-sm uppercase">Add</span>
+        </button>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <span class="font-metric-xl text-metric-xl text-secondary" id="consumed-total">0</span>
+        <span class="font-label-sm text-label-sm text-on-surface-variant">kcal</span>
+      </div>
+      <div id="consumed-list" class="space-y-sm max-h-64 overflow-y-auto pr-1">
+        <div class="font-label-sm text-label-sm text-on-surface-variant py-2 text-center" id="consumed-empty">No food logged yet</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Chart -->
+  <section class="bg-surface-container border border-outline-variant rounded-xl p-lg">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      <div>
+        <h2 class="font-headline-lg text-headline-lg text-on-background">Daily breakdown</h2>
+        <p class="font-label-sm text-label-sm text-on-surface-variant">Cumulative calorie curve through the day</p>
+      </div>
+      <div class="flex gap-2">
+        <div class="flex items-center gap-2 px-3 py-1 bg-surface-container-low border border-outline-variant rounded-full">
+          <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+          <span class="font-label-sm text-label-sm">Activity</span>
+        </div>
+        <div class="flex items-center gap-2 px-3 py-1 bg-surface-container-low border border-outline-variant rounded-full">
+          <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          <span class="font-label-sm text-label-sm">Intake</span>
+        </div>
+      </div>
+    </div>
+    <div class="relative rounded-xl border border-outline-variant overflow-hidden bg-surface-container-low" style="height:280px">
+      <div id="chart-empty-msg" class="absolute inset-0 flex items-center justify-center font-label-sm text-label-sm text-on-surface-variant">Add entries to see your daily curve</div>
+      <canvas id="dayChart" role="img" aria-label="Wave line chart of cumulative burnt and consumed calories through the day" style="display:none"></canvas>
+    </div>
+    <div class="grid grid-cols-9 mt-3 px-1">
+      <span class="font-label-sm text-label-sm text-on-surface-variant text-center col-span-1">00:00</span>
+      <span class="font-label-sm text-label-sm text-on-surface-variant text-center col-span-1">03:00</span>
+      <span class="font-label-sm text-label-sm text-on-surface-variant text-center col-span-1">06:00</span>
+      <span class="font-label-sm text-label-sm text-on-surface-variant text-center col-span-1">09:00</span>
+      <span class="font-label-sm text-label-sm text-on-surface-variant text-center col-span-1">12:00</span>
+      <span class="font-label-sm text-label-sm text-on-surface-variant text-center col-span-1">15:00</span>
+      <span class="font-label-sm text-label-sm text-on-surface-variant text-center col-span-1">18:00</span>
+      <span class="font-label-sm text-label-sm text-on-surface-variant text-center col-span-1">21:00</span>
+      <span class="font-label-sm text-label-sm text-on-surface-variant text-center col-span-1">24:00</span>
+    </div>
+  </section>
+
+  <!-- Macro Insights -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter pb-8">
+    <div class="bg-surface-container border border-outline-variant rounded-xl p-lg flex flex-col justify-between">
+      <div>
+        <h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Protein Goal</h3>
+        <div class="flex items-baseline gap-2">
+          <span class="font-headline-lg text-headline-lg text-on-surface" id="protein-val">0</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant">/ 180g</span>
+        </div>
+      </div>
+      <div class="w-full h-1 bg-surface-container-lowest rounded-full mt-4 overflow-hidden">
+        <div class="h-full bg-primary-container rounded-full transition-all duration-700" id="protein-bar" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="bg-surface-container border border-outline-variant rounded-xl p-lg flex flex-col justify-between">
+      <div>
+        <h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Daily Calorie Goal</h3>
+        <div class="flex items-baseline gap-2">
+          <span class="font-headline-lg text-headline-lg text-on-surface" id="goal-val">0</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant">/ 2,000 kcal</span>
+        </div>
+      </div>
+      <div class="w-full h-1 bg-surface-container-lowest rounded-full mt-4 overflow-hidden">
+        <div class="h-full bg-tertiary-container rounded-full transition-all duration-700" id="goal-bar" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="bg-surface-container border border-outline-variant rounded-xl p-lg flex flex-col justify-between">
+      <div>
+        <h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Calories Remaining</h3>
+        <div class="flex items-baseline gap-2">
+          <span class="font-headline-lg text-headline-lg text-on-surface" id="remaining-val">2,000</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant">kcal left</span>
+        </div>
+      </div>
+      <div class="w-full h-1 bg-surface-container-lowest rounded-full mt-4 overflow-hidden">
+        <div class="h-full bg-secondary-container rounded-full transition-all duration-700" id="remaining-bar" style="width:100%"></div>
+      </div>
+    </div>
+  <!-- Daily Log: Weight + Note -->
+  <section class="bg-surface-container border border-outline-variant rounded-xl p-lg mb-8">
+    <div class="flex items-center gap-2 mb-5">
+      <span class="material-symbols-outlined text-primary" style="font-size:20px">edit_note</span>
+      <h2 class="font-headline-lg text-headline-lg text-on-background">Daily log</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+
+      <!-- Weight -->
+      <div class="bg-surface-container-low border border-outline-variant/60 rounded-xl p-md flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">monitor_weight</span>
+            <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Daily weight</span>
+          </div>
+          <span id="weight-chip"
+            class="hidden items-center gap-1 bg-primary/10 text-primary border border-primary/20 px-3 py-0.5 rounded-full font-data-mono text-data-mono"
+            style="font-size:12px"></span>
+        </div>
+        <div class="flex gap-2 items-center">
+          <div class="relative flex-1">
+            <input type="number" id="log-weight" placeholder="e.g. 74.5" min="20" max="500" step="0.1"
+              class="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 pr-10 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-on-surface-variant/40"/>
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 font-label-sm text-label-sm text-on-surface-variant">kg</span>
+          </div>
+        </div>
+        <p class="font-label-sm text-label-sm text-on-surface-variant/60">Weigh yourself first thing in the morning for consistency.</p>
+      </div>
+
+      <!-- Note -->
+      <div class="bg-surface-container-low border border-outline-variant/60 rounded-xl p-md flex flex-col gap-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary" style="font-size:18px">notes</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Day note</span>
+        </div>
+        <textarea id="log-note" rows="3" placeholder="How did today feel? Any observations, mood, sleep quality…"
+          class="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-on-surface-variant/40 resize-none"></textarea>
+      </div>
+
+    </div>
+
+    <div class="flex items-center justify-between mt-4">
+      <p id="log-error" class="font-label-sm text-label-sm text-error hidden">Please enter a valid weight (20–500 kg).</p>
+      <div class="flex-1"></div>
+      <button onclick="saveLog()"
+        class="flex items-center gap-2 bg-surface-container-highest hover:bg-surface-variant border border-outline-variant rounded-lg px-4 py-2 font-label-sm text-label-sm text-on-surface transition-all active:scale-95">
+        <span class="material-symbols-outlined" style="font-size:16px">save</span>
+        Save log
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- Bottom Nav (mobile) -->
+<nav class="fixed bottom-0 w-full z-50 pb-safe bg-zinc-950/90 backdrop-blur-lg border-t border-zinc-800 flex justify-around items-center h-20 px-4 md:hidden">
+  <button class="flex flex-col items-center justify-center text-emerald-400 bg-emerald-500/10 rounded-xl px-3 py-1">
+    <span class="material-symbols-outlined">grid_view</span>
+    <span class="text-[10px] font-medium uppercase tracking-widest">Dashboard</span>
+  </button>
+  <button onclick="openModal('burnt')" class="flex flex-col items-center justify-center text-zinc-500 hover:text-emerald-300 transition-all">
+    <span class="material-symbols-outlined">add_circle</span>
+    <span class="text-[10px] font-medium uppercase tracking-widest">Log</span>
+  </button>
+  <button class="flex flex-col items-center justify-center text-zinc-500">
+    <span class="material-symbols-outlined">insights</span>
+    <span class="text-[10px] font-medium uppercase tracking-widest">Analytics</span>
+  </button>
+  <button class="flex flex-col items-center justify-center text-zinc-500">
+    <span class="material-symbols-outlined">person</span>
+    <span class="text-[10px] font-medium uppercase tracking-widest">Profile</span>
+  </button>
+</nav>
+
+<!-- Add Entry Modal -->
+<div id="modal" class="fixed inset-0 z-[100] flex items-center justify-center modal-backdrop" style="display:none !important; background:rgba(9,16,12,0.8)">
+  <div class="bg-surface-container-high border border-outline-variant rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-2">
+        <span id="modal-dot" class="w-2 h-2 rounded-full"></span>
+        <h3 class="font-headline-lg text-headline-lg text-on-background" id="modal-title">Log Activity</h3>
+      </div>
+      <button onclick="closeModal()" class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">close</button>
+    </div>
+
+    <!-- Favorites quick-pick -->
+    <div id="favorites-section" class="mb-4 hidden">
+      <button onclick="toggleFavPanel()" id="fav-toggle-btn"
+        class="flex items-center gap-2 w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container hover:bg-surface-variant transition-colors mb-2">
+        <span class="material-symbols-outlined text-yellow-400" style="font-size:16px;font-variation-settings:'FILL' 1">star</span>
+        <span class="font-label-sm text-label-sm text-on-surface flex-1 text-left" id="fav-toggle-label">Favourites</span>
+        <span class="material-symbols-outlined text-on-surface-variant transition-transform" id="fav-chevron" style="font-size:16px">expand_more</span>
+      </button>
+      <div id="fav-panel" class="hidden space-y-1 max-h-44 overflow-y-auto pr-1">
+        <!-- populated by renderFavPanel() -->
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest block mb-1">Label</label>
+        <input type="text" id="modal-label" placeholder="e.g. Morning run / Oats & berries"
+          class="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-on-surface-variant/50"/>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest block mb-1">Calories</label>
+          <input type="number" id="modal-cal" placeholder="kcal" min="1" max="9999"
+            class="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-on-surface-variant/50"/>
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest block mb-1">Time</label>
+          <input type="time" id="modal-time"
+            class="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary transition-colors"/>
+        </div>
+      </div>
+      <div id="modal-protein-row" class="hidden">
+        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest block mb-1">Protein <span class="normal-case text-on-surface-variant/60">(optional)</span></label>
+        <div class="relative">
+          <input type="number" id="modal-protein" placeholder="0" min="0" max="999" step="0.1"
+            class="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 pr-8 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-on-surface-variant/50"/>
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 font-label-sm text-label-sm text-on-surface-variant">g</span>
+        </div>
+      </div>
+      <div id="modal-error" class="font-label-sm text-label-sm text-error hidden">Please fill in all fields.</div>
+    </div>
+
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeModal()" class="flex-1 bg-surface-container border border-outline-variant rounded-lg py-2 font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant transition-all active:scale-95">Cancel</button>
+      <button onclick="submitEntry()" id="modal-submit" class="flex-1 rounded-lg py-2 font-label-sm text-label-sm font-semibold transition-all active:scale-95">Save entry</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let db = null;
+let currentDate = todayStr();
+let modalType = 'burnt';
+let dayChart = null;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function todayStr() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm   = String(d.getMonth() + 1).padStart(2, '0');
+  const dd   = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+function formatDateLabel(d) {
+  const today = todayStr();
+  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  const yesterdayStr = yest.toISOString().slice(0, 10);
+  if (d === today) return 'Your metabolic summary for today';
+  if (d === yesterdayStr) return 'Your metabolic summary for yesterday';
+  return 'Your metabolic summary for ' + new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+}
+function nowTimeStr() {
+  return new Date().toTimeString().slice(0, 5);
+}
+function timeToHour(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h + m / 60;
+}
+function hourToLabel(h) {
+  const hh = String(Math.floor(h)).padStart(2,'0');
+  const mm = String(Math.round((h % 1) * 60)).padStart(2,'0');
+  return hh + ':' + mm;
+}
+
+// ─── SQLite init ──────────────────────────────────────────────────────────────
+async function initDB() {
+  const SQL = await initSqlJs({
+    locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`
+  });
+
+  const saved = localStorage.getItem('aura_db');
+  if (saved) {
+    const buf = Uint8Array.from(atob(saved), c => c.charCodeAt(0));
+    db = new SQL.Database(buf);
+  } else {
+    db = new SQL.Database();
+  }
+
+  db.run(`CREATE TABLE IF NOT EXISTS entries (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    date    TEXT    NOT NULL,
+    type    TEXT    NOT NULL,
+    label   TEXT    NOT NULL,
+    cal     INTEGER NOT NULL,
+    hour    REAL    NOT NULL,
+    protein REAL    NOT NULL DEFAULT 0
+  )`);
+  // migrate existing DBs that lack the protein column
+  try { db.run('ALTER TABLE entries ADD COLUMN protein REAL NOT NULL DEFAULT 0'); } catch(e) {}
+
+  db.run(`CREATE TABLE IF NOT EXISTS daily_log (
+    date       TEXT PRIMARY KEY,
+    weight_kg  REAL,
+    note       TEXT NOT NULL DEFAULT ''
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS favorites (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    type    TEXT NOT NULL,
+    label   TEXT NOT NULL,
+    cal     INTEGER NOT NULL,
+    protein REAL NOT NULL DEFAULT 0
+  )`);
+
+  saveDB();
+}
+
+function saveDB() {
+  const data = db.export();
+  const b64 = btoa(String.fromCharCode(...data));
+  localStorage.setItem('aura_db', b64);
+  const st = document.getElementById('db-status');
+  st.style.opacity = '1';
+  setTimeout(() => { st.style.opacity = '0'; }, 1800);
+}
+
+// ─── CRUD ──────────────────────────────────────────────────────────────────────
+function insertEntry(date, type, label, cal, hour, protein) {
+  db.run('INSERT INTO entries (date,type,label,cal,hour,protein) VALUES (?,?,?,?,?,?)',
+    [date, type, label, cal, hour, protein]);
+  saveDB();
+}
+
+function deleteEntry(id) {
+  db.run('DELETE FROM entries WHERE id=?', [id]);
+  saveDB();
+  renderDay(currentDate);
+}
+
+function getEntries(date, type) {
+  const res = db.exec('SELECT id,label,cal,hour,protein FROM entries WHERE date=? AND type=? ORDER BY hour ASC',
+    [date, type]);
+  if (!res.length) return [];
+  return res[0].values.map(r => ({ id:r[0], label:r[1], cal:r[2], hour:r[3], protein:r[4] }));
+}
+
+function getDailyLog(date) {
+  const res = db.exec('SELECT weight_kg, note FROM daily_log WHERE date=?', [date]);
+  if (!res.length || !res[0].values.length) return { weight_kg: null, note: '' };
+  const [w, n] = res[0].values[0];
+  return { weight_kg: w, note: n || '' };
+}
+
+function saveDailyLog(date, weight_kg, note) {
+  db.run(`INSERT INTO daily_log (date, weight_kg, note) VALUES (?,?,?)
+    ON CONFLICT(date) DO UPDATE SET weight_kg=excluded.weight_kg, note=excluded.note`,
+    [date, weight_kg, note]);
+  saveDB();
+}
+
+// ─── Favorites ────────────────────────────────────────────────────────────────
+function getFavorites(type) {
+  const res = db.exec('SELECT id,label,cal,protein FROM favorites WHERE type=? ORDER BY label ASC', [type]);
+  if (!res.length) return [];
+  return res[0].values.map(r => ({ id:r[0], label:r[1], cal:r[2], protein:r[3] }));
+}
+
+function isFavorite(type, label, cal) {
+  const res = db.exec('SELECT id FROM favorites WHERE type=? AND label=? AND cal=?', [type, label, cal]);
+  return res.length && res[0].values.length ? res[0].values[0][0] : null;
+}
+
+function addFavorite(type, label, cal, protein) {
+  if (isFavorite(type, label, cal)) return;
+  db.run('INSERT INTO favorites (type,label,cal,protein) VALUES (?,?,?,?)', [type, label, cal, protein]);
+  saveDB();
+}
+
+function removeFavorite(id) {
+  db.run('DELETE FROM favorites WHERE id=?', [id]);
+  saveDB();
+}
+
+// ─── Render ────────────────────────────────────────────────────────────────────
+function renderDay(date) {
+  currentDate = date;
+  document.getElementById('date-picker').value = date;
+  document.getElementById('date-subtitle').textContent = formatDateLabel(date);
+
+  const burnt    = getEntries(date, 'burnt');
+  const consumed = getEntries(date, 'consumed');
+
+  const burntTotal    = burnt.reduce((s, e) => s + e.cal, 0);
+  const consumedTotal = consumed.reduce((s, e) => s + e.cal, 0);
+  const net = consumedTotal - burntTotal;
+
+  document.getElementById('burnt-total').textContent    = burntTotal.toLocaleString();
+  document.getElementById('consumed-total').textContent = consumedTotal.toLocaleString();
+  document.getElementById('net-calories').textContent   = (net >= 0 ? '+' : '') + net.toLocaleString();
+  document.getElementById('net-calories').style.color   = net > 0 ? '#ffc07a' : net < 0 ? '#54e8ac' : '';
+
+  renderList('burnt',    burnt);
+  renderList('consumed', consumed);
+  renderChart(burnt, consumed);
+  const proteinTotal = consumed.reduce((s, e) => s + (e.protein || 0), 0);
+  renderInsights(consumedTotal, proteinTotal);
+  renderDailyLog(date);
+}
+
+function renderList(type, entries) {
+  const list  = document.getElementById(type + '-list');
+  const empty = document.getElementById(type + '-empty');
+  const color = type === 'burnt' ? 'text-primary' : 'text-secondary';
+  const sign  = type === 'burnt' ? '-' : '+';
+
+  // Remove old entry rows
+  list.querySelectorAll('.entry-row').forEach(el => el.remove());
+
+  if (!entries.length) {
+    if (empty) empty.style.display = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  entries.forEach(e => {
+    const favId = isFavorite(type, e.label, e.cal);
+    const starFill = favId ? "'FILL' 1" : "'FILL' 0";
+    const starColor = favId ? (type === 'burnt' ? '#54e8ac' : '#ffc07a') : '';
+    const row = document.createElement('div');
+    row.className = 'entry-row flex justify-between items-center p-3 bg-surface-container-low rounded-lg border border-outline-variant/30';
+    row.innerHTML = `
+      <div class="flex flex-col flex-1 min-w-0 mr-3">
+        <span class="font-body-md text-body-md text-on-surface truncate">${escHtml(e.label)}</span>
+        <span class="font-label-sm text-label-sm text-on-surface-variant">${hourToLabel(e.hour)}${e.protein > 0 ? ` · <span style="color:#54e8ac">${e.protein}g protein</span>` : ''}</span>
+      </div>
+      <span class="font-data-mono text-data-mono ${color} mr-2 shrink-0">${sign}${e.cal.toLocaleString()} kcal</span>
+      <button data-star="${e.id}" class="material-symbols-outlined text-on-surface-variant hover:text-yellow-400 transition-colors shrink-0 mr-1"
+        style="font-size:18px;cursor:pointer;font-variation-settings:${starFill};${starColor ? 'color:'+starColor : ''}"
+        onclick="toggleFavorite(event,'${type}',${e.id},'${escHtml(e.label).replace(/'/g,"\\'")}',${e.cal},${e.protein||0})">star</button>
+      <button onclick="deleteEntry(${e.id})" class="material-symbols-outlined text-on-surface-variant hover:text-error transition-colors shrink-0" style="font-size:18px;cursor:pointer">delete</button>`;
+    list.appendChild(row);
+  });
+}
+
+function renderChart(burnt, consumed) {
+  const hasData = burnt.length || consumed.length;
+  const canvas  = document.getElementById('dayChart');
+  const emptyMsg = document.getElementById('chart-empty-msg');
+
+  if (!hasData) {
+    emptyMsg.style.display = 'flex';
+    canvas.style.display   = 'none';
+    if (dayChart) { dayChart.destroy(); dayChart = null; }
+    return;
+  }
+  emptyMsg.style.display = 'none';
+  canvas.style.display   = 'block';
+
+  // Build 25-point hourly axis (0–24)
+  const hours = Array.from({ length: 25 }, (_, i) => i);
+
+  function cumulativeAtHours(entries) {
+    return hours.map(h => {
+      const total = entries.filter(e => e.hour <= h).reduce((s, e) => s + e.cal, 0);
+      return total;
+    });
+  }
+
+  const burntData    = cumulativeAtHours(burnt);
+  const consumedData = cumulativeAtHours(consumed);
+
+  const labels = hours.map(h => String(h).padStart(2,'0') + ':00');
+
+  if (dayChart) {
+    dayChart.data.datasets[0].data = burntData;
+    dayChart.data.datasets[1].data = consumedData;
+    dayChart.update('active');
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+
+  // Gradient fills
+  const gMint  = ctx.createLinearGradient(0, 0, 0, 240);
+  gMint.addColorStop(0,   'rgba(84,232,172,0.22)');
+  gMint.addColorStop(1,   'rgba(84,232,172,0)');
+  const gAmber = ctx.createLinearGradient(0, 0, 0, 240);
+  gAmber.addColorStop(0,  'rgba(255,192,122,0.22)');
+  gAmber.addColorStop(1,  'rgba(255,192,122,0)');
+
+  dayChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Burnt',
+          data: burntData,
+          borderColor: '#54e8ac',
+          backgroundColor: gMint,
+          fill: true,
+          tension: 0.45,
+          pointRadius: burntData.map((v, i) => {
+            if (i === 0) return 0;
+            return burntData[i] !== burntData[i-1] ? 4 : 0;
+          }),
+          pointBackgroundColor: '#54e8ac',
+          pointBorderColor: '#0e1511',
+          pointBorderWidth: 2,
+          borderWidth: 2
+        },
+        {
+          label: 'Consumed',
+          data: consumedData,
+          borderColor: '#ffc07a',
+          backgroundColor: gAmber,
+          fill: true,
+          tension: 0.45,
+          pointRadius: consumedData.map((v, i) => {
+            if (i === 0) return 0;
+            return consumedData[i] !== consumedData[i-1] ? 4 : 0;
+          }),
+          pointBackgroundColor: '#ffc07a',
+          pointBorderColor: '#0e1511',
+          pointBorderWidth: 2,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#242c27',
+          borderColor: '#3c4a42',
+          borderWidth: 1,
+          titleColor: '#bbcac0',
+          bodyColor: '#dde4dd',
+          padding: 10,
+          callbacks: {
+            label: ctx => ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toLocaleString() + ' kcal'
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: false,
+          grid: { display: false }
+        },
+        y: {
+          grid: { color: 'rgba(60,74,66,0.35)', drawBorder: false },
+          border: { display: false },
+          ticks: {
+            color: '#86948b',
+            font: { size: 11, family: 'Inter' },
+            callback: v => v.toLocaleString() + ' kcal',
+            maxTicksLimit: 5
+          },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+function renderInsights(consumedTotal, proteinTotal) {
+  const goal = 2000;
+  const proteinPct = Math.min(100, Math.round(proteinTotal / 180 * 100));
+  const goalPct    = Math.min(100, Math.round(consumedTotal / goal * 100));
+  const remaining  = Math.max(0, goal - consumedTotal);
+  const remPct     = Math.round(remaining / goal * 100);
+
+  document.getElementById('protein-val').textContent   = Math.round(proteinTotal);
+  document.getElementById('protein-bar').style.width   = proteinPct + '%';
+  document.getElementById('goal-val').textContent      = consumedTotal.toLocaleString();
+  document.getElementById('goal-bar').style.width      = goalPct + '%';
+  document.getElementById('remaining-val').textContent = remaining.toLocaleString();
+  document.getElementById('remaining-bar').style.width = remPct + '%';
+}
+
+// ─── Modal ─────────────────────────────────────────────────────────────────────
+function openModal(type) {
+  modalType = type;
+  const modal = document.getElementById('modal');
+  modal.style.setProperty('display', 'flex', 'important');
+  document.getElementById('modal-title').textContent   = type === 'burnt' ? 'Log Activity' : 'Log Food';
+  document.getElementById('modal-dot').style.background = type === 'burnt' ? '#54e8ac' : '#ffc07a';
+  document.getElementById('modal-submit').style.background = type === 'burnt' ? '#54e8ac' : '#ffc07a';
+  document.getElementById('modal-submit').style.color      = type === 'burnt' ? '#003825' : '#482900';
+  document.getElementById('modal-label').placeholder = type === 'burnt' ? 'e.g. Morning run, Cycling' : 'e.g. Oats & berries, Chicken bowl';
+  document.getElementById('modal-label').value   = '';
+  document.getElementById('modal-cal').value     = '';
+  document.getElementById('modal-protein').value = '';
+  document.getElementById('modal-time').value    = nowTimeStr();
+  document.getElementById('modal-error').classList.add('hidden');
+  document.getElementById('modal-protein-row').classList.toggle('hidden', type !== 'consumed');
+  // Favourites panel
+  renderFavPanel(type);
+  document.getElementById('fav-panel').classList.add('hidden');
+  document.getElementById('fav-chevron').style.transform = '';
+  setTimeout(() => document.getElementById('modal-label').focus(), 50);
+}
+
+function renderFavPanel(type) {
+  const favs    = getFavorites(type);
+  const section = document.getElementById('favorites-section');
+  const panel   = document.getElementById('fav-panel');
+  const label   = document.getElementById('fav-toggle-label');
+  const accent  = type === 'burnt' ? '#54e8ac' : '#ffc07a';
+  if (!favs.length) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+  label.textContent = `Favourites (${favs.length})`;
+  panel.innerHTML = '';
+  favs.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-variant border border-outline-variant/40 cursor-pointer transition-colors group';
+    row.innerHTML = `
+      <span class="material-symbols-outlined text-yellow-400 shrink-0" style="font-size:15px;font-variation-settings:'FILL' 1">star</span>
+      <span class="font-body-md text-body-md text-on-surface flex-1 truncate">${escHtml(f.label)}</span>
+      <span class="font-label-sm shrink-0 font-semibold" style="color:${accent}">${f.cal} kcal${f.protein > 0 ? ' · ' + f.protein + 'g' : ''}</span>
+      <button onclick="unfavFromPanel(event,${f.id},'${type}')"
+        class="material-symbols-outlined text-on-surface-variant hover:text-error shrink-0 opacity-0 group-hover:opacity-100 transition-all"
+        style="font-size:15px;cursor:pointer">delete</button>`;
+    row.addEventListener('click', e => { if (e.target.closest('button')) return; applyFavorite(f); });
+    panel.appendChild(row);
+  });
+}
+
+function applyFavorite(f) {
+  document.getElementById('modal-label').value = f.label;
+  document.getElementById('modal-cal').value   = f.cal;
+  if (f.protein > 0 && modalType === 'consumed') document.getElementById('modal-protein').value = f.protein;
+  document.getElementById('fav-panel').classList.add('hidden');
+  document.getElementById('fav-chevron').style.transform = '';
+  document.getElementById('modal-time').focus();
+}
+
+function toggleFavPanel() {
+  const panel   = document.getElementById('fav-panel');
+  const chevron = document.getElementById('fav-chevron');
+  chevron.style.transform = panel.classList.toggle('hidden') ? '' : 'rotate(180deg)';
+}
+
+function unfavFromPanel(evt, favId, type) {
+  evt.stopPropagation();
+  removeFavorite(favId);
+  renderFavPanel(type);
+  renderDay(currentDate);
+}
+
+function closeModal() {
+  document.getElementById('modal').style.setProperty('display', 'none', 'important');
+}
+
+function submitEntry() {
+  const label   = document.getElementById('modal-label').value.trim();
+  const cal     = parseInt(document.getElementById('modal-cal').value);
+  const time    = document.getElementById('modal-time').value;
+  const protein = parseFloat(document.getElementById('modal-protein').value) || 0;
+  const err     = document.getElementById('modal-error');
+
+  if (!label || !cal || cal < 1 || !time) {
+    err.classList.remove('hidden');
+    return;
+  }
+  err.classList.add('hidden');
+
+  insertEntry(currentDate, modalType, label, cal, timeToHour(time), protein);
+  closeModal();
+  renderDay(currentDate);
+}
+
+// ─── Toggle favorite from entry row ──────────────────────────────────────────
+function toggleFavorite(evt, type, entryId, label, cal, protein) {
+  evt.stopPropagation();
+  const btn   = evt.currentTarget;
+  const favId = isFavorite(type, label, cal);
+  const accentColor = type === 'burnt' ? '#54e8ac' : '#ffc07a';
+  if (favId) {
+    removeFavorite(favId);
+    btn.style.fontVariationSettings = "'FILL' 0";
+    btn.style.color = '';
+  } else {
+    addFavorite(type, label, cal, protein);
+    btn.style.fontVariationSettings = "'FILL' 1";
+    btn.style.color = accentColor;
+  }
+}
+
+// ─── Daily log (weight + note) ────────────────────────────────────────────────
+function renderDailyLog(date) {
+  const { weight_kg, note } = getDailyLog(date);
+  const wEl = document.getElementById('log-weight');
+  const nEl = document.getElementById('log-note');
+  wEl.value = weight_kg !== null ? weight_kg : '';
+  nEl.value = note;
+  // show saved weight chip
+  const chip = document.getElementById('weight-chip');
+  if (weight_kg !== null) {
+    chip.textContent = weight_kg + ' kg';
+    chip.style.display = 'inline-flex';
+  } else {
+    chip.style.display = 'none';
+  }
+}
+
+function saveLog() {
+  const wRaw = document.getElementById('log-weight').value.trim();
+  const note = document.getElementById('log-note').value.trim();
+  const weight_kg = wRaw !== '' ? parseFloat(wRaw) : null;
+  if (wRaw !== '' && (isNaN(weight_kg) || weight_kg <= 0 || weight_kg > 500)) {
+    document.getElementById('log-error').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('log-error').classList.add('hidden');
+  saveDailyLog(currentDate, weight_kg, note);
+  renderDailyLog(currentDate);
+}
+
+// ─── Date nav ─────────────────────────────────────────────────────────────────
+function onDateChange() {
+  const d = document.getElementById('date-picker').value;
+  if (!d) return;
+  userPinnedDate = d !== todayStr();
+  renderDay(d);
+}
+
+function shiftDate(delta) {
+  const d = new Date(currentDate + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const next = d.toISOString().slice(0, 10);
+  userPinnedDate = next !== todayStr();
+  renderDay(next);
+}
+
+// ─── Keyboard ─────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && document.getElementById('modal').style.display !== 'none') submitEntry();
+});
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+// ─── Escape html ──────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Auto day-advance ─────────────────────────────────────────────────────────
+// Tracks whether the user is intentionally viewing a past date
+let userPinnedDate = false;
+
+function msUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return midnight - now;
+}
+
+function scheduleAutoAdvance() {
+  // Fire exactly at midnight, then every 24h after
+  setTimeout(() => {
+    if (!userPinnedDate) {
+      renderDay(todayStr());
+    }
+    scheduleAutoAdvance();
+  }, msUntilMidnight() + 500); // +500ms buffer past midnight
+}
+
+// Also catch the tab coming back into focus after a long absence
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !userPinnedDate && currentDate !== todayStr()) {
+    renderDay(todayStr());
+  }
+});
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+(async () => {
+  await initDB();
+  renderDay(todayStr());
+  scheduleAutoAdvance();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Chain Portfolio | Wallet Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1318;
+    --border: #1a2530;
+    --accent: #00e5a0;
+    --accent2: #0066ff;
+    --warn: #ff6b35;
+    --text: #e8f0f8;
+    --muted: #4a6070;
+    --card: #0f1a22;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .logo-block h1 {
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .wallet-addr {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    word-break: break-all;
+    max-width: 500px;
+  }
+
+  .wallet-addr span { color: var(--text); opacity: 0.7; }
+
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 10px 20px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .refresh-btn:hover { background: var(--accent); color: var(--bg); }
+  .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .total-banner {
+    border: 1px solid var(--border);
+    background: var(--card);
+    padding: 32px 36px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .total-banner::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .total-label {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .total-value {
+    font-size: 52px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+
+  .total-meta {
+    margin-top: 16px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item { font-family: 'Space Mono', monospace; font-size: 12px; }
+  .meta-item .label { color: var(--muted); }
+  .meta-item .val { color: var(--text); margin-top: 2px; }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .dot.live { background: var(--accent); animation: pulse 2s infinite; }
+  .dot.loading { background: var(--accent2); animation: pulse 1s infinite; }
+  .dot.err { background: var(--warn); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .fetch-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    transition: all 0.3s;
+  }
+
+  .pill.loading { border-color: var(--accent2); color: var(--accent2); }
+  .pill.done { border-color: var(--accent); color: var(--accent); }
+  .pill.error { border-color: var(--warn); color: var(--warn); }
+
+  .chains-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 18px;
+  }
+
+  .chain-card {
+    border: 1px solid var(--border);
+    background: var(--card);
+    overflow: hidden;
+    transition: border-color 0.2s;
+    animation: fadeIn 0.4s ease both;
+  }
+
+  .chain-card:hover { border-color: var(--accent); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .chain-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .chain-name { display: flex; align-items: center; gap: 10px; }
+
+  .chain-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    flex-shrink: 0;
+  }
+
+  .chain-title { font-size: 14px; font-weight: 600; text-transform: capitalize; }
+
+  .chain-usd {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .token-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(26,37,48,0.6);
+    gap: 12px;
+  }
+
+  .token-row:last-child { border-bottom: none; }
+
+  .token-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+  .token-symbol {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--border);
+    padding: 3px 7px;
+    flex-shrink: 0;
+  }
+
+  .token-name { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .token-right { text-align: right; flex-shrink: 0; }
+
+  .token-usd { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text); }
+  .token-amount { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'Space Mono', monospace; }
+
+  .change-positive { color: var(--accent); }
+  .change-negative { color: var(--warn); }
+
+  .chain-empty {
+    padding: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .skeleton-card { border: 1px solid var(--border); background: var(--card); overflow: hidden; }
+  .skeleton-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+
+  .skeleton-bar {
+    background: linear-gradient(90deg, var(--border) 25%, #1e2e3a 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 2px;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .skeleton-row { padding: 12px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(26,37,48,0.6); }
+
+  .error-box {
+    border: 1px solid var(--warn);
+    padding: 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--warn);
+    margin-bottom: 24px;
+  }
+
+  .error-box strong { display: block; margin-bottom: 8px; font-size: 13px; }
+
+  .last-updated { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); margin-left: auto; }
+
+  .more-tokens {
+    padding: 10px 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    cursor: pointer;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    background: transparent;
+    width: 100%;
+    border-left: none; border-right: none; border-bottom: none;
+    transition: background 0.2s;
+  }
+
+  .more-tokens:hover { background: rgba(0,102,255,0.05); }
+  
+  .inline-mono { font-family: 'Space Mono', monospace; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo-block">
+      <h1>// Multi-Chain Portfolio + TRON</h1>
+      <div class="wallet-addr">
+        EVM address: <span>0xA41AEE3ee768e2774874D67a0E922363661D5D4f</span>
+      </div>
+      <div class="wallet-addr" style="margin-top:4px">
+        TRC-20: <span id="tron-addr-display">—</span>
+        <span style="color:var(--muted);margin-left:8px;font-size:10px" id="tron-addr-hint">(optional)</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+      <button class="refresh-btn" id="refresh-btn">↻ Refresh Portfolio</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="tron-input" type="text" placeholder="Tron address (T...)" style="
+          background:var(--surface);border:1px solid var(--border);color:var(--text);
+          font-family:'Space Mono',monospace;font-size:10px;padding:6px 10px;
+          width:230px;outline:none;
+        " autocomplete="off">
+      </div>
+    </div>
+  </header>
+
+  <div class="total-banner">
+    <div class="total-label">// Total Portfolio Value (All Chains)</div>
+    <div class="total-value" id="total-value">—</div>
+    <div class="total-meta">
+      <div class="meta-item"><div class="label">Active Chains</div><div class="val" id="meta-chains">—</div></div>
+      <div class="meta-item"><div class="label">Total Tokens</div><div class="val" id="meta-tokens">—</div></div>
+      <div class="meta-item"><div class="label">Non-zero Chains</div><div class="val" id="meta-nonzero">—</div></div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Ready</span>
+    <span class="last-updated" id="last-updated"></span>
+  </div>
+
+  <div class="fetch-pills" id="fetch-pills"></div>
+  <div id="error-container"></div>
+  <div class="chains-grid" id="chains-grid"></div>
+
+</div>
+
+<script>
+// ---------- CONFIGURATION ----------
+const API_KEY = 'NxQ9osNocL5yn4AyS5wUqwNYv1NeBQflLxoWMOtxUCU=';
+const EVM_WALLET = '0xA41AEE3ee768e2774874D67a0E922363661D5D4f';
+
+// Storage for Tron address
+let TRON_WALLET = localStorage.getItem('tron_wallet') || '';
+
+function saveTronAddr(val) {
+  TRON_WALLET = val.trim();
+  localStorage.setItem('tron_wallet', TRON_WALLET);
+  document.getElementById('tron-addr-display').textContent = TRON_WALLET || '—';
+  const hintSpan = document.getElementById('tron-addr-hint');
+  if (hintSpan) hintSpan.textContent = TRON_WALLET ? '' : '(optional)';
+}
+
+// Initialize Tron input
+const tronInput = document.getElementById('tron-input');
+if (tronInput) {
+  tronInput.value = TRON_WALLET;
+  tronInput.addEventListener('input', (e) => saveTronAddr(e.target.value));
+}
+saveTronAddr(TRON_WALLET);
+
+// Chain icon mapper
+const CHAIN_ICONS = {
+  ethereum: 'Ξ', polygon: 'Ⓟ', binance: '⬡', arbitrum: 'Ⓐ',
+  optimism: 'Ⓞ', avalanche: 'Ⓐ', base: 'Ⓑ', fantom: 'ⓕ',
+  linea: 'Ⓛ', blast: 'Ⓑ', scroll: 'Ⓢ', mantle: 'Ⓜ',
+  cronos: 'Ⓒ', gnosis: 'Ⓖ', celo: 'Ⓒ', tron: '₮',
+  berachain: '⊛', kava: 'Ⓚ', evmos: 'Ⓔ', abstract: 'Ⓐ'
+};
+
+function formatUSD(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (n >= 1) return '$' + n.toFixed(2);
+  if (n > 0) return '$' + n.toFixed(4);
+  return '$0.00';
+}
+
+function formatAmount(amt) {
+  if (!amt) return '0';
+  const abs = Math.abs(amt);
+  if (abs >= 1000) return abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  if (abs >= 1) return abs.toFixed(4);
+  return abs.toFixed(6);
+}
+
+function chainInitials(name) { return (name || '??').substring(0, 2).toUpperCase(); }
+
+function setStatus(type, text) {
+  const dot = document.getElementById('status-dot');
+  if (dot) dot.className = 'dot ' + type;
+  const statusSpan = document.getElementById('status-text');
+  if (statusSpan) statusSpan.textContent = text;
+}
+
+function setPill(id, state, label) {
+  const el = document.getElementById('pill-' + id);
+  if (!el) return;
+  el.className = 'pill ' + state;
+  el.textContent = label;
+}
+
+function renderSkeletons(count = 5) {
+  const grid = document.getElementById('chains-grid');
+  if (!grid) return;
+  grid.innerHTML = Array.from({length: count}, () => `
+    <div class="skeleton-card">
+      <div class="skeleton-header">
+        <div class="skeleton-bar" style="width:120px;height:16px"></div>
+        <div class="skeleton-bar" style="width:70px;height:16px"></div>
+      </div>
+      ${Array.from({length: 3}, () => `
+        <div class="skeleton-row">
+          <div class="skeleton-bar" style="width:90px;height:14px"></div>
+          <div class="skeleton-bar" style="width:60px;height:14px"></div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ----- API fetch core -----
+async function apiFetch(url) {
+  const response = await fetch(url, {
+    headers: { 'X-API-KEY': API_KEY, 'accept': 'application/json' }
+  });
+  if (!response.ok) {
+    let errorText = await response.text().catch(() => '');
+    throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 150)}`);
+  }
+  return response.json();
+}
+
+// Main multi-chain EVM (all chains) - THIS WORKS
+async function fetchAllEVMBalances() {
+  const url = `https://openapiv1.coinstats.app/wallet/balances?address=${EVM_WALLET}&blockchain=all`;
+  const data = await apiFetch(url);
+  return Array.isArray(data) ? data : [];
+}
+
+// Tron fetch
+async function fetchTronBalances(address) {
+  if (!address || !address.startsWith('T') || address.length < 25) throw new Error('Invalid Tron address');
+  const url = `https://openapiv1.coinstats.app/wallet/balance?address=${address}&connectionId=tron`;
+  const data = await apiFetch(url);
+  // Handle different response formats
+  if (Array.isArray(data)) return data;
+  if (data && data.blockchain) return [data];
+  if (data && data.balances) return [{ ...data, blockchain: 'tron' }];
+  return [];
+}
+
+// Merge chains uniquely
+function mergeChainsUnique(chainArrays) {
+  const map = new Map();
+  for (const arr of chainArrays) {
+    for (const chain of arr) {
+      const key = (chain.blockchain || '').toLowerCase();
+      const existing = map.get(key);
+      if (!existing || (chain.balances || []).length > (existing.balances || []).length) {
+        map.set(key, chain);
+      }
+    }
+  }
+  return [...map.values()];
+}
+
+// Render chain cards
+function renderChains(allChains) {
+  const grid = document.getElementById('chains-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  
+  if (!allChains || allChains.length === 0) {
+    grid.innerHTML = '<div class="chain-empty">No chain data returned. Check network or wallet address.</div>';
+    return;
+  }
+  
+  const sorted = [...allChains].sort((a,b) => {
+    const sumA = (a.balances || []).reduce((s,t) => s + (t.amount||0)*(t.price||0), 0);
+    const sumB = (b.balances || []).reduce((s,t) => s + (t.amount||0)*(t.price||0), 0);
+    return sumB - sumA;
+  });
+  
+  let totalUSD = 0, totalTokens = 0, nonZeroChains = 0;
+  
+  sorted.forEach((chain, idx) => {
+    const balancesRaw = chain.balances || [];
+    const sortedBalances = [...balancesRaw].sort((x,y) => ((y.amount||0)*(y.price||0)) - ((x.amount||0)*(x.price||0)));
+    const chainUSD = sortedBalances.reduce((acc,t) => acc + (t.amount||0)*(t.price||0), 0);
+    totalUSD += chainUSD;
+    totalTokens += sortedBalances.length;
+    if (chainUSD > 0) nonZeroChains++;
+    
+    const chainName = chain.blockchain || 'unknown';
+    const icon = CHAIN_ICONS[chainName.toLowerCase()] || chainInitials(chainName);
+    const SHOW_MAX = 5;
+    const visible = sortedBalances.slice(0, SHOW_MAX);
+    const hidden = sortedBalances.slice(SHOW_MAX);
+    
+    const card = document.createElement('div');
+    card.className = 'chain-card';
+    card.style.animationDelay = `${idx * 0.03}s`;
+    
+    const moreButtonHtml = hidden.length > 0 ? 
+      `<button class="more-tokens" data-hidden='${JSON.stringify(hidden).replace(/'/g, "&#39;")}'>+ ${hidden.length} more tokens</button>` : '';
+    
+    card.innerHTML = `
+      <div class="chain-header">
+        <div class="chain-name">
+          <div class="chain-icon">${icon}</div>
+          <span class="chain-title">${chainName}</span>
+        </div>
+        <span class="chain-usd">${formatUSD(chainUSD)}</span>
+      </div>
+      <div class="tokens-list">
+        ${sortedBalances.length === 0 ? '<div class="chain-empty">✨ No tokens found</div>' : visible.map(t => tokenRowHtml(t)).join('')}
+      </div>
+      ${moreButtonHtml}
+    `;
+    
+    grid.appendChild(card);
+  });
+  
+  document.getElementById('total-value').textContent = formatUSD(totalUSD);
+  document.getElementById('meta-chains').textContent = sorted.length;
+  document.getElementById('meta-tokens').textContent = totalTokens;
+  document.getElementById('meta-nonzero').textContent = nonZeroChains;
+  document.getElementById('last-updated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+}
+
+function tokenRowHtml(t) {
+  const usdVal = (t.amount || 0) * (t.price || 0);
+  const change = t.pCh24h;
+  const changeHtml = (change !== undefined && change !== null) 
+    ? `<span class="${change >= 0 ? 'change-positive' : 'change-negative'}">${change >= 0 ? '+' : ''}${change.toFixed(1)}%</span>` 
+    : '';
+  const amountFormatted = formatAmount(t.amount);
+  return `
+    <div class="token-row">
+      <div class="token-left">
+        <span class="token-symbol">${t.symbol || '?'}</span>
+        <span class="token-name">${t.name || ''}</span>
+      </div>
+      <div class="token-right">
+        <div class="token-usd">${formatUSD(usdVal)}</div>
+        <div class="token-amount">${amountFormatted} ${changeHtml}</div>
+      </div>
+    </div>`;
+}
+
+// Event delegation for expandable "more tokens"
+document.getElementById('chains-grid')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.more-tokens');
+  if (!btn) return;
+  const tokensListDiv = btn.previousElementSibling;
+  if (!tokensListDiv) return;
+  if (btn.dataset.expanded === 'true') {
+    const extras = tokensListDiv.querySelectorAll('.token-row.extra');
+    extras.forEach(extra => extra.remove());
+    const hiddenArr = JSON.parse(btn.dataset.hidden);
+    btn.textContent = `+ ${hiddenArr.length} more tokens`;
+    btn.dataset.expanded = 'false';
+  } else {
+    const hiddenTokens = JSON.parse(btn.dataset.hidden);
+    hiddenTokens.forEach(t => {
+      const extraRow = document.createElement('div');
+      extraRow.className = 'token-row extra';
+      extraRow.innerHTML = tokenRowHtml(t);
+      tokensListDiv.appendChild(extraRow);
+    });
+    btn.textContent = '▲ Show less';
+    btn.dataset.expanded = 'true';
+  }
+});
+
+// ---------- MAIN LOAD (SIMPLIFIED - just use the working multi-chain endpoint) ----------
+async function loadAll() {
+  const refreshBtn = document.getElementById('refresh-btn');
+  if (refreshBtn) refreshBtn.disabled = true;
+  document.getElementById('error-container').innerHTML = '';
+  setStatus('loading', 'Fetching portfolio...');
+  renderSkeletons(6);
+  
+  const hasTron = TRON_WALLET && TRON_WALLET.startsWith('T') && TRON_WALLET.length > 25;
+  
+  // Build progress pills
+  const pillsParent = document.getElementById('fetch-pills');
+  if (pillsParent) {
+    const pillsDef = [{ id: 'evm-all', label: 'EVM (all chains)' }];
+    if (hasTron) pillsDef.push({ id: 'tron', label: 'Tron TRC-20' });
+    pillsParent.innerHTML = pillsDef.map(p => `<div class="pill loading" id="pill-${p.id}">${p.label}</div>`).join('');
+  }
+  
+  let allChainResults = [];
+  let errors = [];
+  
+  // 1. Multi-chain EVM endpoint (includes all EVM chains: Ethereum, Arbitrum, Polygon, Base, etc.)
+  try {
+    setPill('evm-all', 'loading', '⟳ EVM (all chains)');
+    const evmAll = await fetchAllEVMBalances();
+    allChainResults.push(...evmAll);
+    setPill('evm-all', 'done', `✓ EVM (${evmAll.length} chains)`);
+    console.log('EVM chains loaded:', evmAll.map(c => c.blockchain));
+  } catch (err) {
+    console.error('EVM-all error:', err);
+    setPill('evm-all', 'error', '✗ EVM-all failed');
+    errors.push(`EVM all-chains: ${err.message}`);
+  }
+  
+  // 2. Tron if provided
+  if (hasTron) {
+    try {
+      setPill('tron', 'loading', '⟳ Tron TRC-20');
+      const tronData = await fetchTronBalances(TRON_WALLET);
+      allChainResults.push(...tronData);
+      setPill('tron', 'done', `✓ Tron`);
+      console.log('Tron data:', tronData);
+    } catch (err) {
+      console.error('Tron error:', err);
+      setPill('tron', 'error', '✗ Tron failed');
+      errors.push(`Tron: ${err.message}`);
+    }
+  }
+  
+  // Deduplicate and render
+  const uniqueMerged = mergeChainsUnique([allChainResults]);
+  console.log('Final chains to render:', uniqueMerged.map(c => c.blockchain));
+  renderChains(uniqueMerged);
+  
+  // Final status
+  const errorContainer = document.getElementById('error-container');
+  if (errors.length > 0) {
+    errorContainer.innerHTML = `<div class="error-box"><strong>⚠️ Some sources failed</strong>${errors.map(e => `<div style="margin-top:5px;">• ${escapeHtml(e)}</div>`).join('')}</div>`;
+    setStatus(uniqueMerged.length > 0 ? 'live' : 'err', uniqueMerged.length ? `Partial data (${errors.length} issues)` : 'Data unavailable');
+  } else {
+    setStatus('live', `Live — ${uniqueMerged.length} chains tracked`);
+  }
+  
+  if (refreshBtn) refreshBtn.disabled = false;
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+// attach refresh handler
+document.getElementById('refresh-btn')?.addEventListener('click', loadAll);
+
+// initial load
+loadAll();
+</script>
+</body>
+</html>

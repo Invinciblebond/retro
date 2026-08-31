@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Prompt Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a1a1a;display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+#hdr{height:52px;background:#fff;border-bottom:1.5px solid #e2e2de;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;flex-shrink:0}
+.hdr-title{font-size:13px;font-weight:700;color:#1a1a1a;letter-spacing:-.02em}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.hbtn{padding:5px 14px;font-size:12px;font-weight:600;border:1.5px solid #e2e2de;border-radius:8px;background:#fff;cursor:pointer;color:#444;font-family:inherit;transition:background .12s}
+.hbtn:hover{background:#f5f4f0}
+.ibtn{width:30px;height:30px;border-radius:8px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#999}
+.ibtn:hover{background:#f5f4f0}
+.ibtn svg{width:16px;height:16px}
+
+/* ── BODY ── */
+#body{flex:1;display:flex;overflow:hidden}
+
+/* ── TOOLBAR ── */
+#toolbar{width:62px;background:#fff;border-right:1.5px solid #e2e2de;display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:50;flex-shrink:0}
+.tbtn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;border-radius:8px;cursor:pointer;border:none;background:transparent;color:#999;font-family:inherit;font-size:9.5px;font-weight:600;width:52px;letter-spacing:.01em;transition:all .13s;text-align:center}
+.tbtn:hover{background:#f5f4f0;color:#333}
+.tbtn.active{background:#eef3ff;color:#2563eb}
+.tbtn svg{width:20px;height:20px;flex-shrink:0}
+.tb-sep{width:30px;height:1px;background:#e2e2de;margin:3px 0}
+.undo-group{display:flex;flex-direction:column;border:1.5px solid #e2e2de;border-radius:8px;overflow:hidden;margin-top:auto;margin-bottom:10px;width:40px}
+.ubtn{height:26px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#999}
+.ubtn:hover{background:#f5f4f0}
+.ubtn svg{width:13px;height:13px}
+.ubtn+.ubtn{border-top:1px solid #e2e2de}
+
+/* ── CANVAS ── */
+#canvas-wrap{flex:1;position:relative;overflow:hidden;background-image:radial-gradient(circle,#ccc9be 1px,transparent 1px);background-size:22px 22px;background-color:#f5f4f0;cursor:default}
+#canvas-wrap.mode-pan{cursor:grab}
+#canvas-wrap.mode-pan.panning{cursor:grabbing}
+#nodes-layer{position:absolute;top:0;left:0;transform-origin:0 0;z-index:2}
+#svg-layer{position:absolute;top:0;left:0;transform-origin:0 0;z-index:1;overflow:visible;pointer-events:none}
+#svg-layer.conn-active{pointer-events:all}
+
+/* ── CARDS ── */
+.card{position:absolute;background:#fff;border-radius:11px;border:2px solid #d1d5db;box-shadow:0 2px 8px rgba(0,0,0,.09),0 0 0 0.5px rgba(0,0,0,.04);width:228px;cursor:grab;user-select:none;transition:box-shadow .15s,border-color .15s}
+.card.dragging{cursor:grabbing;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:9999!important;opacity:.95}
+.card.selected{outline:2px solid #2563eb;outline-offset:1px}
+.card.prompt{border-color:#16a34a;background:linear-gradient(155deg,#f0fdf4 0%,#f8fffc 100%)}
+.card.output{border-color:#2563eb;background:linear-gradient(155deg,#eff6ff 0%,#f5f9ff 100%)}
+.card.note{border-color:#d97706;background:linear-gradient(155deg,#fffbeb 0%,#fffef5 100%)}
+.card.idea{border-color:#7c3aed;background:linear-gradient(155deg,#f5f3ff 0%,#faf8ff 100%)}
+.card.dashed{border-style:dashed!important}
+
+.card-hdr{display:flex;align-items:center;gap:5px;padding:7px 9px 6px;border-bottom:1.5px solid;font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;border-radius:9px 9px 0 0}
+.card.prompt .card-hdr{border-color:#16a34a;color:#15803d;background:#dcfce7}
+.card.output .card-hdr{border-color:#2563eb;color:#1d4ed8;background:#dbeafe}
+.card.note   .card-hdr{border-color:#d97706;color:#92400e;background:#fef3c7}
+.card.idea   .card-hdr{border-color:#7c3aed;color:#5b21b6;background:#ede9fe}
+.card-hdr svg{width:11px;height:11px;flex-shrink:0}
+.card-hdr-actions{margin-left:auto;display:flex;gap:2px}
+.card-xa{width:18px;height:18px;border:1.5px solid rgba(0,0,0,.1);border-radius:4px;background:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#888;transition:all .1s}
+.card-xa:hover{background:#fff;color:#333}
+.card-xa svg{width:10px;height:10px}
+
+.card-title{font-size:12px;font-weight:700;color:#111;padding:8px 10px 3px;line-height:1.35;letter-spacing:-.01em}
+.card-body{padding:2px 10px 8px;font-size:11px;color:#5f6b63;line-height:1.55}
+.card-body-collapsed{display:none}
+
+/* port dots */
+.port{position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid #9ca3af;cursor:crosshair;opacity:0;transition:opacity .12s,transform .12s,background .12s,border-color .12s;z-index:20}
+.card:hover .port{opacity:1}
+.port:hover,.port.active{background:#2563eb;border-color:#2563eb;transform:scale(1.5)!important}
+.port-n{top:-6px;left:50%;transform:translateX(-50%)}
+.port-s{bottom:-6px;left:50%;transform:translateX(-50%)}
+.port-w{left:-6px;top:50%;transform:translateY(-50%)}
+.port-e{right:-6px;top:50%;transform:translateY(-50%)}
+.port-n:hover,.port-n.active{transform:translateX(-50%) scale(1.5)!important}
+.port-s:hover,.port-s.active{transform:translateX(-50%) scale(1.5)!important}
+.port-w:hover,.port-w.active{transform:translateY(-50%) scale(1.5)!important}
+.port-e:hover,.port-e.active{transform:translateY(-50%) scale(1.5)!important}
+
+/* ── SCRIBBLE ANNOTATIONS ── */
+.scribble{position:absolute;font-family:'Caveat',cursive;font-size:17px;font-weight:600;color:#374151;cursor:move;user-select:none;line-height:1.25;z-index:3;min-width:80px;max-width:160px;text-align:center;padding:4px}
+.scribble.dragging{z-index:9999;opacity:.85}
+.scribble textarea{font-family:'Caveat',cursive;font-size:17px;font-weight:600;color:#374151;background:transparent;border:1px dashed #ccc;border-radius:4px;outline:none;resize:none;width:100%;min-height:40px;padding:2px 4px;line-height:1.25}
+.scribble-arrow{position:absolute;font-size:20px;color:#9ca3af;margin-top:2px}
+
+/* ── CONNECTIONS SVG ── */
+.edge{stroke:#9ca3af;stroke-width:1.8;fill:none;marker-end:url(#arr)}
+.edge.dashed{stroke-dasharray:5,4}
+.edge.selected{stroke:#2563eb}
+.edge-hit{stroke:transparent;stroke-width:14;fill:none;cursor:pointer;pointer-events:stroke}
+
+/* ── CONNECTION PREVIEW ── */
+#conn-preview{stroke:rgba(37,99,235,.5);stroke-width:1.5;fill:none;stroke-dasharray:5,4;display:none}
+
+/* ── ZOOM CONTROLS ── */
+#zoom-ctrl{position:absolute;bottom:18px;left:16px;display:flex;align-items:center;gap:6px;z-index:50}
+.zoom-box{display:flex;align-items:center;background:#fff;border:1.5px solid #e2e2de;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.zoom-box button{width:30px;height:30px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#888}
+.zoom-box button:hover{background:#f5f4f0}
+.zoom-box button svg{width:13px;height:13px}
+#zoom-pct{padding:0 8px;font-size:11.5px;font-weight:700;border-left:1px solid #e2e2de;border-right:1px solid #e2e2de;height:30px;line-height:30px;min-width:48px;text-align:center;color:#555}
+.fit-btn{width:30px;height:30px;background:#fff;border:1.5px solid #e2e2de;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#888;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.fit-btn:hover{background:#f5f4f0}
+.fit-btn svg{width:13px;height:13px}
+
+/* ── SIDEBAR ── */
+#sidebar{width:292px;background:#fff;border-left:1.5px solid #e2e2de;display:flex;flex-direction:column;z-index:50;flex-shrink:0;overflow:hidden;transition:width .2s}
+#sidebar.hidden{width:0}
+.sb-sec{border-bottom:1.5px solid #e2e2de}
+.sb-sec-hdr{width:100%;padding:11px 15px;display:flex;align-items:center;justify-content:space-between;background:#fff;border:none;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:700;color:#111;letter-spacing:-.01em}
+.sb-sec-hdr:hover{background:#fafaf8}
+.sb-sec-hdr .lft{display:flex;align-items:center;gap:8px}
+.sb-sec-hdr .lft svg{width:14px;height:14px}
+.sb-sec-hdr .chev{width:14px;height:14px;transition:transform .2s;flex-shrink:0}
+.sb-sec-hdr.closed .chev{transform:rotate(180deg)}
+.sb-body{padding:10px 15px 14px}
+.sb-lbl{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.sb-text{font-size:12px;color:#555;line-height:1.6}
+.sb-items{list-style:none;display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.sb-items li{font-size:12px;color:#555;display:flex;align-items:baseline;gap:5px}
+.sb-items li::before{content:'•';color:#ccc;flex-shrink:0}
+#sb-copy{margin-top:8px;display:flex;justify-content:flex-end}
+.copy-btn{padding:4px 13px;font-size:11.5px;font-weight:600;border:1.5px solid #e2e2de;border-radius:7px;background:#fff;cursor:pointer;font-family:inherit}
+.copy-btn:hover{background:#f5f4f0}
+.sb-notes{width:100%;height:88px;border:1.5px solid #e2e2de;border-radius:8px;padding:8px;font-size:11.5px;font-family:inherit;resize:none;background:#fafaf8;color:#333;outline:none}
+.sb-notes:focus{border-color:#2563eb}
+#hide-sb{width:100%;border:none;background:transparent;cursor:pointer;padding:9px 15px;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#999;font-family:inherit;border-top:1.5px solid #e2e2de;margin-top:auto}
+#hide-sb:hover{background:#fafaf8}
+#hide-sb svg{width:13px;height:13px}
+
+/* ── EDITOR PANEL (selected card) ── */
+#card-editor{border-bottom:1.5px solid #e2e2de;padding:11px 15px 13px;display:none}
+.ed-lbl{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;margin-bottom:7px}
+.ed-lbl.prompt{color:#15803d}.ed-lbl.output{color:#1d4ed8}.ed-lbl.note{color:#92400e}.ed-lbl.idea{color:#5b21b6}
+.ed-inp{width:100%;border:1.5px solid #e2e2de;border-radius:7px;padding:6px 9px;font-size:12px;font-family:inherit;background:#fafaf8;color:#111;outline:none;margin-bottom:7px}
+.ed-inp:focus{border-color:#2563eb;background:#fff}
+textarea.ed-inp{resize:vertical;min-height:58px;line-height:1.5}
+.ed-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;font-size:11.5px;color:#666}
+.ed-del{width:100%;padding:6px;font-size:11.5px;font-weight:600;border:1.5px solid #fca5a5;border-radius:7px;background:#fef2f2;color:#dc2626;cursor:pointer;font-family:inherit;margin-top:4px}
+.ed-del:hover{background:#fee2e2}
+
+/* ── CONTEXT MENU ── */
+#ctx-menu{position:fixed;z-index:500;background:#fff;border:1.5px solid #e2e2de;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.13);min-width:180px;overflow:hidden;display:none}
+#ctx-menu.open{display:block}
+.ctx-item{display:flex;align-items:center;gap:9px;padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;color:#333;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.ctx-item:hover{background:#f5f4f0}
+.ctx-item.danger{color:#dc2626}
+.ctx-item.danger:hover{background:#fef2f2}
+.ctx-item svg{width:14px;height:14px;flex-shrink:0;color:#999}
+.ctx-item.danger svg{color:#fca5a5}
+.ctx-sep{height:1px;background:#f0f0ec;margin:3px 0}
+.ctx-section-label{padding:5px 13px 2px;font-size:9.5px;font-weight:800;letter-spacing:.07em;color:#bbb;text-transform:uppercase}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%) translateY(8px);background:#1a1a1a;color:#fff;font-size:12px;font-weight:600;padding:8px 18px;border-radius:20px;z-index:999;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── CONN HINT ── */
+#conn-hint{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(37,99,235,.9);color:#fff;padding:6px 16px;border-radius:20px;font-size:11.5px;font-weight:600;z-index:200;pointer-events:none;display:none;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="hdr">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="ibtn" onclick="history.back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="hdr-title">Claude Prompt Board</span>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="hdr-right">
+    <button class="hbtn" onclick="exportBoard()">Export</button>
+    <button class="hbtn" onclick="importBoard()">Import</button>
+    <div style="width:1px;height:18px;background:#e2e2de;margin:0 2px"></div>
+    <button class="ibtn" title="Clear board" onclick="if(confirm('Clear board?'))clearBoard()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="body">
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <button class="tbtn active" id="tbtn-select" onclick="setTool('select')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2l12 11-5 1 3 7-2 1-3-7-5 4V2z"/></svg>
+    Select
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tbtn" id="tbtn-prompt" onclick="addCard('prompt')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15H9v-3l9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Prompt
+  </button>
+  <button class="tbtn" id="tbtn-output" onclick="addCard('output')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Output
+  </button>
+  <button class="tbtn" id="tbtn-note" onclick="addCard('note')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Note
+  </button>
+  <button class="tbtn" id="tbtn-idea" onclick="addCard('idea')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707M12 21a7 7 0 110-14 7 7 0 010 14z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Idea
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tbtn" id="tbtn-connect" onclick="setTool('connect')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Connect
+  </button>
+  <div class="undo-group">
+    <button class="ubtn" onclick="undo()" title="Undo (Ctrl+Z)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a8 8 0 018 8v2M3 10l6 6M3 10l6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="ubtn" onclick="redo()" title="Redo (Ctrl+Y)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10H11a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- CANVAS -->
+<div id="canvas-wrap">
+  <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0,9 3.5,0 7" fill="#9ca3af"/>
+      </marker>
+      <marker id="arr-sel" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0,9 3.5,0 7" fill="#2563eb"/>
+      </marker>
+    </defs>
+    <g id="edges-g"></g>
+    <line id="conn-preview" x1="0" y1="0" x2="0" y2="0" stroke="rgba(37,99,235,.55)" stroke-width="1.6" stroke-dasharray="5,4" display="none"/>
+  </svg>
+  <div id="nodes-layer"></div>
+  <div id="conn-hint">Click a card to start — then click another card to connect</div>
+
+  <!-- ZOOM -->
+  <div id="zoom-ctrl">
+    <div class="zoom-box">
+      <button onclick="doZoom(-0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 12H4" stroke-linecap="round"/></svg></button>
+      <div id="zoom-pct">100%</div>
+      <button onclick="doZoom(0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4" stroke-linecap="round"/></svg></button>
+    </div>
+    <button class="fit-btn" onclick="fitAll()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div id="card-editor"></div>
+
+  <div class="sb-sec">
+    <button class="sb-sec-hdr" id="sbh-prompt" onclick="toggleSbSec('prompt')">
+      <div class="lft">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15H9v-3l9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Prompt</span>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="sb-body" id="sbb-prompt">
+      <div class="sb-lbl">Selected prompt</div>
+      <div class="sb-text" id="sb-prompt-text" style="color:#bbb;font-style:italic">Click a prompt card to see it here.</div>
+    </div>
+  </div>
+
+  <div class="sb-sec" style="flex:1;overflow-y:auto;display:flex;flex-direction:column">
+    <button class="sb-sec-hdr" id="sbh-output" onclick="toggleSbSec('output')">
+      <div class="lft">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Output</span>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="sb-body" id="sbb-output" style="flex:1">
+      <div class="sb-lbl">Selected output</div>
+      <div class="sb-text" id="sb-output-text" style="color:#bbb;font-style:italic">Click an output card to see it here.</div>
+      <div id="sb-copy"><button class="copy-btn" onclick="copyOut()">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <button class="sb-sec-hdr" id="sbh-notes" onclick="toggleSbSec('notes')">
+      <div class="lft">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Notes</span>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="sb-body" id="sbb-notes">
+      <textarea class="sb-notes" id="sb-notes-ta" placeholder="Extra thoughts…" oninput="state.notes=this.value;save()"></textarea>
+    </div>
+  </div>
+
+  <button id="hide-sb" onclick="toggleSidebar()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Hide
+  </button>
+</div>
+
+</div><!-- #body -->
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <input type="hidden" id="ctx-id">
+  <div class="ctx-section-label">Card type</div>
+  <button class="ctx-item" onclick="ctxChangeType('prompt')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15H9v-3l9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>Prompt
+  </button>
+  <button class="ctx-item" onclick="ctxChangeType('output')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" stroke-linecap="round" stroke-linejoin="round"/></svg>Output
+  </button>
+  <button class="ctx-item" onclick="ctxChangeType('note')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>Note
+  </button>
+  <button class="ctx-item" onclick="ctxChangeType('idea')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707M12 21a7 7 0 110-14 7 7 0 010 14z" stroke-linecap="round" stroke-linejoin="round"/></svg>Idea
+  </button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-item" onclick="ctxAddScribble()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round"/></svg>Add scribble note
+  </button>
+  <button class="ctx-item" onclick="ctxDuplicate()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>Duplicate
+  </button>
+  <button class="ctx-item" onclick="ctxToggleDash()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h2m4 0h2m4 0h2" stroke-linecap="round"/></svg>Toggle dashed
+  </button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-item danger" onclick="ctxDelete()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round"/></svg>Delete
+  </button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+const STORE = 'cpb_v2';
+let state = { cards:[], connections:[], scribbles:[], notes:'', nid:1, cid:1, sid:1 };
+
+// ═══════════════════════════════════════
+//  VIEWPORT
+// ═══════════════════════════════════════
+let zoom = 1, panX = 0, panY = 0;
+let isPanning = false, panStart = null;
+
+// ═══════════════════════════════════════
+//  TOOLS & SELECTION
+// ═══════════════════════════════════════
+let tool = 'select';
+let selCardId = null;
+// Connection state
+let connFrom = null; // {id, port}
+
+// ═══════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════
+let hist = [], histIdx = -1;
+
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(state)); } catch(e) {}
+}
+function pushHist() {
+  hist = hist.slice(0, histIdx + 1);
+  hist.push(JSON.stringify(state));
+  histIdx++;
+  if (hist.length > 60) { hist.shift(); histIdx--; }
+  save();
+}
+function undo() {
+  if (histIdx <= 0) return;
+  histIdx--;
+  state = JSON.parse(hist[histIdx]);
+  rerender();
+}
+function redo() {
+  if (histIdx >= hist.length - 1) return;
+  histIdx++;
+  state = JSON.parse(hist[histIdx]);
+  rerender();
+}
+
+// ═══════════════════════════════════════
+//  COORDINATE UTILS — THE KEY TO CORRECT DRAG
+// ═══════════════════════════════════════
+function getWrap() { return document.getElementById('canvas-wrap'); }
+function clientToWorld(cx, cy) {
+  const r = getWrap().getBoundingClientRect();
+  return { x: (cx - r.left - panX) / zoom, y: (cy - r.top - panY) / zoom };
+}
+function applyTransform() {
+  const nl = document.getElementById('nodes-layer');
+  const sl = document.getElementById('svg-layer');
+  const t = `translate(${panX}px,${panY}px) scale(${zoom})`;
+  nl.style.transform = t;
+  sl.style.transform = t;
+  document.getElementById('zoom-pct').textContent = Math.round(zoom * 100) + '%';
+}
+
+// ═══════════════════════════════════════
+//  RENDER ALL
+// ═══════════════════════════════════════
+function rerender() {
+  renderCards();
+  renderEdges();
+  renderScribbles();
+  updateSidebar();
+  document.getElementById('sb-notes-ta').value = state.notes || '';
+}
+
+// ═══════════════════════════════════════
+//  CARD ICONS / LABELS
+// ═══════════════════════════════════════
+const ICONS = {
+  prompt:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15H9v-3l9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  output:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  note:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  idea:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707M12 21a7 7 0 110-14 7 7 0 010 14z" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+};
+const LABELS = { prompt:'Prompt', output:'Output', note:'Note', idea:'Idea' };
+
+// ═══════════════════════════════════════
+//  RENDER CARDS
+// ═══════════════════════════════════════
+function renderCards() {
+  const layer = document.getElementById('nodes-layer');
+  // remove old card els
+  layer.querySelectorAll('.card').forEach(e => e.remove());
+
+  for (const c of state.cards) {
+    const el = document.createElement('div');
+    el.className = 'card ' + c.type + (c.dashed ? ' dashed' : '');
+    el.id = 'card-' + c.id;
+    el.style.left = c.x + 'px';
+    el.style.top  = c.y + 'px';
+    if (selCardId === c.id) el.classList.add('selected');
+
+    const bodyLines = (c.body||'').split('\n').map(l => `<div>${esc(l)||'&nbsp;'}</div>`).join('');
+    const collapsed = c.collapsed;
+
+    el.innerHTML = `
+      <div class="card-hdr">
+        ${ICONS[c.type]}
+        <span style="flex:1">${LABELS[c.type].toUpperCase()}</span>
+        <div class="card-hdr-actions">
+          ${c.type==='output'?`<button class="card-xa" onclick="event.stopPropagation();toggleCollapse(${c.id})" title="${collapsed?'Expand':'Collapse'}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="${collapsed?'M19 9l-7 7-7-7':'M5 15l7-7 7 7'}" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>`:''}
+          <button class="card-xa" onclick="event.stopPropagation();deleteCard(${c.id})" title="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="card-title">${esc(c.title||'Untitled')}</div>
+      <div class="card-body${collapsed?' card-body-collapsed':''}">${bodyLines}</div>
+      <div class="port port-n" data-port="n"></div>
+      <div class="port port-s" data-port="s"></div>
+      <div class="port port-w" data-port="w"></div>
+      <div class="port port-e" data-port="e"></div>
+    `;
+
+    // ── ATTACH EVENTS ──
+    // Port mousedown → start connection
+    el.querySelectorAll('.port').forEach(port => {
+      port.addEventListener('mousedown', ev => {
+        ev.stopPropagation(); ev.preventDefault();
+        startConnection(c.id, port.dataset.port, ev);
+      });
+    });
+
+    // Card mousedown → drag
+    el.addEventListener('mousedown', ev => {
+      if (ev.button !== 0) return;
+      if (ev.target.closest('.card-xa') || ev.target.closest('.port')) return;
+      if (tool === 'connect') { handleConnectClick(c.id); return; }
+      ev.preventDefault();
+      selectCard(c.id);
+      startCardDrag(ev, c);
+    });
+
+    // Right-click
+    el.addEventListener('contextmenu', ev => {
+      ev.preventDefault();
+      selectCard(c.id);
+      showCtx(ev, c.id);
+    });
+
+    layer.appendChild(el);
+  }
+  applyTransform();
+}
+
+// ═══════════════════════════════════════
+//  CARD DRAG — correct world-space math
+// ═══════════════════════════════════════
+function startCardDrag(ev, card) {
+  const startWorld = clientToWorld(ev.clientX, ev.clientY);
+  const startCardX = card.x;
+  const startCardY = card.y;
+  const el = document.getElementById('card-' + card.id);
+  let moved = false;
+
+  el.classList.add('dragging');
+
+  function onMove(e) {
+    const w = clientToWorld(e.clientX, e.clientY);
+    card.x = Math.round(startCardX + (w.x - startWorld.x));
+    card.y = Math.round(startCardY + (w.y - startWorld.y));
+    el.style.left = card.x + 'px';
+    el.style.top  = card.y + 'px';
+    renderEdges();
+    moved = true;
+  }
+
+  function onUp() {
+    el.classList.remove('dragging');
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    if (moved) pushHist();
+  }
+
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+// ═══════════════════════════════════════
+//  RENDER EDGES
+// ═══════════════════════════════════════
+function cardCenter(card, port) {
+  // get rendered element dimensions
+  const el = document.getElementById('card-' + card.id);
+  const w = el ? el.offsetWidth : 228;
+  const h = el ? el.offsetHeight : 100;
+  switch(port) {
+    case 'n': return [card.x + w/2, card.y];
+    case 's': return [card.x + w/2, card.y + h];
+    case 'e': return [card.x + w,   card.y + h/2];
+    case 'w': return [card.x,       card.y + h/2];
+    default:  return [card.x + w/2, card.y + h/2];
+  }
+}
+
+function renderEdges() {
+  const g = document.getElementById('edges-g');
+  g.innerHTML = '';
+  const cmap = {};
+  state.cards.forEach(c => cmap[c.id] = c);
+
+  for (const conn of state.connections) {
+    const from = cmap[conn.from];
+    const to   = cmap[conn.to];
+    if (!from || !to) continue;
+
+    const [x1,y1] = cardCenter(from, conn.fromPort || 's');
+    const [x2,y2] = cardCenter(to,   conn.toPort   || 'n');
+
+    // Bezier control points
+    const dx = x2-x1, dy = y2-y1;
+    const tension = Math.max(40, Math.min(140, Math.abs(dx)*.45 + Math.abs(dy)*.35));
+    let c1x=x1,c1y=y1,c2x=x2,c2y=y2;
+    const fp = conn.fromPort||'s', tp = conn.toPort||'n';
+    if(fp==='s')c1y+=tension; else if(fp==='n')c1y-=tension;
+    else if(fp==='e')c1x+=tension; else if(fp==='w')c1x-=tension;
+    if(tp==='n')c2y-=tension; else if(tp==='s')c2y+=tension;
+    else if(tp==='w')c2x-=tension; else if(tp==='e')c2x+=tension;
+
+    const d = `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`;
+    const dashed = conn.dashed || false;
+
+    // Hit area
+    const hit = document.createElementNS('http://www.w3.org/2000/svg','path');
+    hit.setAttribute('d', d);
+    hit.setAttribute('class', 'edge-hit');
+    hit.style.pointerEvents = 'stroke';
+    hit.addEventListener('contextmenu', ev => { ev.preventDefault(); deleteEdge(conn.id); toast('Connection removed'); });
+    hit.addEventListener('click', () => deleteEdge(conn.id));
+    g.appendChild(hit);
+
+    // Visible edge
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', d);
+    path.setAttribute('class', 'edge' + (dashed?' dashed':''));
+    path.setAttribute('marker-end','url(#arr)');
+    g.appendChild(path);
+  }
+}
+
+// ═══════════════════════════════════════
+//  CONNECTIONS (port-to-port)
+// ═══════════════════════════════════════
+function startConnection(cardId, port, ev) {
+  connFrom = {id: cardId, port};
+  const c = state.cards.find(x => x.id === cardId);
+  const [sx,sy] = cardCenter(c, port);
+
+  const prev = document.getElementById('conn-preview');
+  prev.setAttribute('x1', sx); prev.setAttribute('y1', sy);
+  prev.setAttribute('x2', sx); prev.setAttribute('y2', sy);
+  prev.setAttribute('display','block');
+
+  document.getElementById('svg-layer').classList.add('conn-active');
+
+  function onMove(e) {
+    const r = getWrap().getBoundingClientRect();
+    const wx = (e.clientX - r.left - panX) / zoom;
+    const wy = (e.clientY - r.top  - panY) / zoom;
+    prev.setAttribute('x2', wx); prev.setAttribute('y2', wy);
+  }
+
+  function onUp(e) {
+    prev.setAttribute('display','none');
+    document.getElementById('svg-layer').classList.remove('conn-active');
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+
+    // Check if dropped on a port
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    if (target && target.classList.contains('port')) {
+      const toEl = target.closest('.card');
+      if (toEl) {
+        const toId = parseInt(toEl.id.replace('card-',''));
+        const toPort = target.dataset.port;
+        if (toId !== cardId) {
+          finishConnection(cardId, port, toId, toPort);
+        }
+      }
+    }
+    connFrom = null;
+  }
+
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function handleConnectClick(cardId) {
+  if (!connFrom) {
+    connFrom = {id: cardId, port: 's'};
+    document.getElementById('conn-hint').textContent = 'Now click another card to connect — or click a port dot';
+    document.getElementById('card-' + cardId).classList.add('selected');
+  } else {
+    if (connFrom.id !== cardId) {
+      finishConnection(connFrom.id, connFrom.port, cardId, 'n');
+    }
+    connFrom = null;
+    setTool('select');
+    document.getElementById('conn-hint').style.display = 'none';
+    rerender();
+  }
+}
+
+function finishConnection(fromId, fromPort, toId, toPort) {
+  // deduplicate
+  const exists = state.connections.some(c => c.from===fromId && c.to===toId);
+  if (!exists) {
+    state.connections.push({ id: state.cid++, from:fromId, to:toId, fromPort, toPort, dashed:false });
+    pushHist();
+    renderEdges();
+    toast('Connected ✓');
+  }
+}
+
+function deleteEdge(id) {
+  state.connections = state.connections.filter(c => c.id !== id);
+  pushHist();
+  renderEdges();
+}
+
+// ═══════════════════════════════════════
+//  SCRIBBLE ANNOTATIONS
+// ═══════════════════════════════════════
+function renderScribbles() {
+  const layer = document.getElementById('nodes-layer');
+  layer.querySelectorAll('.scribble').forEach(e => e.remove());
+
+  for (const s of state.scribbles) {
+    const el = document.createElement('div');
+    el.className = 'scribble';
+    el.id = 'scr-' + s.id;
+    el.style.left = s.x + 'px';
+    el.style.top  = s.y + 'px';
+    el.style.color = s.color || '#374151';
+    el.innerHTML = `<div class="scribble-text" style="font-family:Caveat,cursive;font-size:${s.size||17}px;font-weight:600;white-space:pre-wrap;cursor:text;min-width:60px" contenteditable="true" spellcheck="false">${esc(s.text)}</div>`;
+
+    const textEl = el.querySelector('.scribble-text');
+    textEl.addEventListener('input', () => { s.text = textEl.innerText; save(); });
+    textEl.addEventListener('blur', pushHist);
+    textEl.addEventListener('mousedown', ev => ev.stopPropagation());
+
+    // drag scribble
+    el.addEventListener('mousedown', ev => {
+      if (ev.target === textEl || ev.target.closest('.scribble-text')) return;
+      ev.preventDefault();
+      const sw = clientToWorld(ev.clientX, ev.clientY);
+      const sx0 = s.x, sy0 = s.y;
+      let moved = false;
+      function onMove(e) {
+        const w = clientToWorld(e.clientX, e.clientY);
+        s.x = Math.round(sx0 + (w.x - sw.x));
+        s.y = Math.round(sy0 + (w.y - sw.y));
+        el.style.left = s.x + 'px';
+        el.style.top  = s.y + 'px';
+        moved = true;
+      }
+      function onUp() {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        if (moved) pushHist();
+      }
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    });
+
+    // right-click to delete scribble
+    el.addEventListener('contextmenu', ev => {
+      ev.preventDefault();
+      if (confirm('Delete this scribble?')) {
+        state.scribbles = state.scribbles.filter(x => x.id !== s.id);
+        pushHist(); renderScribbles();
+      }
+    });
+
+    layer.appendChild(el);
+  }
+}
+
+function addScribble(wx, wy, text) {
+  state.scribbles.push({ id: state.sid++, x: Math.round(wx), y: Math.round(wy), text: text||'Note…', color:'#4b5563', size:17 });
+  pushHist(); renderScribbles();
+  // auto focus
+  setTimeout(() => {
+    const el = document.querySelector('#scr-'+(state.sid-1)+' .scribble-text');
+    if (el) { el.focus(); document.execCommand('selectAll'); }
+  }, 60);
+}
+
+// ═══════════════════════════════════════
+//  SELECTION & SIDEBAR
+// ═══════════════════════════════════════
+function selectCard(id) {
+  selCardId = id;
+  document.querySelectorAll('.card').forEach(e => e.classList.toggle('selected', e.id === 'card-'+id));
+  updateSidebar();
+}
+
+function updateSidebar() {
+  const card = state.cards.find(c => c.id === selCardId);
+  const ed = document.getElementById('card-editor');
+  if (card) {
+    ed.style.display = 'block';
+    ed.innerHTML = `
+      <div class="ed-lbl ${card.type}">${LABELS[card.type]} — Edit</div>
+      <input class="ed-inp" placeholder="Title" value="${esc(card.title||'')}" oninput="updateField(${card.id},'title',this.value)">
+      <textarea class="ed-inp" rows="4" placeholder="Body / content…" oninput="updateField(${card.id},'body',this.value)">${esc(card.body||'')}</textarea>
+      <div class="ed-row">
+        <input type="checkbox" id="ed-dash" ${card.dashed?'checked':''} onchange="updateField(${card.id},'dashed',this.checked)">
+        <label for="ed-dash">Dashed border</label>
+      </div>
+      <button class="ed-del" onclick="deleteCard(${card.id})">Delete card</button>
+    `;
+    if (card.type === 'prompt') {
+      document.getElementById('sb-prompt-text').innerHTML = `<strong style="display:block;font-size:12px;font-weight:700;color:#111;margin-bottom:3px">${esc(card.title)}</strong><span style="color:#555">${esc(card.body).replace(/\n/g,'<br>')}</span>`;
+    }
+    if (card.type === 'output') {
+      document.getElementById('sb-output-text').innerHTML = `<strong style="display:block;font-size:12px;font-weight:700;color:#111;margin-bottom:3px">${esc(card.title)}</strong><span style="color:#555">${esc(card.body).replace(/\n/g,'<br>')}</span>`;
+    }
+  } else {
+    ed.style.display = 'none';
+  }
+}
+
+function updateField(id, field, val) {
+  const card = state.cards.find(c => c.id === id);
+  if (!card) return;
+  card[field] = val;
+  save();
+  // re-render card text inline without full rerender
+  const el = document.getElementById('card-' + id);
+  if (el) {
+    if (field === 'title') { const t = el.querySelector('.card-title'); if(t) t.textContent = val||'Untitled'; }
+    if (field === 'body') { const b = el.querySelector('.card-body'); if(b) b.innerHTML = val.split('\n').map(l=>`<div>${esc(l)||'&nbsp;'}</div>`).join(''); }
+    if (field === 'dashed') { el.classList.toggle('dashed', val); }
+  }
+}
+
+function toggleCollapse(id) {
+  const c = state.cards.find(x => x.id === id);
+  if (!c) return;
+  c.collapsed = !c.collapsed;
+  save();
+  rerender();
+}
+
+// ═══════════════════════════════════════
+//  CARD CRUD
+// ═══════════════════════════════════════
+function addCard(type) {
+  const wrap = getWrap();
+  const cx = (wrap.offsetWidth/2 - panX) / zoom - 114;
+  const cy = (wrap.offsetHeight/2 - panY) / zoom - 50;
+  const card = {
+    id: state.nid++, type,
+    x: Math.round(cx + (Math.random()-.5)*100),
+    y: Math.round(cy + (Math.random()-.5)*100),
+    title: type==='prompt'?'New Prompt': type==='output'?'New Output': type==='note'?'New Note':'New Idea',
+    body: '', collapsed: false, dashed: false
+  };
+  state.cards.push(card);
+  pushHist(); rerender(); selectCard(card.id);
+  setTool('select');
+}
+
+function deleteCard(id) {
+  state.cards = state.cards.filter(c => c.id !== id);
+  state.connections = state.connections.filter(c => c.from!==id && c.to!==id);
+  if (selCardId === id) selCardId = null;
+  pushHist(); rerender();
+}
+
+function clearBoard() {
+  state.cards = []; state.connections = []; state.scribbles = [];
+  selCardId = null; pushHist(); rerender();
+}
+
+// ═══════════════════════════════════════
+//  CONTEXT MENU
+// ═══════════════════════════════════════
+let _ctxX = 0, _ctxY = 0;
+function showCtx(ev, id) {
+  document.getElementById('ctx-id').value = id;
+  _ctxX = ev.clientX; _ctxY = ev.clientY;
+  const m = document.getElementById('ctx-menu');
+  m.style.display = 'block';
+  setTimeout(() => m.classList.add('open'), 0);
+  let top = ev.clientY, left = ev.clientX;
+  if (top + 320 > window.innerHeight) top -= 320;
+  if (left + 200 > window.innerWidth)  left -= 200;
+  m.style.top = top + 'px'; m.style.left = left + 'px';
+}
+function closeCtx() {
+  const m = document.getElementById('ctx-menu');
+  m.classList.remove('open');
+  setTimeout(() => m.style.display = 'none', 0);
+}
+function ctxId() { return parseInt(document.getElementById('ctx-id').value); }
+
+function ctxChangeType(type) {
+  const c = state.cards.find(x => x.id === ctxId());
+  if (c) { c.type = type; pushHist(); closeCtx(); rerender(); }
+}
+function ctxAddScribble() {
+  closeCtx();
+  const w = clientToWorld(_ctxX, _ctxY);
+  addScribble(w.x, w.y - 30, 'Scribble…');
+}
+function ctxDuplicate() {
+  const c = state.cards.find(x => x.id === ctxId());
+  if (!c) return;
+  const nc = JSON.parse(JSON.stringify(c));
+  nc.id = state.nid++; nc.x += 24; nc.y += 24;
+  state.cards.push(nc);
+  pushHist(); closeCtx(); rerender();
+}
+function ctxToggleDash() {
+  const c = state.cards.find(x => x.id === ctxId());
+  if (c) { c.dashed = !c.dashed; pushHist(); closeCtx(); rerender(); }
+}
+function ctxDelete() {
+  deleteCard(ctxId()); closeCtx();
+}
+
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('#ctx-menu')) closeCtx();
+});
+
+// ═══════════════════════════════════════
+//  TOOLS
+// ═══════════════════════════════════════
+function setTool(t) {
+  tool = t;
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('tbtn-'+t);
+  if (btn) btn.classList.add('active');
+  const wrap = getWrap();
+  wrap.className = '';
+  if (t === 'connect') {
+    document.getElementById('conn-hint').style.display = 'block';
+    document.getElementById('conn-hint').textContent = 'Click a card (or drag a port dot) to start a connection';
+  } else {
+    document.getElementById('conn-hint').style.display = 'none';
+    connFrom = null;
+  }
+}
+
+// ═══════════════════════════════════════
+//  PAN & ZOOM
+// ═══════════════════════════════════════
+const wrap = document.getElementById('canvas-wrap');
+
+wrap.addEventListener('mousedown', ev => {
+  if (ev.target !== wrap && ev.target.id !== 'nodes-layer' && !ev.target.closest('svg#svg-layer')) return;
+  if (ev.button === 1 || (ev.button === 0 && (ev.altKey || tool === 'pan'))) {
+    isPanning = true;
+    panStart = {x: ev.clientX - panX, y: ev.clientY - panY};
+    wrap.classList.add('panning');
+    ev.preventDefault();
+  } else if (ev.button === 0) {
+    selCardId = null;
+    document.querySelectorAll('.card.selected').forEach(e => e.classList.remove('selected'));
+    updateSidebar();
+  }
+});
+
+wrap.addEventListener('dblclick', ev => {
+  if (ev.target === wrap || ev.target.id === 'nodes-layer') {
+    const w = clientToWorld(ev.clientX, ev.clientY);
+    addCard('prompt');
+    // place at click
+    const c = state.cards[state.cards.length-1];
+    c.x = Math.round(w.x - 114); c.y = Math.round(w.y - 40);
+    rerender(); selectCard(c.id);
+  }
+});
+
+document.addEventListener('mousemove', ev => {
+  if (!isPanning) return;
+  panX = ev.clientX - panStart.x;
+  panY = ev.clientY - panStart.y;
+  applyTransform();
+});
+
+document.addEventListener('mouseup', ev => {
+  if (isPanning) { isPanning = false; wrap.classList.remove('panning'); }
+});
+
+wrap.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  const r = wrap.getBoundingClientRect();
+  const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  const factor = ev.deltaY < 0 ? 1.1 : 0.91;
+  const nz = Math.max(0.25, Math.min(2.5, zoom * factor));
+  panX = mx - (mx - panX) * nz / zoom;
+  panY = my - (my - panY) * nz / zoom;
+  zoom = nz;
+  applyTransform();
+}, {passive:false});
+
+function doZoom(delta) {
+  const r = wrap.getBoundingClientRect();
+  const mx = r.width/2, my = r.height/2;
+  const nz = Math.max(0.25, Math.min(2.5, zoom + delta));
+  panX = mx - (mx - panX) * nz / zoom;
+  panY = my - (my - panY) * nz / zoom;
+  zoom = nz;
+  applyTransform();
+}
+
+function fitAll() {
+  if (!state.cards.length) return;
+  const wrap = getWrap();
+  const minX = Math.min(...state.cards.map(c=>c.x));
+  const minY = Math.min(...state.cards.map(c=>c.y));
+  const maxX = Math.max(...state.cards.map(c=>c.x+228));
+  const maxY = Math.max(...state.cards.map(c=>c.y+140));
+  const pw = wrap.offsetWidth - 80, ph = wrap.offsetHeight - 80;
+  const bw = maxX-minX, bh = maxY-minY;
+  zoom = Math.min(pw/(bw||1), ph/(bh||1), 1.5);
+  panX = (wrap.offsetWidth  - bw*zoom)/2 - minX*zoom;
+  panY = (wrap.offsetHeight - bh*zoom)/2 - minY*zoom;
+  applyTransform();
+}
+
+// ═══════════════════════════════════════
+//  SIDEBAR SECTIONS
+// ═══════════════════════════════════════
+function toggleSbSec(sec) {
+  const body = document.getElementById('sbb-'+sec);
+  const hdr  = document.getElementById('sbh-'+sec);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  hdr.classList.toggle('closed', open);
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('hidden');
+}
+function copyOut() {
+  const c = state.cards.find(x => x.id === selCardId);
+  if (c) navigator.clipboard?.writeText(c.body);
+  toast('Copied!');
+}
+
+// ═══════════════════════════════════════
+//  EXPORT / IMPORT
+// ═══════════════════════════════════════
+function exportBoard() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
+  a.download = 'prompt-board.json'; a.click();
+}
+function importBoard() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = e => {
+    const fr = new FileReader();
+    fr.onload = ev => { try { state = JSON.parse(ev.target.result); pushHist(); rerender(); } catch { toast('Invalid JSON'); } };
+    fr.readAsText(e.target.files[0]);
+  };
+  inp.click();
+}
+
+// ═══════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ═══════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════
+document.addEventListener('keydown', ev => {
+  if (ev.target.tagName==='INPUT'||ev.target.tagName==='TEXTAREA'||ev.target.getAttribute('contenteditable')) return;
+  if ((ev.metaKey||ev.ctrlKey)&&ev.key==='z') { ev.preventDefault(); undo(); return; }
+  if ((ev.metaKey||ev.ctrlKey)&&(ev.key==='y'||(ev.shiftKey&&ev.key==='z'))) { ev.preventDefault(); redo(); return; }
+  switch(ev.key) {
+    case 'p': addCard('prompt'); break;
+    case 'o': addCard('output'); break;
+    case 'n': addCard('note');   break;
+    case 'i': addCard('idea');   break;
+    case 'c': setTool('connect');break;
+    case 'Escape': setTool('select'); break;
+    case 'Delete': case 'Backspace':
+      if (selCardId) { deleteCard(selCardId); } break;
+  }
+});
+
+// ═══════════════════════════════════════
+//  LOAD & INIT
+// ═══════════════════════════════════════
+function loadState() {
+  try {
+    const s = localStorage.getItem(STORE);
+    if (s) { state = JSON.parse(s); return true; }
+  } catch(e) {}
+  return false;
+}
+
+function loadDefaults() {
+  state = {
+    nid:10, cid:10, sid:10,
+    notes:'',
+    cards:[
+      {id:1,type:'idea',   x:380,y:255,title:'Personal Productivity System',body:'I want to build a custom productivity system tailored to how I work and think.',collapsed:false,dashed:false},
+      {id:2,type:'prompt', x:120,y:130,title:'1. Brainstorm Core Principles',body:'Help me define 5–10 core principles for a personal productivity system that is simple, effective, and sustainable.',collapsed:false,dashed:false},
+      {id:3,type:'output', x:100,y:360,title:'Core Principles',body:'• Clarity over complexity\n• Build for focus\n• Energy > time\n• Consistency compounds\n• Reflect and iterate\n• Design for your brain\n• Remove friction\n• Make it enjoyable\n• Progress over perfection\n• System over motivation',collapsed:false,dashed:false},
+      {id:4,type:'note',   x:80, y:670,title:'Things to consider',body:'• Mobile vs Desktop\n• Automation ideas?\n• Weekly review cadence\n• Metrics to track',collapsed:false,dashed:false},
+      {id:5,type:'prompt', x:570,y:130,title:'2. Daily Workflow Framework',body:'Design a daily workflow framework based on these principles...',collapsed:false,dashed:false},
+      {id:6,type:'output', x:560,y:360,title:'Daily Workflow Framework',body:'☐ Morning Reset\n☐ Deep Work Block\n☐ Admin / Shallow Work\n☐ Review & Plan\n☐ Evening Shutdown',collapsed:false,dashed:false},
+      {id:7,type:'prompt', x:360,y:560,title:'3. Template & Structure',body:'Create a Notion template structure for this system...',collapsed:false,dashed:false},
+      {id:8,type:'output', x:340,y:760,title:'Notion Template Outline',body:'Pages, databases, relations, and links...',collapsed:false,dashed:false},
+      {id:9,type:'prompt', x:555,y:748,title:'4. Automation Ideas',body:'How can I automate parts of this system?',collapsed:false,dashed:true}
+    ],
+    connections:[
+      {id:1,from:1,to:2,fromPort:'w',toPort:'e',dashed:false},
+      {id:2,from:1,to:5,fromPort:'e',toPort:'w',dashed:false},
+      {id:3,from:1,to:7,fromPort:'s',toPort:'n',dashed:false},
+      {id:4,from:3,to:4,fromPort:'s',toPort:'n',dashed:true},
+      {id:5,from:6,to:9,fromPort:'s',toPort:'n',dashed:true}
+    ],
+    scribbles:[
+      {id:1,x:710,y:415,text:'Expand on\nthis later',color:'#374151',size:16},
+      {id:2,x:670,y:690,text:'Future\nidea',color:'#374151',size:16}
+    ]
+  };
+}
+
+(function init() {
+  if (!loadState()) { loadDefaults(); }
+  pushHist();
+  rerender();
+  setTimeout(fitAll, 100);
+})();
+</script>
+</body>
+</html>

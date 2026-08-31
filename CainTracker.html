@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cain — Planning Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:#080e0b;font-family:'Inter',sans-serif;color:#d4ddd8;display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#1e2b24;border-radius:2px;}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle;line-height:1;user-select:none;}
+
+/* ── HEADER ── */
+header{background:#060b08;border-bottom:1px solid #182018;position:sticky;top:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:0 24px;height:54px;flex-shrink:0;}
+.nav-link{font-size:12px;font-weight:500;color:#4a5e54;padding:5px 11px;border-radius:7px;text-decoration:none;transition:all .14s;}
+.nav-link:hover{color:#9ab0a4;background:#0d1511;}
+.nav-link.active{font-weight:700;color:#42d494;background:rgba(66,212,148,.07);}
+.cbtn{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s;background:transparent;border:none;color:#2e3e36;flex-shrink:0;}
+.cbtn:hover{background:#182018;color:#9ab0a4;}
+.sf{opacity:0;transition:opacity .4s;font-size:11px;color:#4a5e54;pointer-events:none;}
+
+/* ── TOOLBAR ── */
+#toolbar{background:#060b08;border-bottom:1px solid #182018;padding:0 18px;height:42px;display:flex;align-items:center;gap:8px;flex-shrink:0;z-index:40;}
+.tool-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;font-size:11px;font-weight:700;letter-spacing:.03em;border:1px solid #182018;cursor:pointer;transition:all .12s;background:transparent;color:#4a5e54;font-family:inherit;}
+.tool-btn:hover{background:#0d1511;color:#9ab0a4;border-color:#1e2b24;}
+.tool-btn.active{background:rgba(66,212,148,.09);color:#42d494;border-color:rgba(66,212,148,.28);}
+.tool-sep{width:1px;height:16px;background:#182018;}
+.tool-btn .material-symbols-outlined{font-size:14px;}
+.zoom-val{font-size:11px;color:#4a5e54;min-width:38px;text-align:center;font-weight:700;user-select:none;}
+
+/* ── CANVAS WRAPPER ── */
+#canvas-wrap{flex:1;overflow:hidden;position:relative;cursor:default;}
+#canvas-wrap.tool-pan{cursor:grab;}
+#canvas-wrap.tool-pan.panning{cursor:grabbing;}
+#canvas-wrap.tool-connect{cursor:crosshair;}
+
+/* ── SVG CONNECTIONS ── */
+#svg-layer{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:visible;}
+#svg-layer.connecting-mode{pointer-events:all;}
+.edge-path{stroke:#2a3e30;stroke-width:2;fill:none;pointer-events:stroke;cursor:pointer;transition:stroke .14s;}
+.edge-path:hover{stroke:#42d494;stroke-width:2.5;}
+.edge-path.selected{stroke:#42d494;stroke-dasharray:none;}
+.edge-hitbox{stroke:transparent;stroke-width:14;fill:none;cursor:pointer;}
+.edge-label-bg{fill:#0c1410;stroke:#182018;stroke-width:1;rx:5;}
+.edge-label-text{fill:#4a5e54;font-size:10px;font-family:Inter,sans-serif;font-weight:600;dominant-baseline:central;text-anchor:middle;}
+.arrow-head{fill:#2a3e30;}
+.arrow-head.hovered, .edge-path:hover + .arrow-head{fill:#42d494;}
+
+/* ── CANVAS NODES ── */
+#nodes-layer{position:absolute;inset:0;z-index:2;}
+.node{position:absolute;min-width:140px;max-width:320px;border-radius:12px;border:1px solid #182018;background:#101810;cursor:grab;user-select:none;transition:box-shadow .18s,border-color .18s;box-shadow:0 4px 18px rgba(0,0,0,.4);}
+.node:hover{box-shadow:0 8px 30px rgba(0,0,0,.55);border-color:#1e2b24;}
+.node.selected{border-color:rgba(66,212,148,.5);box-shadow:0 0 0 3px rgba(66,212,148,.1),0 8px 30px rgba(0,0,0,.5);}
+.node.dragging{opacity:.88;cursor:grabbing;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:1000;}
+.node-header{padding:9px 12px 7px;border-bottom:1px solid #182018;display:flex;align-items:center;gap:7px;}
+.node-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.node-title{font-size:12px;font-weight:700;color:#d4ddd8;flex:1;min-width:0;outline:none;background:transparent;border:none;cursor:text;font-family:inherit;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.node-title:focus{color:#42d494;overflow:visible;white-space:normal;text-overflow:unset;}
+.node-body{padding:9px 12px;font-size:12px;color:#6a8070;line-height:1.6;outline:none;background:transparent;border:none;width:100%;resize:none;min-height:42px;font-family:inherit;cursor:text;}
+.node-body:focus{color:#b8c8be;}
+.node-body:empty::before{content:attr(data-placeholder);color:#1e2b24;}
+.node-footer{padding:4px 10px 6px;display:flex;align-items:center;justify-content:space-between;}
+.node-tag{font-size:9px;font-weight:900;letter-spacing:.08em;padding:2px 7px;border-radius:4px;text-transform:uppercase;}
+
+/* connection port dots */
+.port{position:absolute;width:12px;height:12px;border-radius:50%;background:#182018;border:2px solid #2a3e30;cursor:crosshair;opacity:0;transition:opacity .12s,transform .12s,background .12s;z-index:10;}
+.node:hover .port, .connecting-mode .port{opacity:1;}
+.port:hover{background:#42d494;border-color:#42d494;transform:scale(1.4);}
+.port-n{top:-7px;left:50%;transform:translateX(-50%);}
+.port-s{bottom:-7px;left:50%;transform:translateX(-50%);}
+.port-w{left:-7px;top:50%;transform:translateY(-50%);}
+.port-e{right:-7px;top:50%;transform:translateY(-50%);}
+.port:hover{transform:translateX(-50%) scale(1.4);}
+.port-s:hover{transform:translateX(-50%) scale(1.4);}
+.port-w:hover{transform:translateY(-50%) scale(1.4);}
+.port-e:hover{transform:translateY(-50%) scale(1.4);}
+
+/* resize handle */
+.resize-handle{position:absolute;bottom:-4px;right:-4px;width:14px;height:14px;cursor:se-resize;opacity:0;transition:opacity .14s;}
+.node:hover .resize-handle{opacity:1;}
+.resize-handle::after{content:'';position:absolute;bottom:4px;right:4px;width:7px;height:7px;border-bottom:2px solid #2a3e30;border-right:2px solid #2a3e30;border-radius:1px;}
+
+/* ── COLOR PALETTE ── */
+.node-colors{display:flex;gap:5px;align-items:center;}
+.nc{width:11px;height:11px;border-radius:50%;cursor:pointer;transition:transform .12s;border:1.5px solid transparent;}
+.nc:hover{transform:scale(1.4);}
+.nc.on{border-color:#fff;}
+
+/* ── NODE TYPE VARIANTS ── */
+.node[data-color="mint"]{border-color:rgba(66,212,148,.3);background:rgba(66,212,148,.04);}
+.node[data-color="amber"]{border-color:rgba(255,192,122,.28);background:rgba(255,192,122,.04);}
+.node[data-color="coral"]{border-color:rgba(255,107,107,.28);background:rgba(255,107,107,.04);}
+.node[data-color="violet"]{border-color:rgba(167,139,250,.28);background:rgba(167,139,250,.04);}
+.node[data-color="sky"]{border-color:rgba(96,165,250,.28);background:rgba(96,165,250,.04);}
+.node[data-color="teal"]{border-color:rgba(45,212,191,.28);background:rgba(45,212,191,.04);}
+.node[data-color="rose"]{border-color:rgba(244,114,182,.28);background:rgba(244,114,182,.04);}
+
+/* ── MODALS ── */
+.modal-bg{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(3,7,5,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);opacity:0;transition:opacity .18s ease;pointer-events:none;}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal-bg.hidden{display:none;}
+.modal-box{background:#0a1210;border:1px solid #182018;border-radius:18px;padding:24px 26px 26px;width:100%;max-width:400px;margin:0 16px;box-shadow:0 40px 120px rgba(0,0,0,.85);transform:translateY(8px) scale(.98);transition:transform .2s cubic-bezier(.16,1,.3,1);}
+.modal-bg.open .modal-box{transform:translateY(0) scale(1);}
+.modal-title{font-size:15px;font-weight:700;color:#d4ddd8;letter-spacing:-.01em;}
+.fl{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4a5e54;margin-bottom:6px;}
+.fi{display:block;width:100%;background:#060b08;border:1px solid #1a2620;border-radius:8px;color:#b8c8be;font-size:13px;font-family:inherit;padding:9px 12px;outline:none;transition:border-color .15s;-webkit-appearance:none;}
+.fi:focus{border-color:#42d494;}
+.fi::placeholder{color:#1e2b24;}
+.form-row{margin-bottom:14px;}
+.btn-ghost{flex:1;padding:10px 14px;border-radius:9px;font-size:12px;font-weight:600;background:transparent;color:#4a5e54;border:1px solid #182018;cursor:pointer;transition:all .14s;font-family:inherit;}
+.btn-ghost:hover{background:#0d1511;color:#9ab0a4;}
+.btn-primary{flex:1;padding:10px 14px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:.02em;background:rgba(66,212,148,.1);color:#42d494;border:1px solid rgba(66,212,148,.2);cursor:pointer;transition:all .14s;font-family:inherit;}
+.btn-primary:hover{background:rgba(66,212,148,.16);border-color:rgba(66,212,148,.35);}
+.btn-danger{flex:1;padding:10px 14px;border-radius:9px;font-size:12px;font-weight:700;background:rgba(239,68,68,.08);color:#fca5a5;border:1px solid rgba(239,68,68,.18);cursor:pointer;transition:all .14s;font-family:inherit;}
+
+/* ── MINI-MAP ── */
+#minimap{position:fixed;bottom:60px;right:20px;width:160px;height:100px;background:#060b08;border:1px solid #182018;border-radius:10px;overflow:hidden;z-index:60;cursor:pointer;opacity:.85;}
+#minimap:hover{opacity:1;}
+#minimap canvas{display:block;width:100%;height:100%;}
+#minimap-viewport{position:absolute;border:1px solid rgba(66,212,148,.5);background:rgba(66,212,148,.04);border-radius:3px;pointer-events:none;}
+
+/* ── CONTEXT MENU ── */
+.ctx-panel{position:fixed;z-index:600;background:#111a14;border:1px solid #1e2b22;border-radius:14px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.85);min-width:200px;display:none;}
+.ctx-panel.open{display:block;animation:ctxIn .14s cubic-bezier(.16,1,.3,1);}
+@keyframes ctxIn{from{opacity:0;transform:scale(.95) translateY(-4px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.ctx-item{display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:12px;font-weight:500;cursor:pointer;color:#c8d8d0;white-space:nowrap;transition:background .08s;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
+.ctx-item:hover{background:#152018;color:#d4ddd8;}
+.ctx-item.danger{color:#fca5a5;}
+.ctx-item.danger:hover{background:rgba(239,68,68,.07);}
+.ctx-sep{height:1px;background:#182018;margin:3px 0;}
+.ctx-ico{width:28px;height:28px;border-radius:7px;background:#182018;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* ── BOARD SELECTOR ── */
+#board-switcher-drop{position:fixed;z-index:400;background:#0a1210;border:1px solid #182018;border-radius:13px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.8);min-width:200px;display:none;}
+.board-row{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:12px;cursor:pointer;color:#9ab0a4;transition:background .08s;}
+.board-row:hover{background:#101810;color:#d4ddd8;}
+.board-row.active-board{color:#42d494;font-weight:700;}
+.bd-dot{width:8px;height:8px;border-radius:50%;background:#2e3e36;}
+.board-row.active-board .bd-dot{background:#42d494;}
+.drop-sep{height:1px;background:#182018;margin:3px 0;}
+
+/* ── TOAST ── */
+.copy-toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(10px);background:#182018;border:1px solid rgba(66,212,148,.25);color:#42d494;font-size:12px;font-weight:700;padding:9px 18px;border-radius:9px;z-index:1000;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;}
+.copy-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── CONNECT LINE PREVIEW ── */
+#connect-preview{position:absolute;pointer-events:none;z-index:5;}
+
+/* ── SELECTION BOX ── */
+#sel-box{position:absolute;border:1px solid rgba(66,212,148,.5);background:rgba(66,212,148,.05);border-radius:3px;pointer-events:none;z-index:1;display:none;}
+
+/* ── HELP HINT ── */
+#help-hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#0a1210;border:1px solid #182018;border-radius:8px;padding:6px 16px;font-size:10px;color:#2e3e36;font-weight:600;letter-spacing:.04em;pointer-events:none;z-index:40;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:28px;">
+    <span style="font-size:19px;font-weight:900;color:#42d494;letter-spacing:-.04em;">AuraHealth</span>
+    <nav style="display:flex;gap:3px;">
+      <a href="#" class="nav-link">Board</a>
+      <a href="#" class="nav-link">Calorie Tracker</a>
+      <a href="#" class="nav-link">History</a>
+      <a href="#" class="nav-link">Cycle Tracker</a>
+      <a href="#" class="nav-link active">Planning</a>
+    </nav>
+  </div>
+  <div style="display:flex;align-items:center;gap:9px;">
+    <span id="sf" class="sf">Saved ✓</span>
+    <button class="cbtn"><span class="material-symbols-outlined" style="font-size:18px;">notifications</span></button>
+    <button class="cbtn"><span class="material-symbols-outlined" style="font-size:18px;">settings</span></button>
+    <div style="width:30px;height:30px;border-radius:50%;background:#182018;border:1px solid #1e2b24;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <span class="material-symbols-outlined" style="color:#42d494;font-size:16px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;">person</span>
+    </div>
+  </div>
+</header>
+
+<div id="toolbar">
+  <!-- board switcher -->
+  <button class="tool-btn" onclick="toggleBoardSwitcher(event)" id="board-switcher-btn">
+    <span class="material-symbols-outlined">dashboard</span>
+    <span id="active-board-name">Board</span>
+    <span class="material-symbols-outlined" style="font-size:12px;">expand_more</span>
+  </button>
+  <div class="tool-sep"></div>
+  <!-- tools -->
+  <button class="tool-btn active" id="tool-select" onclick="setTool('select')" title="Select (V)">
+    <span class="material-symbols-outlined">arrow_selector_tool</span>Select
+  </button>
+  <button class="tool-btn" id="tool-pan" onclick="setTool('pan')" title="Pan (H)">
+    <span class="material-symbols-outlined">pan_tool</span>Pan
+  </button>
+  <button class="tool-btn" id="tool-connect" onclick="setTool('connect')" title="Connect (C)">
+    <span class="material-symbols-outlined">device_hub</span>Connect
+  </button>
+  <div class="tool-sep"></div>
+  <!-- add node -->
+  <button class="tool-btn" onclick="addNode()" title="Add text box (N)">
+    <span class="material-symbols-outlined">add_box</span>Add Node
+  </button>
+  <button class="tool-btn" onclick="addStickyNote()" title="Add sticky note">
+    <span class="material-symbols-outlined">sticky_note_2</span>Sticky
+  </button>
+  <div class="tool-sep"></div>
+  <!-- zoom -->
+  <button class="tool-btn" onclick="zoomBy(0.15)" title="Zoom in (+)"><span class="material-symbols-outlined">zoom_in</span></button>
+  <span class="zoom-val" id="zoom-label">100%</span>
+  <button class="tool-btn" onclick="zoomBy(-0.15)" title="Zoom out (-)"><span class="material-symbols-outlined">zoom_out</span></button>
+  <button class="tool-btn" onclick="fitView()" title="Fit view (F)"><span class="material-symbols-outlined">fit_screen</span>Fit</button>
+  <button class="tool-btn" onclick="resetView()" title="Reset view">1:1</button>
+  <div class="tool-sep"></div>
+  <button class="tool-btn" onclick="clearBoard()" title="Clear all">
+    <span class="material-symbols-outlined">clear_all</span>Clear
+  </button>
+</div>
+
+<!-- Canvas -->
+<div id="canvas-wrap" class="tool-select">
+  <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" class="arrow-head"/>
+      </marker>
+      <marker id="arrow-hover" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#42d494"/>
+      </marker>
+    </defs>
+    <g id="edges-group"></g>
+    <line id="connect-preview-line" x1="0" y1="0" x2="0" y2="0" stroke="rgba(66,212,148,.5)" stroke-width="1.5" stroke-dasharray="6,4" display="none"/>
+  </svg>
+  <div id="nodes-layer"></div>
+  <div id="sel-box"></div>
+</div>
+
+<!-- Mini-map -->
+<div id="minimap" onclick="minimapClick(event)" title="Click to navigate">
+  <canvas id="minimap-canvas" width="160" height="100"></canvas>
+  <div id="minimap-viewport"></div>
+</div>
+
+<!-- Context menu -->
+<div id="ctx-menu" class="ctx-panel">
+  <input type="hidden" id="ctx-node-id"/>
+  <div class="ctx-item" onclick="ctxDuplicate()">
+    <span class="ctx-ico"><span class="material-symbols-outlined" style="font-size:14px;color:#9ab0a4;">content_copy</span></span>Duplicate
+  </div>
+  <div class="ctx-item" onclick="ctxBringFront()">
+    <span class="ctx-ico"><span class="material-symbols-outlined" style="font-size:14px;color:#9ab0a4;">flip_to_front</span></span>Bring to front
+  </div>
+  <div class="ctx-sep"></div>
+  <div style="padding:6px 14px 4px;font-size:9px;font-weight:800;letter-spacing:.1em;color:#2e3e36;text-transform:uppercase;">Color</div>
+  <div style="display:flex;gap:8px;padding:6px 14px 10px;">
+    <div class="nc" style="background:#42d494;" onclick="ctxColor('mint')" title="Mint"></div>
+    <div class="nc" style="background:#ffc07a;" onclick="ctxColor('amber')" title="Amber"></div>
+    <div class="nc" style="background:#ff6b6b;" onclick="ctxColor('coral')" title="Coral"></div>
+    <div class="nc" style="background:#a78bfa;" onclick="ctxColor('violet')" title="Violet"></div>
+    <div class="nc" style="background:#60a5fa;" onclick="ctxColor('sky')" title="Sky"></div>
+    <div class="nc" style="background:#2dd4bf;" onclick="ctxColor('teal')" title="Teal"></div>
+    <div class="nc" style="background:#f472b6;" onclick="ctxColor('rose')" title="Rose"></div>
+    <div class="nc" style="background:#182018;border:1px solid #2a3e30;" onclick="ctxColor('')" title="Default"></div>
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="ctxDelete()">
+    <span class="ctx-ico"><span class="material-symbols-outlined" style="font-size:14px;color:#fca5a5;">delete</span></span>Delete node
+  </div>
+</div>
+
+<!-- Edge context menu -->
+<div id="edge-ctx-menu" class="ctx-panel">
+  <input type="hidden" id="edge-ctx-id"/>
+  <div class="ctx-item" onclick="edgeCtxSetLabel()">
+    <span class="ctx-ico"><span class="material-symbols-outlined" style="font-size:14px;color:#9ab0a4;">label</span></span>Set label
+  </div>
+  <div class="ctx-item" onclick="edgeCtxToggleStyle()">
+    <span class="ctx-ico"><span class="material-symbols-outlined" style="font-size:14px;color:#9ab0a4;">linear_scale</span></span>Toggle style
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="edgeCtxDelete()">
+    <span class="ctx-ico"><span class="material-symbols-outlined" style="font-size:14px;color:#fca5a5;">delete</span></span>Delete connection
+  </div>
+</div>
+
+<!-- Board switcher -->
+<div id="board-switcher-drop">
+  <div id="board-list"></div>
+  <div class="drop-sep"></div>
+  <div class="board-row" onclick="openAddBoardModal()" style="color:#42d494;">
+    <span class="material-symbols-outlined" style="font-size:13px;color:#42d494;">add</span>New Board
+  </div>
+</div>
+
+<!-- Add board modal -->
+<div id="modal-board" class="modal-bg hidden">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title">New Planning Board</div>
+      <button class="cbtn" onclick="closeModal('modal-board')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <div class="form-row" style="margin-bottom:18px;"><label class="fl">Board Name</label><input type="text" id="new-board-name" class="fi" placeholder="e.g. Q3 Goals, Health Plan…" autocomplete="off"/></div>
+    <div style="display:flex;gap:9px;"><button class="btn-ghost" onclick="closeModal('modal-board')">Cancel</button><button class="btn-primary" onclick="submitNewBoard()">Create Board</button></div>
+  </div>
+</div>
+
+<!-- Edge label modal -->
+<div id="modal-edge-label" class="modal-bg hidden">
+  <div class="modal-box" style="max-width:320px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title">Connection Label</div>
+      <button class="cbtn" onclick="closeModal('modal-edge-label')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <input type="hidden" id="edge-label-id"/>
+    <div class="form-row" style="margin-bottom:18px;"><label class="fl">Label Text</label><input type="text" id="edge-label-input" class="fi" placeholder="e.g. leads to, triggers, blocks…" autocomplete="off"/></div>
+    <div style="display:flex;gap:9px;"><button class="btn-ghost" onclick="closeModal('modal-edge-label')">Cancel</button><button class="btn-primary" onclick="submitEdgeLabel()">Save</button></div>
+  </div>
+</div>
+
+<div id="help-hint">Double-click canvas to add node · Right-click node for options · Drag ports to connect</div>
+<div id="copy-toast" class="copy-toast"></div>
+
+<script>
+// ──────────────────────────────────────────────────
+//  GLOBALS
+// ──────────────────────────────────────────────────
+let db = null;
+let curBoardId = 1;
+let activeTool = 'select';
+let zoom = 1, panX = 0, panY = 0;
+let isPanning = false, panStart = null;
+let selNodes = new Set();
+let connecting = false, connectFromId = null, connectFromPort = null;
+let draggingNodeId = null, dragOffset = {x:0, y:0};
+let selBox = null;
+let nodeZIndex = 10;
+
+const COLORS = {
+  mint:   {border:'rgba(66,212,148,.3)',  bg:'rgba(66,212,148,.04)',  accent:'#42d494'},
+  amber:  {border:'rgba(255,192,122,.28)',bg:'rgba(255,192,122,.04)', accent:'#ffc07a'},
+  coral:  {border:'rgba(255,107,107,.28)',bg:'rgba(255,107,107,.04)', accent:'#ff6b6b'},
+  violet: {border:'rgba(167,139,250,.28)',bg:'rgba(167,139,250,.04)', accent:'#a78bfa'},
+  sky:    {border:'rgba(96,165,250,.28)', bg:'rgba(96,165,250,.04)',  accent:'#60a5fa'},
+  teal:   {border:'rgba(45,212,191,.28)', bg:'rgba(45,212,191,.04)',  accent:'#2dd4bf'},
+  rose:   {border:'rgba(244,114,182,.28)',bg:'rgba(244,114,182,.04)', accent:'#f472b6'},
+  '':     {border:'#182018',              bg:'#101810',               accent:'#42d494'},
+};
+
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function flash(){const e=document.getElementById('sf');e.style.opacity='1';setTimeout(()=>e.style.opacity='0',1600);}
+function showToast(msg){const t=document.getElementById('copy-toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+
+// ──────────────────────────────────────────────────
+//  DB
+// ──────────────────────────────────────────────────
+async function initDB() {
+  const SQL = await initSqlJs({locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
+  const saved = localStorage.getItem('aura_planning_db_v1');
+  db = saved ? new SQL.Database(Uint8Array.from(atob(saved), c => c.charCodeAt(0))) : new SQL.Database();
+
+  db.run(`CREATE TABLE IF NOT EXISTS planning_boards(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`);
+  db.run(`CREATE TABLE IF NOT EXISTS planning_nodes(id INTEGER PRIMARY KEY AUTOINCREMENT, board_id INTEGER NOT NULL, title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', x REAL NOT NULL DEFAULT 100, y REAL NOT NULL DEFAULT 100, w REAL NOT NULL DEFAULT 180, color TEXT NOT NULL DEFAULT '', node_type TEXT NOT NULL DEFAULT 'default', z_index INTEGER NOT NULL DEFAULT 10, created_at TEXT NOT NULL)`);
+  db.run(`CREATE TABLE IF NOT EXISTS planning_edges(id INTEGER PRIMARY KEY AUTOINCREMENT, board_id INTEGER NOT NULL, from_node INTEGER NOT NULL, to_node INTEGER NOT NULL, from_port TEXT NOT NULL DEFAULT 's', to_port TEXT NOT NULL DEFAULT 'n', label TEXT NOT NULL DEFAULT '', style TEXT NOT NULL DEFAULT 'curved', created_at TEXT NOT NULL)`);
+  db.run(`CREATE TABLE IF NOT EXISTS planning_view(board_id INTEGER PRIMARY KEY, zoom REAL NOT NULL DEFAULT 1, pan_x REAL NOT NULL DEFAULT 0, pan_y REAL NOT NULL DEFAULT 0)`);
+
+  if (!qs('SELECT COUNT(*) FROM planning_boards')[0][0]) {
+    db.run("INSERT INTO planning_boards(name,position,created_at)VALUES('My Plan',0,?)", [new Date().toISOString()]);
+  }
+  curBoardId = qs('SELECT id FROM planning_boards ORDER BY position LIMIT 1')[0][0];
+  saveDB();
+}
+
+function saveDB() {
+  const d = db.export();
+  try { localStorage.setItem('aura_planning_db_v1', btoa(String.fromCharCode(...d))); flash(); } catch(e) { console.warn('Storage full'); }
+}
+
+function qs(sql, p) { const r = db.exec(sql, p||[]); return r.length ? r[0].values : []; }
+
+function getNodes() {
+  return qs('SELECT id,title,body,x,y,w,color,node_type,z_index FROM planning_nodes WHERE board_id=? ORDER BY z_index',[curBoardId])
+    .map(r => ({id:r[0],title:r[1],body:r[2],x:r[3],y:r[4],w:r[5],color:r[6],node_type:r[7],z:r[8]}));
+}
+
+function getEdges() {
+  return qs('SELECT id,from_node,to_node,from_port,to_port,label,style FROM planning_edges WHERE board_id=?',[curBoardId])
+    .map(r => ({id:r[0],from:r[1],to:r[2],fromPort:r[3],toPort:r[4],label:r[5],style:r[6]}));
+}
+
+function getView() {
+  const r = qs('SELECT zoom,pan_x,pan_y FROM planning_view WHERE board_id=?',[curBoardId]);
+  return r.length ? {zoom:r[0][0],panX:r[0][1],panY:r[0][2]} : {zoom:1,panX:0,panY:0};
+}
+
+function saveView() {
+  db.run('INSERT INTO planning_view(board_id,zoom,pan_x,pan_y)VALUES(?,?,?,?)ON CONFLICT(board_id)DO UPDATE SET zoom=excluded.zoom,pan_x=excluded.pan_x,pan_y=excluded.pan_y',
+    [curBoardId,zoom,panX,panY]);
+}
+
+// ──────────────────────────────────────────────────
+//  COORDINATE TRANSFORMS
+// ──────────────────────────────────────────────────
+function canvasToWorld(cx, cy) {
+  return { x: (cx - panX) / zoom, y: (cy - panY) / zoom };
+}
+function worldToCanvas(wx, wy) {
+  return { x: wx * zoom + panX, y: wy * zoom + panY };
+}
+function getCanvasRect() { return document.getElementById('canvas-wrap').getBoundingClientRect(); }
+
+// ──────────────────────────────────────────────────
+//  RENDER
+// ──────────────────────────────────────────────────
+function renderAll() {
+  renderNodes();
+  renderEdges();
+  renderMinimap();
+}
+
+function renderNodes() {
+  const layer = document.getElementById('nodes-layer');
+  const existing = new Map();
+  layer.querySelectorAll('.node').forEach(el => existing.set(+el.dataset.id, el));
+  const nodes = getNodes();
+  const present = new Set();
+
+  nodes.forEach(n => {
+    present.add(n.id);
+    let el = existing.get(n.id);
+    if (!el) { el = createNodeEl(n); layer.appendChild(el); }
+    else updateNodeEl(el, n);
+  });
+
+  existing.forEach((el, id) => { if (!present.has(id)) el.remove(); });
+  applyTransform();
+}
+
+function createNodeEl(n) {
+  const el = document.createElement('div');
+  el.className = 'node';
+  el.dataset.id = n.id;
+  el.innerHTML = nodeHTML(n);
+  attachNodeEvents(el, n);
+  return el;
+}
+
+function updateNodeEl(el, n) {
+  el.style.left = n.x + 'px';
+  el.style.top  = n.y + 'px';
+  el.style.width = n.w + 'px';
+  el.style.zIndex = n.z;
+  el.dataset.color = n.color;
+  applyNodeColor(el, n.color);
+  el.classList.toggle('selected', selNodes.has(n.id));
+  // Update text content only if not focused
+  const titleEl = el.querySelector('.node-title');
+  const bodyEl  = el.querySelector('.node-body');
+  if (titleEl && document.activeElement !== titleEl) titleEl.value = n.title;
+  if (bodyEl  && document.activeElement !== bodyEl)  bodyEl.innerText = n.body;
+}
+
+function nodeHTML(n) {
+  const iconMap = {default:'article',sticky:'sticky_note_2',action:'task_alt',decision:'help',goal:'flag'};
+  const icon = iconMap[n.node_type] || 'article';
+  const colorData = COLORS[n.color] || COLORS[''];
+  return `
+    <div class="node-header" style="background:${colorData.bg}">
+      <div class="node-icon" style="background:${colorData.bg};"><span class="material-symbols-outlined" style="font-size:13px;color:${colorData.accent};font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;">${icon}</span></div>
+      <input class="node-title" value="${esc(n.title)}" placeholder="Untitled…" spellcheck="false"/>
+      <button class="cbtn" style="opacity:0;transition:opacity .14s;width:20px;height:20px;" onclick="deleteNodeById(${n.id})"><span class="material-symbols-outlined" style="font-size:12px;">close</span></button>
+    </div>
+    <div class="node-body" contenteditable="true" data-placeholder="Add details…" spellcheck="false">${esc(n.body)}</div>
+    <div class="port port-n" data-port="n" data-node="${n.id}"></div>
+    <div class="port port-s" data-port="s" data-node="${n.id}"></div>
+    <div class="port port-w" data-port="w" data-node="${n.id}"></div>
+    <div class="port port-e" data-port="e" data-node="${n.id}"></div>
+    <div class="resize-handle"></div>
+  `;
+}
+
+function applyNodeColor(el, color) {
+  const c = COLORS[color] || COLORS[''];
+  el.style.background = c.bg;
+  if (!el.classList.contains('selected')) el.style.borderColor = c.border;
+}
+
+function attachNodeEvents(el, n) {
+  el.style.left = n.x + 'px';
+  el.style.top  = n.y + 'px';
+  el.style.width = n.w + 'px';
+  el.style.zIndex = n.z;
+  el.dataset.color = n.color;
+  applyNodeColor(el, n.color);
+
+  // Show/hide delete btn on hover
+  el.addEventListener('mouseenter', () => { el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='1'); });
+  el.addEventListener('mouseleave', () => { el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='0'); });
+
+  // Title change
+  const titleEl = el.querySelector('.node-title');
+  titleEl.addEventListener('input', debounce(() => {
+    db.run('UPDATE planning_nodes SET title=? WHERE id=?', [titleEl.value, n.id]);
+    saveDB(); renderEdges(); renderMinimap();
+  }, 400));
+  titleEl.addEventListener('mousedown', e => e.stopPropagation());
+
+  // Body change
+  const bodyEl = el.querySelector('.node-body');
+  bodyEl.addEventListener('input', debounce(() => {
+    db.run('UPDATE planning_nodes SET body=? WHERE id=?', [bodyEl.innerText.trim(), n.id]);
+    saveDB();
+  }, 400));
+  bodyEl.addEventListener('mousedown', e => e.stopPropagation());
+
+  // Port events (start connection)
+  el.querySelectorAll('.port').forEach(port => {
+    port.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      startConnect(n.id, port.dataset.port, e);
+    });
+  });
+
+  // Resize
+  const resizeHandle = el.querySelector('.resize-handle');
+  resizeHandle.addEventListener('mousedown', e => { e.stopPropagation(); startResize(e, n.id, el); });
+
+  // Right-click
+  el.addEventListener('contextmenu', e => { e.preventDefault(); showNodeCtx(e, n.id); });
+
+  // Drag (node move)
+  el.addEventListener('mousedown', e => {
+    if (e.target.closest('.port') || e.target.closest('.resize-handle') ||
+        e.target.tagName === 'INPUT' || e.target.getAttribute('contenteditable')) return;
+    if (activeTool === 'pan') return;
+    e.preventDefault();
+    startNodeDrag(e, n.id, el);
+  });
+}
+
+function applyTransform() {
+  const nodes = document.querySelectorAll('.node');
+  const wrap = document.getElementById('canvas-wrap');
+  // We use CSS transform on the layers
+  const nl = document.getElementById('nodes-layer');
+  const svg = document.getElementById('svg-layer');
+  nl.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+  nl.style.transformOrigin = '0 0';
+  svg.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+  svg.style.transformOrigin = '0 0';
+  document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+}
+
+// ──────────────────────────────────────────────────
+//  EDGES
+// ──────────────────────────────────────────────────
+function renderEdges() {
+  const group = document.getElementById('edges-group');
+  group.innerHTML = '';
+  const nodes = getNodes();
+  const nodeMap = {};
+  nodes.forEach(n => nodeMap[n.id] = n);
+
+  getEdges().forEach(edge => {
+    const fn = nodeMap[edge.from], tn = nodeMap[edge.to];
+    if (!fn || !tn) return;
+
+    const fp = getPortPos(fn, edge.fromPort);
+    const tp = getPortPos(tn, edge.toPort);
+    const d = buildPath(fp, tp, edge.fromPort, edge.toPort, edge.style);
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+
+    // Hit box (wide transparent line for easier clicking)
+    const hitbox = document.createElementNS('http://www.w3.org/2000/svg','path');
+    hitbox.setAttribute('d', d);
+    hitbox.setAttribute('class','edge-hitbox');
+    hitbox.addEventListener('contextmenu', e => { e.preventDefault(); showEdgeCtx(e, edge.id); });
+    hitbox.addEventListener('click', e => { e.stopPropagation(); selectEdge(edge.id); });
+    g.appendChild(hitbox);
+
+    // Visual path
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', d);
+    path.setAttribute('class','edge-path');
+    path.setAttribute('marker-end','url(#arrow)');
+    path.setAttribute('data-edge-id', edge.id);
+    path.addEventListener('contextmenu', e => { e.preventDefault(); showEdgeCtx(e, edge.id); });
+    g.appendChild(path);
+
+    // Label
+    if (edge.label) {
+      const mid = getPathMidpoint(fp, tp);
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', mid.x - 28); rect.setAttribute('y', mid.y - 9);
+      rect.setAttribute('width', 56); rect.setAttribute('height', 18);
+      rect.setAttribute('rx', 5); rect.setAttribute('class','edge-label-bg');
+      g.appendChild(rect);
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x', mid.x); txt.setAttribute('y', mid.y);
+      txt.setAttribute('class','edge-label-text');
+      txt.textContent = edge.label.length > 10 ? edge.label.slice(0,9)+'…' : edge.label;
+      g.appendChild(txt);
+    }
+
+    group.appendChild(g);
+  });
+}
+
+function getPortPos(node, port) {
+  const hw = node.w / 2;
+  // rough height estimate based on content
+  const hh = 60;
+  switch(port) {
+    case 'n': return {x: node.x + hw,       y: node.y};
+    case 's': return {x: node.x + hw,       y: node.y + hh * 2};
+    case 'w': return {x: node.x,            y: node.y + hh};
+    case 'e': return {x: node.x + node.w,   y: node.y + hh};
+    default:  return {x: node.x + hw,       y: node.y + hh};
+  }
+}
+
+function buildPath(fp, tp, fromPort, toPort, style) {
+  if (style === 'straight') {
+    return `M${fp.x},${fp.y} L${tp.x},${tp.y}`;
+  }
+  // Curved bezier
+  const dx = tp.x - fp.x, dy = tp.y - fp.y;
+  const tension = Math.max(40, Math.min(150, Math.abs(dx) * 0.5 + Math.abs(dy) * 0.3));
+  let c1x = fp.x, c1y = fp.y, c2x = tp.x, c2y = tp.y;
+  if (fromPort === 'n') c1y = fp.y - tension;
+  else if (fromPort === 's') c1y = fp.y + tension;
+  else if (fromPort === 'e') c1x = fp.x + tension;
+  else if (fromPort === 'w') c1x = fp.x - tension;
+  if (toPort === 'n') c2y = tp.y - tension;
+  else if (toPort === 's') c2y = tp.y + tension;
+  else if (toPort === 'e') c2x = tp.x + tension;
+  else if (toPort === 'w') c2x = tp.x - tension;
+  return `M${fp.x},${fp.y} C${c1x},${c1y} ${c2x},${c2y} ${tp.x},${tp.y}`;
+}
+
+function getPathMidpoint(fp, tp) {
+  return { x: (fp.x + tp.x) / 2, y: (fp.y + tp.y) / 2 };
+}
+
+// ──────────────────────────────────────────────────
+//  NODE CREATION
+// ──────────────────────────────────────────────────
+let nextNodeX = 120, nextNodeY = 120;
+
+function addNode(wx, wy, type) {
+  if (wx === undefined) {
+    const wrap = getCanvasRect();
+    const center = canvasToWorld(wrap.width / 2, wrap.height / 2);
+    wx = center.x + (Math.random() - 0.5) * 80;
+    wy = center.y + (Math.random() - 0.5) * 80;
+  }
+  nodeZIndex++;
+  db.run('INSERT INTO planning_nodes(board_id,title,body,x,y,w,color,node_type,z_index,created_at)VALUES(?,?,?,?,?,?,?,?,?,?)',
+    [curBoardId, '', '', wx, wy, 180, '', type||'default', nodeZIndex, new Date().toISOString()]);
+  const id = qs('SELECT last_insert_rowid()')[0][0];
+  saveDB(); renderAll();
+  // Auto-focus title
+  setTimeout(() => {
+    const el = document.querySelector(`.node[data-id="${id}"] .node-title`);
+    if (el) { el.focus(); el.select(); }
+  }, 80);
+  return id;
+}
+
+function addStickyNote() {
+  const wrap = getCanvasRect();
+  const center = canvasToWorld(wrap.width / 2, wrap.height / 2);
+  addNode(center.x + (Math.random()-0.5)*80, center.y + (Math.random()-0.5)*80, 'sticky');
+}
+
+function deleteNodeById(id) {
+  db.run('DELETE FROM planning_nodes WHERE id=?', [id]);
+  db.run('DELETE FROM planning_edges WHERE from_node=? OR to_node=?', [id, id]);
+  selNodes.delete(id);
+  saveDB(); renderAll();
+}
+
+// ──────────────────────────────────────────────────
+//  DRAG (NODE)
+// ──────────────────────────────────────────────────
+function startNodeDrag(e, id, el) {
+  // bring to front
+  nodeZIndex++;
+  db.run('UPDATE planning_nodes SET z_index=? WHERE id=?', [nodeZIndex, id]);
+  el.style.zIndex = nodeZIndex;
+
+  const r = qs('SELECT x,y FROM planning_nodes WHERE id=?',[id]);
+  if (!r.length) return;
+
+  draggingNodeId = id;
+  const startWorld = canvasToWorld(e.clientX - getCanvasRect().left, e.clientY - getCanvasRect().top);
+  dragOffset = { x: startWorld.x - r[0][0], y: startWorld.y - r[0][1] };
+
+  el.classList.add('dragging');
+
+  const onMove = ev => {
+    const w = canvasToWorld(ev.clientX - getCanvasRect().left, ev.clientY - getCanvasRect().top);
+    const nx = w.x - dragOffset.x;
+    const ny = w.y - dragOffset.y;
+    el.style.left = nx + 'px';
+    el.style.top  = ny + 'px';
+    db.run('UPDATE planning_nodes SET x=?,y=? WHERE id=?', [nx, ny, id]);
+    renderEdges();
+    renderMinimap();
+  };
+
+  const onUp = () => {
+    el.classList.remove('dragging');
+    draggingNodeId = null;
+    saveDB();
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ──────────────────────────────────────────────────
+//  RESIZE (NODE)
+// ──────────────────────────────────────────────────
+function startResize(e, id, el) {
+  e.preventDefault();
+  const r = qs('SELECT x,y,w FROM planning_nodes WHERE id=?',[id]);
+  if (!r.length) return;
+  const startX = e.clientX;
+  const startW = r[0][2];
+
+  const onMove = ev => {
+    const dxClient = ev.clientX - startX;
+    const dxWorld = dxClient / zoom;
+    const nw = Math.max(120, startW + dxWorld);
+    el.style.width = nw + 'px';
+    db.run('UPDATE planning_nodes SET w=? WHERE id=?', [nw, id]);
+    renderEdges();
+  };
+
+  const onUp = () => {
+    saveDB();
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ──────────────────────────────────────────────────
+//  CONNECTION (PORT → PORT)
+// ──────────────────────────────────────────────────
+function startConnect(nodeId, portName, e) {
+  connecting = true;
+  connectFromId = nodeId;
+  connectFromPort = portName;
+
+  const svgLayer = document.getElementById('svg-layer');
+  svgLayer.classList.add('connecting-mode');
+  document.getElementById('canvas-wrap').classList.add('tool-connect');
+  const previewLine = document.getElementById('connect-preview-line');
+  previewLine.setAttribute('display','block');
+
+  const r = qs('SELECT x,y,w FROM planning_nodes WHERE id=?',[nodeId]);
+  if (!r.length) return;
+  const fn = {id:nodeId, x:r[0][0], y:r[0][1], w:r[0][2]};
+  const fp = getPortPos(fn, portName);
+  previewLine.setAttribute('x1', fp.x); previewLine.setAttribute('y1', fp.y);
+  previewLine.setAttribute('x2', fp.x); previewLine.setAttribute('y2', fp.y);
+
+  const onMove = ev => {
+    const rect = getCanvasRect();
+    const w = canvasToWorld(ev.clientX - rect.left, ev.clientY - rect.top);
+    previewLine.setAttribute('x2', w.x); previewLine.setAttribute('y2', w.y);
+  };
+
+  const onUp = ev => {
+    previewLine.setAttribute('display','none');
+    svgLayer.classList.remove('connecting-mode');
+    document.getElementById('canvas-wrap').classList.remove('tool-connect');
+
+    // Did we land on a port?
+    const target = document.elementFromPoint(ev.clientX, ev.clientY);
+    if (target && target.classList.contains('port')) {
+      const toNode = +target.dataset.node;
+      const toPort = target.dataset.port;
+      if (toNode !== nodeId) {
+        // Check if edge already exists
+        const exists = qs('SELECT COUNT(*) FROM planning_edges WHERE board_id=? AND from_node=? AND to_node=?',[curBoardId,nodeId,toNode])[0][0];
+        if (!exists) {
+          db.run('INSERT INTO planning_edges(board_id,from_node,to_node,from_port,to_port,label,style,created_at)VALUES(?,?,?,?,?,?,?,?)',
+            [curBoardId, nodeId, toNode, portName, toPort, '', 'curved', new Date().toISOString()]);
+          saveDB(); renderAll();
+          showToast('Connected ✓');
+        }
+      }
+    }
+
+    connecting = false;
+    connectFromId = null;
+    connectFromPort = null;
+    if (activeTool !== 'connect') {
+      document.getElementById('canvas-wrap').className = 'tool-' + activeTool;
+    }
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ──────────────────────────────────────────────────
+//  TOOL
+// ──────────────────────────────────────────────────
+function setTool(t) {
+  activeTool = t;
+  ['select','pan','connect'].forEach(id => document.getElementById('tool-'+id).classList.toggle('active', id===t));
+  const wrap = document.getElementById('canvas-wrap');
+  wrap.className = 'tool-' + t;
+}
+
+// ──────────────────────────────────────────────────
+//  PAN & ZOOM
+// ──────────────────────────────────────────────────
+const canvasWrap = () => document.getElementById('canvas-wrap');
+
+canvasWrap;
+document.addEventListener('DOMContentLoaded', () => {
+  const wrap = document.getElementById('canvas-wrap');
+
+  // Double-click to add node
+  wrap.addEventListener('dblclick', e => {
+    if (e.target !== wrap && !e.target.id.startsWith('svg') && !e.target.id.startsWith('nodes')) return;
+    const rect = wrap.getBoundingClientRect();
+    const w = canvasToWorld(e.clientX - rect.left, e.clientY - rect.top);
+    addNode(w.x - 90, w.y - 30);
+  });
+
+  // Mouse down on canvas = pan or selection
+  wrap.addEventListener('mousedown', e => {
+    if (e.target !== wrap && e.target.id !== 'svg-layer' && e.target.id !== 'nodes-layer' && e.target.id !== 'edges-group' && !e.target.closest('svg')) return;
+    if (activeTool === 'pan' || e.button === 1 || (e.button === 0 && e.altKey)) {
+      isPanning = true;
+      panStart = {x: e.clientX - panX, y: e.clientY - panY};
+      wrap.classList.add('panning');
+      e.preventDefault();
+    }
+  });
+
+  // Wheel = zoom
+  wrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = wrap.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    const newZoom = Math.max(0.1, Math.min(4, zoom * factor));
+    panX = mx - (mx - panX) * (newZoom / zoom);
+    panY = my - (my - panY) * (newZoom / zoom);
+    zoom = newZoom;
+    applyTransform();
+    saveView(); renderMinimap();
+  }, {passive: false});
+
+  document.addEventListener('mousemove', e => {
+    if (isPanning) {
+      panX = e.clientX - panStart.x;
+      panY = e.clientY - panStart.y;
+      applyTransform();
+      renderMinimap();
+    }
+  });
+
+  document.addEventListener('mouseup', e => {
+    if (isPanning) {
+      isPanning = false;
+      wrap.classList.remove('panning');
+      saveView();
+    }
+  });
+
+  // Click to deselect
+  wrap.addEventListener('click', e => {
+    if (e.target === wrap || e.target.id === 'nodes-layer') {
+      selNodes.clear();
+      document.querySelectorAll('.node.selected').forEach(n => n.classList.remove('selected'));
+    }
+    closeCtx();
+  });
+});
+
+function zoomBy(delta) {
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const mx = rect.width/2, my = rect.height/2;
+  const newZoom = Math.max(0.1, Math.min(4, zoom + delta));
+  panX = mx - (mx - panX) * (newZoom / zoom);
+  panY = my - (my - panY) * (newZoom / zoom);
+  zoom = newZoom;
+  applyTransform(); saveView(); renderMinimap();
+}
+
+function resetView() {
+  zoom = 1; panX = 0; panY = 0;
+  applyTransform(); saveView(); renderMinimap();
+}
+
+function fitView() {
+  const nodes = getNodes();
+  if (!nodes.length) { resetView(); return; }
+  const minX = Math.min(...nodes.map(n=>n.x));
+  const minY = Math.min(...nodes.map(n=>n.y));
+  const maxX = Math.max(...nodes.map(n=>n.x+n.w));
+  const maxY = Math.max(...nodes.map(n=>n.y+120));
+  const wrap = document.getElementById('canvas-wrap');
+  const pw = wrap.clientWidth - 80, ph = wrap.clientHeight - 80;
+  const bw = maxX - minX, bh = maxY - minY;
+  zoom = Math.max(0.1, Math.min(2, Math.min(pw / (bw||1), ph / (bh||1))));
+  panX = (wrap.clientWidth  - bw * zoom) / 2 - minX * zoom;
+  panY = (wrap.clientHeight - bh * zoom) / 2 - minY * zoom;
+  applyTransform(); saveView(); renderMinimap();
+}
+
+// ──────────────────────────────────────────────────
+//  MINIMAP
+// ──────────────────────────────────────────────────
+function renderMinimap() {
+  const canvas = document.getElementById('minimap-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 160, H = 100;
+  ctx.clearRect(0, 0, W, H);
+
+  const nodes = getNodes();
+  if (!nodes.length) return;
+
+  const minX = Math.min(...nodes.map(n=>n.x)) - 20;
+  const minY = Math.min(...nodes.map(n=>n.y)) - 20;
+  const maxX = Math.max(...nodes.map(n=>n.x+n.w)) + 20;
+  const maxY = Math.max(...nodes.map(n=>n.y+120)) + 20;
+  const bw = maxX - minX || 1, bh = maxY - minY || 1;
+  const scale = Math.min(W/bw, H/bh);
+  const offX = (W - bw*scale)/2 - minX*scale;
+  const offY = (H - bh*scale)/2 - minY*scale;
+
+  // Draw edges
+  const edges = getEdges();
+  const nodeMap = {};
+  nodes.forEach(n=>nodeMap[n.id]=n);
+  ctx.strokeStyle = '#1e2b24'; ctx.lineWidth = 1;
+  edges.forEach(e => {
+    const fn = nodeMap[e.from], tn = nodeMap[e.to]; if(!fn||!tn) return;
+    ctx.beginPath();
+    ctx.moveTo(fn.x*scale+offX + fn.w/2*scale, fn.y*scale+offY + 60*scale);
+    ctx.lineTo(tn.x*scale+offX + tn.w/2*scale, tn.y*scale+offY + 60*scale);
+    ctx.stroke();
+  });
+
+  // Draw nodes
+  nodes.forEach(n => {
+    const c = COLORS[n.color]||COLORS[''];
+    ctx.fillStyle = n.color ? c.bg : 'rgba(16,24,16,.9)';
+    ctx.strokeStyle = n.color ? c.border : '#182018';
+    ctx.lineWidth = 0.5;
+    const rx = n.x*scale+offX, ry = n.y*scale+offY;
+    const rw = n.w*scale, rh = 18*scale;
+    ctx.beginPath(); ctx.roundRect(rx,ry,rw,rh,2); ctx.fill(); ctx.stroke();
+    if (n.title) {
+      ctx.fillStyle = '#9ab0a4'; ctx.font = `${Math.max(5, 7*scale)}px Inter,sans-serif`;
+      ctx.fillText(n.title.slice(0,20), rx+2, ry+rh*0.65);
+    }
+  });
+
+  // Draw viewport indicator
+  const wrap = document.getElementById('canvas-wrap');
+  const vw = (wrap.clientWidth / zoom) * scale;
+  const vh = (wrap.clientHeight / zoom) * scale;
+  const vx = (-panX / zoom) * scale + offX;
+  const vy = (-panY / zoom) * scale + offY;
+  const vp = document.getElementById('minimap-viewport');
+  vp.style.left = Math.max(0,vx)+'px'; vp.style.top = Math.max(0,vy)+'px';
+  vp.style.width = vw+'px'; vp.style.height = vh+'px';
+}
+
+function minimapClick(e) {
+  const canvas = document.getElementById('minimap-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const W=160,H=100;
+  const nodes = getNodes();
+  if (!nodes.length) return;
+  const minX=Math.min(...nodes.map(n=>n.x))-20,minY=Math.min(...nodes.map(n=>n.y))-20;
+  const maxX=Math.max(...nodes.map(n=>n.x+n.w))+20,maxY=Math.max(...nodes.map(n=>n.y+120))+20;
+  const bw=maxX-minX||1,bh=maxY-minY||1;
+  const scale=Math.min(W/bw,H/bh);
+  const offX=(W-bw*scale)/2-minX*scale,offY=(H-bh*scale)/2-minY*scale;
+  const wx=(mx-offX)/scale,wy=(my-offY)/scale;
+  const wrap=document.getElementById('canvas-wrap');
+  panX=wrap.clientWidth/2-wx*zoom;panY=wrap.clientHeight/2-wy*zoom;
+  applyTransform();saveView();renderMinimap();
+}
+
+// ──────────────────────────────────────────────────
+//  CONTEXT MENUS
+// ──────────────────────────────────────────────────
+function showNodeCtx(e, id) {
+  document.getElementById('ctx-node-id').value = id;
+  const m = document.getElementById('ctx-menu');
+  m.style.display = 'block';
+  m.classList.add('open');
+  let top = e.clientY, left = e.clientX;
+  if (top + 280 > window.innerHeight) top -= 280;
+  if (left + 210 > window.innerWidth) left -= 210;
+  m.style.top = top+'px'; m.style.left = left+'px';
+  e.stopPropagation();
+}
+
+function showEdgeCtx(e, id) {
+  document.getElementById('edge-ctx-id').value = id;
+  const m = document.getElementById('edge-ctx-menu');
+  m.style.display = 'block'; m.classList.add('open');
+  let top = e.clientY, left = e.clientX;
+  if (top + 140 > window.innerHeight) top -= 140;
+  if (left + 210 > window.innerWidth) left -= 210;
+  m.style.top = top+'px'; m.style.left = left+'px';
+  e.stopPropagation();
+}
+
+function closeCtx() {
+  ['ctx-menu','edge-ctx-menu'].forEach(id => {
+    const m = document.getElementById(id);
+    m.classList.remove('open');
+    setTimeout(()=>m.style.display='none',140);
+  });
+}
+
+function ctxDuplicate() {
+  const id = +document.getElementById('ctx-node-id').value;
+  const r = qs('SELECT title,body,x,y,w,color,node_type FROM planning_nodes WHERE id=?',[id]);
+  if (!r.length) return;
+  const [title,body,x,y,w,color,nt] = r[0];
+  nodeZIndex++;
+  db.run('INSERT INTO planning_nodes(board_id,title,body,x,y,w,color,node_type,z_index,created_at)VALUES(?,?,?,?,?,?,?,?,?,?)',
+    [curBoardId,title,body,x+20,y+20,w,color,nt,nodeZIndex,new Date().toISOString()]);
+  saveDB(); closeCtx(); renderAll();
+}
+
+function ctxBringFront() {
+  const id = +document.getElementById('ctx-node-id').value;
+  nodeZIndex++;
+  db.run('UPDATE planning_nodes SET z_index=? WHERE id=?',[nodeZIndex,id]);
+  saveDB(); closeCtx(); renderAll();
+}
+
+function ctxColor(color) {
+  const id = +document.getElementById('ctx-node-id').value;
+  db.run('UPDATE planning_nodes SET color=? WHERE id=?',[color,id]);
+  saveDB(); closeCtx(); renderAll();
+}
+
+function ctxDelete() {
+  const id = +document.getElementById('ctx-node-id').value;
+  deleteNodeById(id); closeCtx();
+}
+
+function selectEdge(id) {
+  // visual feedback only
+}
+
+function edgeCtxSetLabel() {
+  const id = document.getElementById('edge-ctx-id').value;
+  const r = qs('SELECT label FROM planning_edges WHERE id=?',[id]);
+  document.getElementById('edge-label-id').value = id;
+  document.getElementById('edge-label-input').value = r.length ? r[0][0] : '';
+  closeCtx(); openModal('modal-edge-label');
+  setTimeout(()=>document.getElementById('edge-label-input').focus(),80);
+}
+
+function submitEdgeLabel() {
+  const id = document.getElementById('edge-label-id').value;
+  const label = document.getElementById('edge-label-input').value.trim();
+  db.run('UPDATE planning_edges SET label=? WHERE id=?',[label,id]);
+  saveDB(); closeModal('modal-edge-label'); renderEdges();
+}
+
+function edgeCtxToggleStyle() {
+  const id = document.getElementById('edge-ctx-id').value;
+  const r = qs('SELECT style FROM planning_edges WHERE id=?',[id]);
+  const cur = r.length ? r[0][0] : 'curved';
+  db.run('UPDATE planning_edges SET style=? WHERE id=?',[cur==='curved'?'straight':'curved',id]);
+  saveDB(); closeCtx(); renderEdges();
+}
+
+function edgeCtxDelete() {
+  const id = document.getElementById('edge-ctx-id').value;
+  db.run('DELETE FROM planning_edges WHERE id=?',[id]);
+  saveDB(); closeCtx(); renderEdges(); renderMinimap();
+}
+
+// ──────────────────────────────────────────────────
+//  BOARD MANAGEMENT
+// ──────────────────────────────────────────────────
+function toggleBoardSwitcher(ev) {
+  ev.stopPropagation();
+  const drop = document.getElementById('board-switcher-drop');
+  if (drop.style.display === 'block') { drop.style.display='none'; return; }
+  renderBoardList();
+  const btn = document.getElementById('board-switcher-btn');
+  const r = btn.getBoundingClientRect();
+  drop.style.top = (r.bottom+4)+'px'; drop.style.left = r.left+'px';
+  drop.style.display = 'block';
+}
+
+function renderBoardList() {
+  const boards = qs('SELECT id,name FROM planning_boards ORDER BY position');
+  document.getElementById('board-list').innerHTML = boards.map(b =>
+    `<div class="board-row${b[0]===curBoardId?' active-board':''}" onclick="switchBoard(${b[0]})">
+      <span class="bd-dot"></span><span style="flex:1;">${esc(b[1])}</span>
+      ${boards.length>1?`<span class="material-symbols-outlined" style="font-size:13px;color:#2e3e36;" onclick="event.stopPropagation();deletePlanBoard(${b[0]})">close</span>`:''}
+    </div>`).join('');
+  document.getElementById('active-board-name').textContent = boards.find(b=>b[0]===curBoardId)?.[1]||'Board';
+}
+
+function switchBoard(id) {
+  saveView();
+  curBoardId = id;
+  const v = getView();
+  zoom = v.zoom; panX = v.panX; panY = v.panY;
+  document.getElementById('board-switcher-drop').style.display='none';
+  renderBoardList(); renderAll();
+}
+
+function openAddBoardModal() {
+  document.getElementById('board-switcher-drop').style.display='none';
+  document.getElementById('new-board-name').value='';
+  openModal('modal-board');
+  setTimeout(()=>document.getElementById('new-board-name').focus(),80);
+}
+
+function submitNewBoard() {
+  const name = document.getElementById('new-board-name').value.trim();
+  if (!name) return;
+  const pos = (qs('SELECT MAX(position) FROM planning_boards')[0]?.[0]||0)+1;
+  db.run('INSERT INTO planning_boards(name,position,created_at)VALUES(?,?,?)',[name,pos,new Date().toISOString()]);
+  const newId = qs('SELECT last_insert_rowid()')[0][0];
+  saveDB(); closeModal('modal-board'); switchBoard(newId);
+}
+
+function deletePlanBoard(id) {
+  if (!confirm('Delete this board and all its data?')) return;
+  db.run('DELETE FROM planning_edges WHERE board_id=?',[id]);
+  db.run('DELETE FROM planning_nodes WHERE board_id=?',[id]);
+  db.run('DELETE FROM planning_view WHERE board_id=?',[id]);
+  db.run('DELETE FROM planning_boards WHERE id=?',[id]);
+  const first = qs('SELECT id FROM planning_boards ORDER BY position LIMIT 1')[0];
+  saveDB(); if(first) switchBoard(first[0]);
+}
+
+function clearBoard() {
+  if (!confirm('Clear all nodes and connections on this board?')) return;
+  db.run('DELETE FROM planning_edges WHERE board_id=?',[curBoardId]);
+  db.run('DELETE FROM planning_nodes WHERE board_id=?',[curBoardId]);
+  saveDB(); renderAll(); showToast('Board cleared');
+}
+
+// ──────────────────────────────────────────────────
+//  MODALS
+// ──────────────────────────────────────────────────
+function openModal(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  requestAnimationFrame(()=>el.classList.add('open'));
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('open');
+  setTimeout(()=>el.classList.add('hidden'),180);
+}
+
+// ──────────────────────────────────────────────────
+//  KEYBOARD SHORTCUTS
+// ──────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.getAttribute('contenteditable')) return;
+  if (e.key === 'Escape') { closeCtx(); ['modal-board','modal-edge-label'].forEach(closeModal); }
+  if (e.key === 'v' || e.key === 'V') setTool('select');
+  if (e.key === 'h' || e.key === 'H') setTool('pan');
+  if (e.key === 'c' && !e.metaKey && !e.ctrlKey) setTool('connect');
+  if (e.key === 'n' || e.key === 'N') addNode();
+  if (e.key === 'f' || e.key === 'F') fitView();
+  if (e.key === '+' || e.key === '=') zoomBy(0.15);
+  if (e.key === '-') zoomBy(-0.15);
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    selNodes.forEach(id => deleteNodeById(id));
+    selNodes.clear();
+  }
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+    const am = {'modal-board': submitNewBoard, 'modal-edge-label': submitEdgeLabel};
+    Object.entries(am).forEach(([id,fn])=>{
+      const el=document.getElementById(id);
+      if(el&&!el.classList.contains('hidden')&&el.classList.contains('open')) fn();
+    });
+  }
+});
+
+// ──────────────────────────────────────────────────
+//  UTILS
+// ──────────────────────────────────────────────────
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(()=>fn(...args), ms); };
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', e => {
+  const drop = document.getElementById('board-switcher-drop');
+  if (!drop.contains(e.target) && !document.getElementById('board-switcher-btn').contains(e.target))
+    drop.style.display = 'none';
+  if (!document.getElementById('ctx-menu').contains(e.target) &&
+      !document.getElementById('edge-ctx-menu').contains(e.target)) closeCtx();
+});
+
+// ──────────────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────────────
+(async () => {
+  await initDB();
+  const v = getView();
+  zoom = v.zoom; panX = v.panX; panY = v.panY;
+  renderAll();
+  renderBoardList();
+
+  // Add welcome nodes if board is empty
+  const nodeCount = qs('SELECT COUNT(*) FROM planning_nodes WHERE board_id=?',[curBoardId])[0][0];
+  if (!nodeCount) {
+    nodeZIndex++;
+    db.run('INSERT INTO planning_nodes(board_id,title,body,x,y,w,color,node_type,z_index,created_at)VALUES(?,?,?,?,?,?,?,?,?,?)',
+      [curBoardId,'My Goal','Define what you want to achieve',80,100,200,'mint','goal',nodeZIndex,new Date().toISOString()]);
+    nodeZIndex++;
+    db.run('INSERT INTO planning_nodes(board_id,title,body,x,y,w,color,node_type,z_index,created_at)VALUES(?,?,?,?,?,?,?,?,?,?)',
+      [curBoardId,'Action Step','First thing to do',380,80,180,'sky','action',nodeZIndex,new Date().toISOString()]);
+    nodeZIndex++;
+    db.run('INSERT INTO planning_nodes(board_id,title,body,x,y,w,color,node_type,z_index,created_at)VALUES(?,?,?,?,?,?,?,?,?,?)',
+      [curBoardId,'Notes','Keep track of ideas here',380,240,180,'amber','sticky',nodeZIndex,new Date().toISOString()]);
+    const n1 = qs('SELECT id FROM planning_nodes WHERE board_id=? ORDER BY id')[0][0];
+    const n2 = qs('SELECT id FROM planning_nodes WHERE board_id=? ORDER BY id')[1][0];
+    const n3 = qs('SELECT id FROM planning_nodes WHERE board_id=? ORDER BY id')[2][0];
+    db.run('INSERT INTO planning_edges(board_id,from_node,to_node,from_port,to_port,label,style,created_at)VALUES(?,?,?,?,?,?,?,?)',
+      [curBoardId,n1,n2,'e','w','leads to','curved',new Date().toISOString()]);
+    db.run('INSERT INTO planning_edges(board_id,from_node,to_node,from_port,to_port,label,style,created_at)VALUES(?,?,?,?,?,?,?,?)',
+      [curBoardId,n1,n3,'e','w','','curved',new Date().toISOString()]);
+    saveDB(); renderAll();
+  }
+})();
+</script>
+</body>
+</html>

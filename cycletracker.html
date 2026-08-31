@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PULSE — Cycle Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries">
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js">
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
+</script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "inverse-surface":"#dde4dd","tertiary-fixed":"#ffdbce","on-surface-variant":"#bbcac0",
+          "on-surface":"#dde4dd","error-container":"#93000a","secondary":"#ffc07a",
+          "outline":"#86948b","on-tertiary-fixed":"#370e00","on-primary-container":"#005036",
+          "surface-container-low":"#161d19","error":"#ffb4ab","surface-tint":"#48dfa4",
+          "background":"#0e1511","tertiary":"#ffc1a8","on-primary-fixed-variant":"#005137",
+          "inverse-on-surface":"#2b322e","on-primary-fixed":"#002114","on-error-container":"#ffdad6",
+          "surface-container-high":"#242c27","primary-fixed":"#6afcbf","on-secondary-container":"#623a00",
+          "on-primary":"#003825","secondary-fixed-dim":"#ffb868","on-tertiary":"#591d00",
+          "tertiary-container":"#ff996e","surface-variant":"#2f3632","primary-fixed-dim":"#48dfa4",
+          "on-error":"#690005","surface-container-highest":"#2f3632","inverse-primary":"#006c4a",
+          "secondary-container":"#fa9b00","surface-container-lowest":"#09100c","primary-container":"#2ccb92",
+          "outline-variant":"#3c4a42","primary":"#54e8ac","surface-container":"#1a211d",
+          "surface-bright":"#333b36","on-tertiary-container":"#772f0c","tertiary-fixed-dim":"#ffb598",
+          "on-secondary-fixed":"#2b1700","surface":"#0e1511","on-background":"#dde4dd",
+          "surface-dim":"#0e1511","on-secondary":"#482900","secondary-fixed":"#ffddbb",
+          "on-tertiary-fixed-variant":"#79310e","on-secondary-fixed-variant":"#673d00"
+        },
+        borderRadius:{ DEFAULT:"0.25rem", lg:"0.5rem", xl:"0.75rem", full:"9999px" },
+        spacing:{ lg:"24px","container-padding":"20px",xl:"32px",unit:"4px",sm:"8px",xs:"4px",gutter:"16px",md:"16px" },
+        fontFamily:{ "label-sm":["Inter"],"headline-lg":["Inter"],"data-mono":["Inter"],"metric-xl":["Inter"],"body-md":["Inter"] },
+        fontSize:{
+          "label-sm":  ["13px",{lineHeight:"18px",letterSpacing:"0.01em",fontWeight:"500"}],
+          "headline-lg":["24px",{lineHeight:"32px",letterSpacing:"-0.02em",fontWeight:"600"}],
+          "data-mono": ["14px",{lineHeight:"20px",letterSpacing:"0.05em",fontWeight:"600"}],
+          "metric-xl": ["36px",{lineHeight:"44px",letterSpacing:"-0.03em",fontWeight:"700"}],
+          "body-md":   ["16px",{lineHeight:"24px",letterSpacing:"0em",fontWeight:"400"}]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { background-color:#0e1511; }
+  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align:middle; }
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
+  input[type=datetime-local]::-webkit-calendar-picker-indicator { filter:invert(0.6); cursor:pointer; }
+  .compound-card { animation: cardIn 0.2s ease both; }
+  @keyframes cardIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  ::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:#3c4a42;border-radius:2px}
+  .pill { display:inline-block; padding:2px 8px; border-radius:9999px; font-size:10px; font-weight:800; letter-spacing:0.05em; }
+  #save-flash { transition:opacity 0.5s; }
+  .library-item { cursor:pointer; transition:all 0.12s; border-left:3px solid transparent; }
+  .library-item:hover { background:#242c27; border-left-color:#2CCB92; }
+  .route-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:9px; font-weight:700; letter-spacing:0.04em; margin:1px; }
+  .route-subq { background:rgba(44,203,146,0.15); color:#2CCB92; }
+  .route-im { background:rgba(255,192,122,0.15); color:#ffc07a; }
+  .route-iv { background:rgba(248,113,113,0.15); color:#f87171; }
+  .route-oral { background:rgba(96,165,250,0.15); color:#60a5fa; }
+  .route-nasal { background:rgba(167,139,250,0.15); color:#a78bfa; }
+  .route-topical { background:rgba(232,121,249,0.15); color:#e879f9; }
+</style>
+</head>
+<body class="font-body-md text-on-background min-h-screen">
+
+<header class="bg-[#0a0f0c] sticky top-0 z-50 border-b border-neutral-800 flex justify-between items-center h-16 px-6 w-full">
+  <div class="flex items-center gap-8">
+    <span class="text-xl font-black tracking-tighter text-[#2CCB92]">PULSE</span>
+    <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
+      <a class="text-neutral-500 hover:text-neutral-300 transition-colors" href="calorie_tracker.html">Dashboard</a>
+      <a class="text-neutral-500 hover:text-neutral-300 transition-colors" href="history.html">History</a>
+      <a class="text-[#2CCB92] border-b-2 border-[#2CCB92] pb-1" href="#">Cycle Tracker</a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3">
+    <span id="save-flash" class="text-xs text-on-surface-variant opacity-0">Saved ✓</span>
+    <button class="text-neutral-500 hover:text-neutral-300 p-2 rounded-full transition-all">
+      <span class="material-symbols-outlined">notifications</span>
+    </button>
+    <button class="text-neutral-500 hover:text-neutral-300 p-2 rounded-full transition-all">
+      <span class="material-symbols-outlined">settings</span>
+    </button>
+    <div class="w-8 h-8 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center">
+      <span class="material-symbols-outlined text-primary" style="font-size:18px">person</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-6 py-8 pb-28 lg:pb-8">
+  <div class="mb-xl flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+    <div>
+      <h1 class="font-headline-lg text-headline-lg text-on-surface">Cycle Tracker</h1>
+      <p class="text-on-surface-variant font-body-md mt-1">Monitor your active compounds and circulation levels.</p>
+    </div>
+    <button onclick="openLogDose(null)" class="shrink-0 py-2.5 px-5 bg-[#2CCB92]/10 text-[#2CCB92] border border-[#2CCB92]/30 rounded-lg text-label-sm font-black flex items-center gap-2 hover:bg-[#2CCB92]/20 transition-all active:scale-95">
+      <span class="material-symbols-outlined" style="font-size:18px">colorize</span>Log Dose
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+    <div class="lg:col-span-8 flex flex-col gap-lg">
+      <div class="grid grid-cols-2 gap-md">
+        <div class="bg-[#1a1a1a] border border-[#2c2c2c] p-lg rounded-xl">
+          <div class="flex justify-between items-start mb-2">
+            <span class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-widest">Active Compounds</span>
+            <span class="material-symbols-outlined text-primary">science</span>
+          </div>
+          <div class="text-metric-xl font-metric-xl text-on-surface" id="active-count">00</div>
+          <div class="flex items-center gap-1 mt-2 text-[#2CCB92] text-xs font-bold">
+            <span class="material-symbols-outlined" style="font-size:14px">circle</span>
+            <span id="active-label">No compounds added</span>
+          </div>
+        </div>
+        <div class="bg-[#1a1a1a] border border-[#2c2c2c] p-lg rounded-xl">
+          <div class="flex justify-between items-start mb-2">
+            <span class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-widest">Last Dose</span>
+            <span class="material-symbols-outlined text-secondary">history</span>
+          </div>
+          <div class="text-metric-xl font-metric-xl text-on-surface" id="last-dose-time">—</div>
+          <div class="text-on-surface-variant text-xs font-bold uppercase mt-2" id="last-dose-label">No doses logged</div>
+        </div>
+      </div>
+      <div class="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl overflow-hidden">
+        <div class="p-lg flex justify-between items-start">
+          <div><h3 class="font-bold text-on-surface">Circulation Levels</h3><p class="text-label-sm text-on-surface-variant mt-0.5">Absorption + elimination model — 48h window</p></div>
+          <div class="flex items-center gap-2"><div id="chart-legend" class="flex flex-wrap gap-2 justify-end max-w-xs"></div><span class="pill bg-[#2CCB92]/10 text-[#2CCB92] border border-[#2CCB92]/20">LIVE</span></div>
+        </div>
+        <div class="relative px-lg pb-lg" style="height:260px">
+          <div id="chart-empty" class="absolute inset-0 flex flex-col items-center justify-center text-on-surface-variant"><span class="material-symbols-outlined mb-2" style="font-size:36px;opacity:0.3">show_chart</span><p class="text-label-sm">Log a dose to see the decay curve</p></div>
+          <canvas id="cycleChart" style="display:none" role="img"></canvas>
+        </div>
+        <div class="flex justify-between px-lg pb-3" id="chart-time-axis">
+          <span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t-24">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t-18">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t-12">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t-6">—</span><span class="text-[10px] font-bold font-mono text-[#2CCB92]">NOW</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t+6">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t+12">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t+18">—</span><span class="text-[10px] font-bold font-mono text-on-surface-variant" id="t+24">—</span>
+        </div>
+      </div>
+      <div class="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl p-lg">
+        <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-on-surface">Recent Dose Log</h3><span class="text-label-sm text-on-surface-variant" id="log-count">0 entries</span></div>
+        <div id="log-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"><div class="text-label-sm text-on-surface-variant text-center py-4" id="log-empty">No doses logged yet.</div></div>
+      </div>
+    </div>
+    <div class="lg:col-span-4 flex flex-col gap-md">
+      <div class="flex justify-between items-center"><h3 class="font-bold text-on-surface">My Compounds</h3><button onclick="openAddCompound()" class="text-[#2CCB92] text-label-sm font-black flex items-center gap-1 hover:text-primary transition-colors active:scale-95"><span class="material-symbols-outlined" style="font-size:16px">add</span>ADD</button></div>
+      <div id="compound-list" class="flex flex-col gap-md"><div class="text-label-sm text-on-surface-variant text-center py-8 border border-dashed border-outline-variant rounded-xl" id="compound-empty">No compounds added yet.<br/><button onclick="openAddCompound()" class="text-primary mt-2 font-bold hover:underline">Add your first compound →</button></div></div>
+    </div>
+  </div>
+</main>
+
+<nav class="md:hidden bg-[#0a0f0c]/95 backdrop-blur-md fixed bottom-0 w-full z-50 border-t border-neutral-800 flex justify-around items-center pb-safe py-2">
+  <a href="aura-calorie-tracker.html" class="flex flex-col items-center text-neutral-500 py-1"><span class="material-symbols-outlined">grid_view</span><span class="text-[10px] uppercase font-bold">Dashboard</span></a>
+  <a href="history.html" class="flex flex-col items-center text-neutral-500 py-1"><span class="material-symbols-outlined">calendar_month</span><span class="text-[10px] uppercase font-bold">History</span></a>
+  <a href="#" class="flex flex-col items-center text-[#2CCB92] py-1"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">biotech</span><span class="text-[10px] uppercase font-bold">Cycle</span></a>
+</nav>
+
+<!-- ADD COMPOUND MODAL with library search -->
+<div id="modal-compound" class="fixed inset-0 z-[100] flex items-center justify-center" style="display:none!important;background:rgba(9,16,12,0.88);backdrop-filter:blur(6px)">
+  <div class="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-5"><h3 class="font-headline-lg text-headline-lg text-on-surface" id="modal-compound-title">Add Compound</h3><button onclick="closeModal('modal-compound')" class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">close</button></div>
+    <input type="hidden" id="edit-compound-id"/>
+
+    <div id="library-section" class="mb-4">
+      <button onclick="toggleLibrarySearch()" class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-[#0e1511] border border-[#3c4a42] rounded-lg hover:border-[#2CCB92] transition-all group">
+        <div class="flex items-center gap-2"><span class="material-symbols-outlined text-[#2CCB92]" style="font-size:18px">menu_book</span><span class="text-label-sm font-bold text-on-surface">Select from Library</span></div>
+        <div class="flex items-center gap-2"><span class="text-[10px] text-on-surface-variant group-hover:text-[#2CCB92] transition-colors">50+ compounds</span><span class="material-symbols-outlined text-on-surface-variant group-hover:text-[#2CCB92] transition-colors" id="lib-chevron" style="font-size:16px">expand_more</span></div>
+      </button>
+      <div id="library-dropdown" class="hidden mt-2 border border-[#2c2c2c] rounded-lg bg-[#0e1511] overflow-hidden">
+        <div class="p-2 border-b border-[#2c2c2c]"><div class="relative"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" style="font-size:15px">search</span><input type="text" id="lib-search" placeholder="Search compounds..." class="w-full bg-[#0e1511] border border-[#3c4a42] rounded-md py-2 pl-9 pr-3 text-sm text-on-surface focus:border-[#2CCB92] outline-none" oninput="filterLibrary()" autocomplete="off"/></div></div>
+        <div id="library-list" class="max-h-64 overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 my-4"><div class="flex-1 h-px bg-[#2c2c2c]"></div><span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">or enter manually</span><div class="flex-1 h-px bg-[#2c2c2c]"></div></div>
+
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2"><label class="field-label">Compound Name</label><input type="text" id="c-name" placeholder="e.g. BPC-157" class="field-input w-full"/></div>
+        <div class="col-span-2"><label class="field-label">Protocol / Purpose</label><input type="text" id="c-protocol" placeholder="e.g. Healing, TRT" class="field-input w-full"/></div>
+        <div><label class="field-label">Dosage</label><input type="number" id="c-dosage" placeholder="e.g. 250" min="0" step="any" class="field-input w-full"/></div>
+        <div><label class="field-label">Unit</label><select id="c-unit" class="field-input w-full"><option>mcg</option><option>mg</option><option>IU</option><option>ml</option><option>units</option></select></div>
+        <div><label class="field-label">Half-life (hours)</label><input type="number" id="c-halflife" placeholder="e.g. 5" min="0.1" step="0.1" class="field-input w-full"/></div>
+        <div><label class="field-label">Peak Time (hours)</label><input type="number" id="c-peaktime" placeholder="e.g. 1.5" min="0.01" step="0.1" class="field-input w-full"/></div>
+        <div><label class="field-label">Route</label><select id="c-route" class="field-input w-full"><option>SUBQ</option><option>IM</option><option>IV</option><option>Oral</option><option>Nasal</option><option>Topical</option></select></div>
+        <div><label class="field-label">Injection Site</label><input type="text" id="c-site" placeholder="e.g. Abdomen" class="field-input w-full"/></div>
+        <div class="col-span-2"><label class="field-label">Color</label><div class="flex gap-2 flex-wrap" id="color-picker"></div></div>
+      </div>
+      <div id="c-error" class="text-xs text-error hidden">Please fill in name, dosage, half-life, and peak time.</div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeModal('modal-compound')" class="flex-1 bg-surface-container border border-outline-variant rounded-lg py-2 text-label-sm text-on-surface-variant hover:bg-surface-variant transition-all active:scale-95">Cancel</button>
+      <button onclick="submitCompound()" class="flex-1 rounded-lg py-2 text-label-sm font-black bg-[#2CCB92]/10 text-[#2CCB92] border border-[#2CCB92]/30 hover:bg-[#2CCB92]/20 transition-all active:scale-95">Save Compound</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG DOSE MODAL -->
+<div id="modal-log" class="fixed inset-0 z-[100] flex items-center justify-center" style="display:none!important;background:rgba(9,16,12,0.88);backdrop-filter:blur(6px)">
+  <div class="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-5"><div><h3 class="font-bold text-on-surface" id="log-modal-title">Log Dose</h3><p class="text-label-sm text-on-surface-variant" id="log-modal-sub">Select a compound</p></div><button onclick="closeModal('modal-log')" class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">close</button></div>
+    <input type="hidden" id="log-compound-id"/>
+    <div class="space-y-3 mb-4"><label class="field-label">Compound</label><select id="log-compound-select" class="field-input w-full" onchange="onLogCompoundSelect()"><option value="">— Select a compound —</option></select></div>
+    <div class="space-y-3">
+      <div><label class="field-label">Date &amp; Time</label><input type="datetime-local" id="log-datetime" class="field-input w-full"/></div>
+      <div class="grid grid-cols-2 gap-3"><div><label class="field-label">Dosage</label><input type="number" id="log-dosage" placeholder="Default" min="0" step="any" class="field-input w-full"/></div><div><label class="field-label">Injection Site</label><input type="text" id="log-site" placeholder="Same as default" class="field-input w-full"/></div></div>
+      <div><label class="field-label">Note (optional)</label><input type="text" id="log-note" placeholder="Observations…" class="field-input w-full"/></div>
+    </div>
+    <div id="log-error" class="text-xs text-error hidden mt-2">Please select a compound.</div>
+    <div class="flex gap-3 mt-5"><button onclick="closeModal('modal-log')" class="flex-1 bg-surface-container border border-outline-variant rounded-lg py-2 text-label-sm text-on-surface-variant hover:bg-surface-variant transition-all active:scale-95">Cancel</button><button onclick="submitLog()" class="flex-1 rounded-lg py-2 text-label-sm font-black bg-[#2CCB92]/10 text-[#2CCB92] border border-[#2CCB92]/30 hover:bg-[#2CCB92]/20 transition-all active:scale-95">Log Entry</button></div>
+  </div>
+</div>
+
+<style>
+  .field-label{display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#bbcac0;margin-bottom:4px}
+  .field-input{background:#0e1511;border:1px solid #3c4a42;border-radius:8px;color:#dde4dd;font-size:14px;padding:8px 12px;outline:none;font-family:Inter,sans-serif;transition:border-color .15s;width:100%;box-sizing:border-box}
+  .field-input:focus{border-color:#2CCB92}
+  .field-input::placeholder{color:#3c4a42}
+  select.field-input option{background:#0e1511}
+</style>
+
+<script>
+const COLORS=['#2CCB92','#ffc07a','#60a5fa','#f472b6','#a78bfa','#fb923c','#34d399','#f87171','#e879f9','#facc15'];
+const DB_KEY='aura_cycle_db';
+
+// ─── In-memory compound library (not stored in DB) ──────────────────────────
+const COMPOUND_LIBRARY = [
+  {name:"CJC-1295 (no DAC / MOD-GRF 1-29)",protocol:"GH Secretagogue",dosage:100,unit:"mcg",half_life_h:0.42,peak_time_h:0.37,route:"SUBQ",site:"",color:"#60a5fa",info:"GHRH analog · t½ 20-30min · Peak 15-30min\n\nShort-acting. Always pair with a GHRP (Ipamorelin). Fasted dosing. 1-3×/day.",routes:{SUBQ:"Standard — absorbs well, no local irritation.",IM:"Possible but SUBQ preferred.",Nasal:"Limited absorption — not recommended."}},
+  {name:"CJC-1295 (with DAC)",protocol:"GH Secretagogue",dosage:2000,unit:"mcg",half_life_h:156,peak_time_h:36,route:"SUBQ",site:"",color:"#a78bfa",info:"Long-acting GHRH analog · t½ 5-8 days · Peak 24-48h\n\nOnce or twice weekly. Sustains GH but blunts natural pulsatility. DAC extends half-life dramatically.",routes:{SUBQ:"Standard.",IM:"Acceptable, slightly faster onset."}},
+  {name:"Ipamorelin",protocol:"GH Secretagogue",dosage:200,unit:"mcg",half_life_h:2,peak_time_h:0.75,route:"SUBQ",site:"",color:"#f472b6",info:"Selective GHRP · t½ ~2h · Peak 30-60min\n\nMinimal cortisol/prolactin vs GHRP-2/6. Combine with CJC no-DAC. Fasted dosing best.",routes:{SUBQ:"Standard.",IM:"Acceptable.",Nasal:"Some evidence of efficacy."}},
+  {name:"GHRP-2",protocol:"GH Secretagogue",dosage:100,unit:"mcg",half_life_h:2.5,peak_time_h:0.5,route:"SUBQ",site:"",color:"#fb923c",info:"Potent GHRP · t½ 2-3h · Peak ~30min\n\nStrong GH pulse. Raises cortisol & prolactin more than Ipamorelin. Appetite increase common.",routes:{SUBQ:"Standard.",IM:"Acceptable."}},
+  {name:"GHRP-6",protocol:"GH Secretagogue",dosage:100,unit:"mcg",half_life_h:2.5,peak_time_h:0.62,route:"SUBQ",site:"",color:"#34d399",info:"GHRP with strong hunger effect · t½ 2-3h · Peak 30-45min\n\nBest for bulking or appetite stimulation.",routes:{SUBQ:"Standard.",IM:"Acceptable."}},
+  {name:"Hexarelin",protocol:"GH Secretagogue",dosage:200,unit:"mcg",half_life_h:2,peak_time_h:0.5,route:"SUBQ",site:"",color:"#f87171",info:"Strongest GHRP · t½ ~2h · Peak ~30min\n\nSignificant cortisol & prolactin increase. Desensitization risk — cycle off regularly.",routes:{SUBQ:"Standard.",IM:"Acceptable."}},
+  {name:"BPC-157",protocol:"Recovery / Healing",dosage:250,unit:"mcg",half_life_h:5,peak_time_h:1.5,route:"SUBQ",site:"Abdomen",color:"#2CCB92",info:"Pentadecapeptide · t½ 4-6h · Peak 1-2h\n\nSystemic or local injection (near injury). Consistency matters. 1-2×/day. Powerful tendon, gut, CNS recovery.",routes:{SUBQ:"Standard — local or systemic.",IM:"Good for muscle injuries.",Oral:"Effective for GI tract.",Nasal:"Possible for CNS effects."}},
+  {name:"TB-500",protocol:"Recovery / Healing",dosage:5,unit:"mg",half_life_h:60,peak_time_h:5,route:"SUBQ",site:"",color:"#60a5fa",info:"Thymosin Beta-4 fragment · t½ 2-3 days · Peak 4-6h\n\nSystemic healing. Loading: 2-3×/week for 4-6 weeks. Synergistic with BPC-157.",routes:{SUBQ:"Standard.",IM:"Acceptable."}},
+  {name:"IGF-1 LR3",protocol:"IGF / Anabolic",dosage:50,unit:"mcg",half_life_h:25,peak_time_h:3,route:"SUBQ",site:"",color:"#f472b6",info:"Long IGF-1 analog · t½ 20-30h · Peak 2-4h\n\nPost-workout or morning. Can cause hypoglycemia. Cycle 4-6 weeks max.",routes:{SUBQ:"Standard.",IM:"Acceptable — may give more local effect.",IV:"Rapid — higher hypoglycemia risk."}},
+  {name:"Semaglutide",protocol:"Metabolic / GLP-1",dosage:0.5,unit:"mg",half_life_h:168,peak_time_h:48,route:"SUBQ",site:"Abdomen",color:"#e879f9",info:"GLP-1 agonist · t½ ~7 days · Peak 24-72h\n\nOnce-weekly. Strong appetite suppression. Titrate slowly.",routes:{SUBQ:"Standard — abdomen, thigh, or upper arm.",IM:"Possible but not necessary.",Oral:"Oral version available (Rybelsus) — daily."}},
+  {name:"Tirzepatide",protocol:"Metabolic / GLP-1",dosage:5,unit:"mg",half_life_h:120,peak_time_h:36,route:"SUBQ",site:"Abdomen",color:"#facc15",info:"Dual GIP/GLP-1 agonist · t½ ~5 days · Peak 24-48h\n\nOnce-weekly. Superior weight loss vs Semaglutide.",routes:{SUBQ:"Standard.",IM:"Possible."}},
+  {name:"Testosterone Propionate",protocol:"Testosterone Ester",dosage:100,unit:"mg",half_life_h:48,peak_time_h:36,route:"IM",site:"Glute",color:"#e879f9",info:"Short ester · t½ ~2 days · Peak 24-48h\n\nEOD or ED injection. Less water retention than long esters.",routes:{IM:"Standard — deep intramuscular.",SUBQ:"Possible with smaller volumes (<0.5mL)."}},
+  {name:"Testosterone Enanthate",protocol:"Testosterone Ester",dosage:200,unit:"mg",half_life_h:108,peak_time_h:48,route:"IM",site:"Glute",color:"#facc15",info:"Medium ester · t½ 4-5 days · Peak 24-72h\n\nMost common TRT ester. E3.5D for stable levels.",routes:{IM:"Standard.",SUBQ:"Microdosing popular for TRT."}},
+  {name:"Testosterone Cypionate",protocol:"Testosterone Ester",dosage:200,unit:"mg",half_life_h:144,peak_time_h:48,route:"IM",site:"Glute",color:"#ffc07a",info:"Long ester · t½ 5-7 days · Peak 24-72h\n\nTwice-weekly standard; ED microdosing optimal.",routes:{IM:"Standard.",SUBQ:"Microdosing possible."}},
+  {name:"Nandrolone Decanoate",protocol:"19-Nor Compound",dosage:200,unit:"mg",half_life_h:216,peak_time_h:120,route:"IM",site:"Glute",color:"#f472b6",info:"Long nandrolone (Deca) · t½ 6-12 days · Peak 3-7 days\n\n2-3×/week minimum. Slow to clear if sides develop.",routes:{IM:"Standard — deep gluteal.",SUBQ:"Possible but less common."}},
+  {name:"Trenbolone Acetate",protocol:"19-Nor Compound",dosage:50,unit:"mg",half_life_h:36,peak_time_h:30,route:"IM",site:"Glute",color:"#fb923c",info:"Short trenbolone · t½ 1-2 days · Peak 24-48h\n\nED preferred, EOD minimum. Prolactin management essential.",routes:{IM:"Standard.",SUBQ:"Possible — can cause irritation."}},
+  {name:"Masteron Propionate",protocol:"DHT-Derived",dosage:100,unit:"mg",half_life_h:60,peak_time_h:36,route:"IM",site:"Glute",color:"#e879f9",info:"Short DHT ester · t½ 2-3 days · Peak 24-48h\n\nED or EOD. Cosmetic hardening. No aromatization.",routes:{IM:"Standard.",SUBQ:"Possible."}},
+  {name:"Primobolan Enanthate",protocol:"DHT-Derived",dosage:400,unit:"mg",half_life_h:204,peak_time_h:96,route:"IM",site:"Glute",color:"#ffc07a",info:"Methenolone Enanthate · t½ 7-10 days · Peak 3-5 days\n\n2-3×/week. No aromatization, minimal sides.",routes:{IM:"Standard.",SUBQ:"Possible."}},
+  {name:"Anavar",protocol:"DHT-Derived",dosage:50,unit:"mg",half_life_h:9.5,peak_time_h:1.5,route:"Oral",site:"",color:"#f472b6",info:"Oxandrolone · t½ 9-10h · Peak 1-2h\n\n2×/day. Mild hepatotoxicity. Excellent strength-to-weight ratio.",routes:{Oral:"Standard."}},
+  {name:"HCG",protocol:"Hormone Modulator",dosage:500,unit:"IU",half_life_h:30,peak_time_h:6,route:"SUBQ",site:"Abdomen",color:"#facc15",info:"Human Chorionic Gonadotropin · t½ 24-36h · Peak ~6h\n\nMaintains testicular function on cycle. 2-3×/week.",routes:{SUBQ:"Standard — abdomen.",IM:"Acceptable."}},
+  {name:"Enclomiphene",protocol:"Hormone Modulator",dosage:25,unit:"mg",half_life_h:11,peak_time_h:3.5,route:"Oral",site:"",color:"#ffc07a",info:"SERM · t½ 10-12h · Peak 3-4h\n\nOnce-daily. Raises LH/FSH. Used for TRT alternatives and PCT.",routes:{Oral:"Standard."}},
+  {name:"Tamoxifen",protocol:"Hormone Modulator",dosage:20,unit:"mg",half_life_h:144,peak_time_h:5,route:"Oral",site:"",color:"#a78bfa",info:"SERM (Nolvadex) · t½ 5-7 days · Peak ~5h\n\nBlocks estrogen receptor. Once-daily.",routes:{Oral:"Standard."}},
+  {name:"MK-677",protocol:"Hormone Modulator",dosage:25,unit:"mg",half_life_h:24,peak_time_h:1.5,route:"Oral",site:"",color:"#f472b6",info:"Ibutamoren · t½ ~24h · Peak 1-2h\n\nOral GH secretagogue. Once-daily. Increases GH and IGF-1.",routes:{Oral:"Standard — only route."}},
+  {name:"Melanotan II",protocol:"CNS / Performance",dosage:0.5,unit:"mg",half_life_h:1.5,peak_time_h:1,route:"SUBQ",site:"",color:"#60a5fa",info:"Melanocortin agonist · t½ 1-2h · Peak ~1h\n\nTanning, libido. Nausea common at start — titrate from very low dose.",routes:{SUBQ:"Standard.",IM:"Possible.",Nasal:"Limited efficacy."}},
+  {name:"PT-141",protocol:"CNS / Performance",dosage:1,unit:"mg",half_life_h:3,peak_time_h:1.5,route:"SUBQ",site:"",color:"#a78bfa",info:"Bremelanotide · t½ 2-4h · Peak 1-2h\n\nDose 45-90 min before activity. As-needed only.",routes:{SUBQ:"Standard.",IM:"Possible."}},
+];
+
+let db=null,cycleChart=null,selectedColor=COLORS[0],libraryOpen=false;
+
+function localDatetimeStr(d=new Date()){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`}
+function hoursAgo(iso){return(Date.now()-new Date(iso).getTime())/3600000}
+function flashSave(){const e=document.getElementById('save-flash');e.style.opacity='1';setTimeout(()=>e.style.opacity='0',1800)}
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+async function initDB(){
+  const SQL=await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
+  const saved=localStorage.getItem(DB_KEY);
+  db=saved?new SQL.Database(Uint8Array.from(atob(saved),c=>c.charCodeAt(0))):new SQL.Database();
+  db.run(`CREATE TABLE IF NOT EXISTS compounds(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,protocol TEXT DEFAULT '',dosage REAL NOT NULL,unit TEXT DEFAULT 'mcg',half_life_h REAL NOT NULL,peak_time_h REAL DEFAULT 1,route TEXT DEFAULT 'SUBQ',site TEXT DEFAULT '',color TEXT DEFAULT '#2CCB92',active INTEGER DEFAULT 1,created_at TEXT NOT NULL)`);
+  try{db.run('ALTER TABLE compounds ADD COLUMN peak_time_h REAL DEFAULT 1')}catch(e){}
+  db.run(`CREATE TABLE IF NOT EXISTS compound_logs(id INTEGER PRIMARY KEY AUTOINCREMENT,compound_id INTEGER NOT NULL,logged_at TEXT NOT NULL,dosage REAL,site TEXT,note TEXT DEFAULT '',FOREIGN KEY(compound_id) REFERENCES compounds(id))`);
+  saveDB()
+}
+function saveDB(){const d=db.export();localStorage.setItem(DB_KEY,btoa(String.fromCharCode(...d)));flashSave()}
+function q(sql,p){const r=db.exec(sql,p);return r.length?r[0].values:[]}
+function getCompounds(){return q('SELECT id,name,protocol,dosage,unit,half_life_h,peak_time_h,route,site,color,active FROM compounds WHERE active=1 ORDER BY id').map(r=>({id:r[0],name:r[1],protocol:r[2],dosage:r[3],unit:r[4],half_life_h:r[5],peak_time_h:r[6]||1,route:r[7],site:r[8],color:r[9],active:r[10]}))}
+function getCompoundById(id){const r=q('SELECT id,name,protocol,dosage,unit,half_life_h,peak_time_h,route,site,color FROM compounds WHERE id=?',[id]);if(!r.length)return null;return{id:r[0][0],name:r[0][1],protocol:r[0][2],dosage:r[0][3],unit:r[0][4],half_life_h:r[0][5],peak_time_h:r[0][6]||1,route:r[0][7],site:r[0][8],color:r[0][9]}}
+function getLogs(limit=50){return q(`SELECT l.id,c.name,c.unit,c.color,l.logged_at,l.dosage,l.site,l.note,c.id as cid FROM compound_logs l JOIN compounds c ON l.compound_id=c.id ORDER BY l.logged_at DESC LIMIT ?`,[limit]).map(r=>({id:r[0],name:r[1],unit:r[2],color:r[3],logged_at:r[4],dosage:r[5],site:r[6],note:r[7],cid:r[8]}))}
+function getLastLog(cid){const r=q('SELECT logged_at FROM compound_logs WHERE compound_id=? ORDER BY logged_at DESC LIMIT 1',[cid]);return r.length?r[0][0]:null}
+function getMostRecentLog(){const r=q('SELECT l.logged_at,c.name FROM compound_logs l JOIN compounds c ON l.compound_id=c.id ORDER BY l.logged_at DESC LIMIT 1');return r.length?{logged_at:r[0][0],name:r[0][1]}:null}
+function getLastDoseForCompound(cid){const r=q('SELECT logged_at,dosage,site,note FROM compound_logs WHERE compound_id=? ORDER BY logged_at DESC LIMIT 1',[cid]);return r.length?{logged_at:r[0][0],dosage:r[0][1],site:r[0][2],note:r[0][3]}:null}
+
+function findKa(ke,Tmax){if(Tmax<=0.005)return ke*10000;const maxT=1/ke;if(Tmax>=maxT*0.99)return ke*1.0005;let lo=ke*1.0001,hi=ke*5000;for(let i=0;i<80;i++){let mid=(lo+hi)/2;if(Math.log(mid/ke)/(mid-ke)>Tmax)lo=mid;else hi=mid;if((hi-lo)/lo<1e-8)break}return(lo+hi)/2}
+function bateman(dose,hl,peak,h){if(h<0)return 0;if(h===0)return 0;const ke=Math.LN2/hl,ka=findKa(ke,peak),d=ka-ke;if(Math.abs(d)<1e-12)return dose*ke*h*Math.exp(-ke*h);return dose*(ka/d)*(Math.exp(-ke*h)-Math.exp(-ka*h))}
+function buildCurve(compounds,logs){const P=97,S=48,now=Date.now(),cm={};compounds.forEach(c=>cm[c.id]=c);const lm={};logs.forEach(l=>{if(!lm[l.cid])lm[l.cid]=[];lm[l.cid].push({ms:new Date(l.logged_at).getTime(),dosage:l.dosage})});const ds=[];let has=false;compounds.filter(c=>c.active).forEach(c=>{const ls=lm[c.id]||[];if(!ls.length)return;has=true;const d=[];for(let i=0;i<P;i++){const t=now-(S/2)*3600000+(i/(P-1))*S*3600000;let tot=0;ls.forEach(l=>{const h=(t-l.ms)/3600000;tot+=bateman(l.dosage!==null?l.dosage:c.dosage,c.half_life_h,c.peak_time_h||1,h)});d.push(Math.round(tot*100)/100)}ds.push({_cid:c.id,label:c.name,data:d,borderColor:c.color,backgroundColor:'transparent',tension:0.4,borderWidth:2.5,pointRadius:0,fill:false})});return{datasets:ds,hasAny:has}}
+
+function renderAll(){const c=getCompounds(),l=getLogs();renderStats(c);renderCards(c);renderLogs(l);renderChart(c,l);updateTimeAxis()}
+function renderStats(compounds){document.getElementById('active-count').textContent=String(compounds.length).padStart(2,'0');document.getElementById('active-label').textContent=compounds.length?compounds.map(c=>c.name).join(' · '):'No compounds added';const last=getMostRecentLog();if(!last){document.getElementById('last-dose-time').textContent='—';document.getElementById('last-dose-label').textContent='No doses logged'}else{const a=hoursAgo(last.logged_at);document.getElementById('last-dose-time').textContent=a<1?`${Math.round(a*60)}m ago`:a<24?`${a.toFixed(1)}h ago`:`${(a/24).toFixed(1)}d ago`;document.getElementById('last-dose-label').textContent=last.name}}
+function renderCards(compounds){const list=document.getElementById('compound-list'),empty=document.getElementById('compound-empty');list.querySelectorAll('.compound-card').forEach(e=>e.remove());if(!compounds.length){empty.style.display='block';return}empty.style.display='none';compounds.forEach((c,idx)=>{const last=getLastLog(c.id),la=last?hoursAgo(last):null;const lastLabel=la===null?'Never':la<1?`${Math.round(la*60)}m ago`:`${la.toFixed(1)}h ago`;let cur=0;if(last)cur=bateman(c.dosage,c.half_life_h,c.peak_time_h||1,la||0);const pct=c.dosage>0?Math.max(0,Math.min(100,Math.round((cur/c.dosage)*100))):0;const card=document.createElement('div');card.className='compound-card bg-[#1a1a1a] border border-[#2c2c2c] p-md rounded-xl flex flex-col gap-3';card.style.animationDelay=idx*40+'ms';card.innerHTML=`<div class="flex justify-between items-start"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg flex items-center justify-center border" style="background:${c.color}15;border-color:${c.color}30"><span class="material-symbols-outlined" style="color:${c.color};font-size:20px">biotech</span></div><div><h4 class="font-bold text-on-surface">${escH(c.name)}</h4><p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">${escH(c.protocol)}</p></div></div><div class="flex items-center gap-1"><span class="pill border" style="background:${c.color}15;color:${c.color};border-color:${c.color}30">${escH(c.route)}</span><button onclick="openEditCompound(${c.id})" class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors ml-1" style="font-size:16px;cursor:pointer">edit</button><button onclick="deleteCompound(${c.id})" class="material-symbols-outlined text-on-surface-variant hover:text-error transition-colors" style="font-size:16px;cursor:pointer">delete</button></div></div><div class="grid grid-cols-2 gap-2 py-2 border-y border-neutral-800 text-[10px]"><div><p class="text-on-surface-variant uppercase font-bold mb-0.5">Dosage</p><p class="font-data-mono text-on-surface">${c.dosage} ${c.unit}</p></div><div><p class="text-on-surface-variant uppercase font-bold mb-0.5">Last Dose</p><p class="font-data-mono text-on-surface">${lastLabel}</p></div><div><p class="text-on-surface-variant uppercase font-bold mb-0.5">Half-life</p><p class="font-data-mono text-on-surface">${c.half_life_h}h</p></div><div><p class="text-on-surface-variant uppercase font-bold mb-0.5">Peak</p><p class="font-data-mono text-on-surface">${(c.peak_time_h||1).toFixed(1)}h</p></div>${c.site?`<div class="col-span-2"><p class="text-on-surface-variant uppercase font-bold mb-0.5">Site</p><p class="font-data-mono text-on-surface">${escH(c.site)}</p></div>`:''}</div><div><div class="flex justify-between items-center mb-1"><p class="text-[10px] text-on-surface-variant uppercase font-bold">Est. conc.</p><p class="text-[10px] font-bold" style="color:${c.color}">${pct}%</p></div><div class="w-full h-1 bg-neutral-800 rounded-full overflow-hidden"><div class="h-full rounded-full transition-all duration-700" style="width:${pct}%;background:${c.color}"></div></div></div><div class="flex gap-2"><button onclick="openLogDose(${c.id})" class="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-on-surface text-label-sm font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2"><span class="material-symbols-outlined" style="font-size:16px">colorize</span>Log Dose</button><button onclick="repeatDose(${c.id})" class="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-on-surface text-label-sm font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2"><span class="material-symbols-outlined" style="font-size:16px">replay</span>Repeat</button></div>`;list.appendChild(card)})}
+function renderLogs(logs){const list=document.getElementById('log-list'),empty=document.getElementById('log-empty');document.getElementById('log-count').textContent=`${logs.length} entr${logs.length===1?'y':'ies'}`;list.querySelectorAll('.log-row').forEach(e=>e.remove());if(!logs.length){empty.style.display='block';return}empty.style.display='none';logs.forEach(l=>{const dt=new Date(l.logged_at),dose=l.dosage!==null?l.dosage:'—';const row=document.createElement('div');row.className='log-row flex items-center justify-between p-2.5 bg-[#0e1511] border border-[#2c2c2c] rounded-lg text-label-sm';row.innerHTML=`<div class="flex items-center gap-2 min-w-0"><div class="w-2 h-2 rounded-full shrink-0" style="background:${l.color}"></div><span class="font-bold text-on-surface truncate">${escH(l.name)}</span>${l.note?`<span class="text-on-surface-variant italic truncate max-w-[120px] hidden sm:inline">${escH(l.note)}</span>`:''}</div><div class="flex items-center gap-3 shrink-0"><span class="font-data-mono text-on-surface-variant">${dose} ${l.unit}</span><span class="text-on-surface-variant text-xs">${dt.toLocaleDateString(undefined,{month:'short',day:'numeric'})} ${dt.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</span><button onclick="deleteLog(${l.id})" class="material-symbols-outlined text-on-surface-variant hover:text-error transition-colors" style="font-size:15px;cursor:pointer">delete</button></div>`;list.appendChild(row)})}
+function renderChart(compounds,logs){const{datasets,hasAny}=buildCurve(compounds,logs);const canvas=document.getElementById('cycleChart'),empty=document.getElementById('chart-empty'),legend=document.getElementById('chart-legend');legend.innerHTML=compounds.filter(c=>c.active&&datasets.some(d=>d._cid===c.id)).map(c=>`<span class="flex items-center gap-1 text-[10px] font-bold" style="color:${c.color}"><span style="width:10px;height:2px;background:${c.color};display:inline-block;border-radius:1px"></span>${c.name}</span>`).join('');if(!hasAny){empty.style.display='flex';canvas.style.display='none';if(cycleChart){cycleChart.destroy();cycleChart=null}return}empty.style.display='none';canvas.style.display='block';const P=97,nowIdx=Math.floor(P/2),labels=Array.from({length:P},(_,i)=>(-24+(i/(P-1))*48).toFixed(2));if(!cycleChart){cycleChart=new Chart(canvas.getContext('2d'),{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,animation:{duration:350},plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'#1a1a1a',borderColor:'#2c2c2c',borderWidth:1,titleColor:'#bbcac0',bodyColor:'#dde4dd',padding:10,callbacks:{title:items=>{const h=parseFloat(items[0].label);return Math.abs(h)<0.3?'Now':h<0?`${Math.abs(h).toFixed(1)}h ago`:`+${h.toFixed(1)}h`},label:ctx=>{const c=compounds.find(c=>c.name===ctx.dataset.label);return` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} ${c?.unit||''}`}}}},scales:{x:{display:false},y:{grid:{color:'rgba(60,74,66,0.3)'},border:{display:false},ticks:{color:'#86948b',font:{size:11,family:'Inter'},maxTicksLimit:5,callback:v=>v.toFixed(0)},beginAtZero:true}}},plugins:[{id:'nowLine',afterDraw(chart){const meta=chart.getDatasetMeta(0);if(!meta||!meta.data[nowIdx])return;const x=meta.data[nowIdx].x,{top,bottom}=chart.chartArea,ctx=chart.ctx;ctx.save();ctx.beginPath();ctx.setLineDash([4,4]);ctx.strokeStyle='#2CCB92';ctx.lineWidth=1.5;ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();ctx.restore()}}]})}else{cycleChart.data.datasets=datasets;cycleChart.update('active')}}
+function updateTimeAxis(){const now=new Date(),fmt=h=>new Date(now.getTime()+h*3600000).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});document.getElementById('t-24').textContent=fmt(-24);document.getElementById('t-18').textContent=fmt(-18);document.getElementById('t-12').textContent=fmt(-12);document.getElementById('t-6').textContent=fmt(-6);document.getElementById('t+6').textContent=fmt(6);document.getElementById('t+12').textContent=fmt(12);document.getElementById('t+18').textContent=fmt(18);document.getElementById('t+24').textContent=fmt(24)}
+
+function openModal(id){document.getElementById(id).style.setProperty('display','flex','important')}
+function closeModal(id){document.getElementById(id).style.setProperty('display','none','important');if(id==='modal-compound'){libraryOpen=false;document.getElementById('library-dropdown').classList.add('hidden');document.getElementById('lib-chevron').style.transform=''}}
+function buildColorPicker(){document.getElementById('color-picker').innerHTML=COLORS.map(c=>`<button type="button" onclick="selectColor('${c}')" class="w-7 h-7 rounded-full border-2 transition-all active:scale-90" style="background:${c};border-color:${c===selectedColor?'#fff':'transparent'}"></button>`).join('')}
+function selectColor(c){selectedColor=c;buildColorPicker()}
+
+// ─── Library Search ──────────────────────────────────────────────────────────
+function toggleLibrarySearch(){
+  libraryOpen=!libraryOpen;
+  const dd=document.getElementById('library-dropdown'),chev=document.getElementById('lib-chevron');
+  if(libraryOpen){dd.classList.remove('hidden');chev.style.transform='rotate(180deg)';filterLibrary()}else{dd.classList.add('hidden');chev.style.transform=''}
+}
+function filterLibrary(){
+  const q=document.getElementById('lib-search').value.toLowerCase().trim();
+  const list=document.getElementById('library-list');
+  const matches=q?COMPOUND_LIBRARY.filter(c=>c.name.toLowerCase().includes(q)||c.protocol.toLowerCase().includes(q)||(c.info||'').toLowerCase().includes(q)):COMPOUND_LIBRARY;
+  if(!matches.length){list.innerHTML='<div class="p-4 text-label-sm text-on-surface-variant text-center">No matches found.</div>';return}
+  list.innerHTML=matches.map(c=>{
+    const rc='route-'+c.route.toLowerCase();
+    const ri=c.routes?Object.entries(c.routes).map(([k,v])=>`<span class="route-badge route-${k.toLowerCase()}">${k}</span> ${v}`).join('<br>'):'';
+    return`<div class="library-item p-3 border-b border-[#2c2c2c]/50" onclick="selectLibraryCompound('${c.name.replace(/'/g,"\\'")}')"><div class="flex items-center justify-between mb-1"><span class="font-bold text-on-surface text-sm">${escH(c.name)}</span><span class="route-badge ${rc}">${c.route}</span></div><div class="text-[10px] text-on-surface-variant mb-1">${c.dosage}${c.unit} · t½ ${c.half_life_h}h · peak ${c.peak_time_h}h</div><div class="text-[10px] text-on-surface-variant/70 leading-relaxed">${c.info?c.info.split('\n')[0]:''}</div>${ri?`<div class="mt-1.5 text-[10px] text-on-surface-variant/60 leading-relaxed">${ri}</div>`:''}</div>`
+  }).join('')
+}
+function selectLibraryCompound(name){
+  const c=COMPOUND_LIBRARY.find(e=>e.name===name);if(!c)return;
+  document.getElementById('c-name').value=c.name;document.getElementById('c-protocol').value=c.protocol||'';
+  document.getElementById('c-dosage').value=c.dosage;document.getElementById('c-unit').value=c.unit;
+  document.getElementById('c-halflife').value=c.half_life_h;document.getElementById('c-peaktime').value=c.peak_time_h;
+  document.getElementById('c-route').value=c.route;document.getElementById('c-site').value=c.site||'';
+  selectedColor=c.color||COLORS[0];buildColorPicker();
+  libraryOpen=false;document.getElementById('library-dropdown').classList.add('hidden');document.getElementById('lib-chevron').style.transform='';
+  document.getElementById('lib-search').value=''
+}
+
+// ─── Compound CRUD ───────────────────────────────────────────────────────────
+function openAddCompound(){
+  selectedColor=COLORS[0];document.getElementById('edit-compound-id').value='';
+  document.getElementById('modal-compound-title').textContent='Add Compound';
+  ['c-name','c-protocol','c-site'].forEach(id=>document.getElementById(id).value='');
+  ['c-dosage','c-halflife','c-peaktime'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('c-unit').value='mcg';document.getElementById('c-route').value='SUBQ';
+  document.getElementById('c-error').classList.add('hidden');buildColorPicker();
+  libraryOpen=false;document.getElementById('library-dropdown').classList.add('hidden');
+  document.getElementById('lib-chevron').style.transform='';document.getElementById('lib-search').value='';filterLibrary();
+  openModal('modal-compound');setTimeout(()=>document.getElementById('c-name').focus(),50)
+}
+function openEditCompound(id){
+  const r=q('SELECT name,protocol,dosage,unit,half_life_h,peak_time_h,route,site,color FROM compounds WHERE id=?',[id]);if(!r.length)return;
+  document.getElementById('edit-compound-id').value=id;document.getElementById('modal-compound-title').textContent='Edit Compound';
+  document.getElementById('c-name').value=r[0][0];document.getElementById('c-protocol').value=r[0][1];
+  document.getElementById('c-dosage').value=r[0][2];document.getElementById('c-unit').value=r[0][3];
+  document.getElementById('c-halflife').value=r[0][4];document.getElementById('c-peaktime').value=r[0][5]||1;
+  document.getElementById('c-route').value=r[0][6];document.getElementById('c-site').value=r[0][7];
+  selectedColor=r[0][8]||COLORS[0];buildColorPicker();document.getElementById('c-error').classList.add('hidden');
+  libraryOpen=false;document.getElementById('library-dropdown').classList.add('hidden');document.getElementById('lib-chevron').style.transform='';
+  openModal('modal-compound')
+}
+function submitCompound(){
+  const name=document.getElementById('c-name').value.trim(),protocol=document.getElementById('c-protocol').value.trim();
+  const dosage=parseFloat(document.getElementById('c-dosage').value),unit=document.getElementById('c-unit').value;
+  const hl=parseFloat(document.getElementById('c-halflife').value),pk=parseFloat(document.getElementById('c-peaktime').value)||1;
+  const route=document.getElementById('c-route').value,site=document.getElementById('c-site').value.trim();
+  const editId=document.getElementById('edit-compound-id').value;
+  if(!name||isNaN(dosage)||isNaN(hl)||hl<=0||isNaN(pk)||pk<=0){document.getElementById('c-error').classList.remove('hidden');return}
+  document.getElementById('c-error').classList.add('hidden');
+  if(editId){db.run('UPDATE compounds SET name=?,protocol=?,dosage=?,unit=?,half_life_h=?,peak_time_h=?,route=?,site=?,color=? WHERE id=?',[name,protocol,dosage,unit,hl,pk,route,site,selectedColor,editId])}
+  else{db.run('INSERT INTO compounds(name,protocol,dosage,unit,half_life_h,peak_time_h,route,site,color,active,created_at)VALUES(?,?,?,?,?,?,?,?,?,1,?)',[name,protocol,dosage,unit,hl,pk,route,site,selectedColor,new Date().toISOString()])}
+  saveDB();closeModal('modal-compound');if(cycleChart){cycleChart.destroy();cycleChart=null}renderAll()
+}
+function deleteCompound(id){if(!confirm('Delete this compound and all its logs?'))return;db.run('DELETE FROM compound_logs WHERE compound_id=?',[id]);db.run('DELETE FROM compounds WHERE id=?',[id]);saveDB();if(cycleChart){cycleChart.destroy();cycleChart=null}renderAll()}
+
+// ─── Log Dose ────────────────────────────────────────────────────────────────
+function populateLogCompoundSelect(){const sel=document.getElementById('log-compound-select');const compounds=getCompounds();sel.innerHTML='<option value="">— Select a compound —</option>'+compounds.map(c=>`<option value="${c.id}">${escH(c.name)} (${c.dosage} ${c.unit})</option>`).join('')}
+function onLogCompoundSelect(){const id=document.getElementById('log-compound-select').value;if(!id){document.getElementById('log-dosage').placeholder='Default';document.getElementById('log-site').placeholder='Same as default';return}const c=getCompoundById(id);if(!c)return;document.getElementById('log-dosage').placeholder=`${c.dosage} ${c.unit} (default)`;document.getElementById('log-site').placeholder=c.site||'e.g. Abdomen'}
+function openLogDose(compoundId){populateLogCompoundSelect();document.getElementById('log-compound-id').value=compoundId||'';document.getElementById('log-compound-select').value=compoundId||'';document.getElementById('log-modal-title').textContent='Log Dose';document.getElementById('log-modal-sub').textContent=compoundId?'':'Select a compound';document.getElementById('log-datetime').value=localDatetimeStr();document.getElementById('log-dosage').value='';document.getElementById('log-dosage').placeholder='Default';document.getElementById('log-site').value='';document.getElementById('log-site').placeholder='Same as default';document.getElementById('log-note').value='';document.getElementById('log-error').classList.add('hidden');if(compoundId)onLogCompoundSelect();openModal('modal-log');setTimeout(()=>document.getElementById('log-datetime').focus(),50)}
+function submitLog(){const compoundId=document.getElementById('log-compound-select').value;if(!compoundId){document.getElementById('log-error').classList.remove('hidden');return}const datetimeVal=document.getElementById('log-datetime').value;if(!datetimeVal)return;const dosageVal=parseFloat(document.getElementById('log-dosage').value)||null;const siteVal=document.getElementById('log-site').value.trim()||null;const noteVal=document.getElementById('log-note').value.trim();db.run('INSERT INTO compound_logs(compound_id,logged_at,dosage,site,note)VALUES(?,?,?,?,?)',[compoundId,new Date(datetimeVal).toISOString(),dosageVal,siteVal,noteVal]);saveDB();closeModal('modal-log');if(cycleChart){cycleChart.destroy();cycleChart=null}renderAll()}
+function deleteLog(id){db.run('DELETE FROM compound_logs WHERE id=?',[id]);saveDB();if(cycleChart){cycleChart.destroy();cycleChart=null}renderAll()}
+
+// ─── Repeat Dose ─────────────────────────────────────────────────────────────
+function repeatDose(compoundId){const last=getLastDoseForCompound(compoundId);if(!last){alert('No previous dose to repeat. Log a dose first.');return}db.run('INSERT INTO compound_logs(compound_id,logged_at,dosage,site,note)VALUES(?,?,?,?,?)',[compoundId,new Date().toISOString(),last.dosage,last.site,last.note||'']);saveDB();if(cycleChart){cycleChart.destroy();cycleChart=null}renderAll()}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('modal-compound');closeModal('modal-log')}if(e.key==='Enter'&&document.getElementById('modal-log').style.display!=='none')submitLog()});
+['modal-compound','modal-log'].forEach(id=>{document.getElementById(id).addEventListener('click',e=>{if(e.target===document.getElementById(id))closeModal(id)})});
+function msUntilNextHour(){const n=new Date();return(60-n.getMinutes())*60000-n.getSeconds()*1000+500}
+function scheduleHourlyRefresh(){setTimeout(()=>{if(cycleChart){cycleChart.destroy();cycleChart=null}renderAll();scheduleHourlyRefresh()},msUntilNextHour())}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(cycleChart){cycleChart.destroy();cycleChart=null}renderAll()}});
+
+(async()=>{await initDB();renderAll();scheduleHourlyRefresh()})();
+</script>
+</body>
+</html>

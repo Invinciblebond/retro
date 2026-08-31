@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AuraHealth — History</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-surface": "#dde4dd", "error": "#ffb4ab", "on-primary": "#003825",
+          "surface-container-lowest": "#09100c", "on-secondary-fixed": "#2b1700",
+          "tertiary-container": "#ff996e", "on-background": "#dde4dd",
+          "outline": "#86948b", "inverse-surface": "#dde4dd", "background": "#0e1511",
+          "primary-fixed": "#6afcbf", "on-primary-fixed": "#002114",
+          "surface-variant": "#2f3632", "secondary": "#ffc07a",
+          "on-secondary-fixed-variant": "#673d00", "on-primary-container": "#005036",
+          "error-container": "#93000a", "on-tertiary-fixed": "#370e00",
+          "on-secondary-container": "#623a00", "inverse-on-surface": "#2b322e",
+          "tertiary": "#ffc1a8", "on-tertiary": "#591d00",
+          "secondary-container": "#fa9b00", "on-error": "#690005",
+          "inverse-primary": "#006c4a", "on-tertiary-fixed-variant": "#79310e",
+          "on-error-container": "#ffdad6", "on-secondary": "#482900",
+          "outline-variant": "#3c4a42", "primary-fixed-dim": "#48dfa4",
+          "primary": "#54e8ac", "on-surface-variant": "#bbcac0",
+          "surface-dim": "#0e1511", "secondary-fixed": "#ffddbb",
+          "tertiary-fixed": "#ffdbce", "surface-bright": "#333b36",
+          "on-primary-fixed-variant": "#005137", "tertiary-fixed-dim": "#ffb598",
+          "primary-container": "#2ccb92", "surface-tint": "#48dfa4",
+          "surface-container-low": "#161d19", "surface-container-high": "#242c27",
+          "surface-container": "#1a211d", "on-tertiary-container": "#772f0c",
+          "surface-container-highest": "#2f3632", "surface": "#0e1511",
+          "secondary-fixed-dim": "#ffb868"
+        },
+        borderRadius: { DEFAULT:"0.25rem", lg:"0.5rem", xl:"0.75rem", full:"9999px" },
+        spacing: { xs:"4px", sm:"8px", gutter:"16px", unit:"4px", lg:"24px", "container-padding":"20px", xl:"32px", md:"16px" },
+        fontFamily: { "headline-lg":["Inter"], "body-md":["Inter"], "label-sm":["Inter"], "metric-xl":["Inter"], "data-mono":["Inter"] },
+        fontSize: {
+          "headline-lg": ["24px", { lineHeight:"32px", letterSpacing:"-0.02em", fontWeight:"600" }],
+          "body-md":     ["16px", { lineHeight:"24px", letterSpacing:"0em",     fontWeight:"400" }],
+          "label-sm":    ["13px", { lineHeight:"18px", letterSpacing:"0.01em",  fontWeight:"500" }],
+          "metric-xl":   ["36px", { lineHeight:"44px", letterSpacing:"-0.03em", fontWeight:"700" }],
+          "data-mono":   ["14px", { lineHeight:"20px", letterSpacing:"0.05em",  fontWeight:"600" }]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  body { background-color:#0e1511; color:#dde4dd; }
+  .hide-scrollbar::-webkit-scrollbar { display:none; }
+  .hide-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+  .row-enter { animation: rowIn 0.25s ease both; }
+  @keyframes rowIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen pb-24">
+
+<!-- Nav -->
+<header class="flex justify-between items-center px-6 h-16 w-full z-50 bg-neutral-950 text-emerald-400 font-inter antialiased tracking-tight fixed top-0 border-b border-neutral-800">
+  <div class="text-xl font-bold text-emerald-400 tracking-wider">AuraHealth</div>
+  <nav class="hidden md:flex items-center space-x-8">
+    <a class="text-neutral-500 font-medium hover:text-emerald-300 transition-colors" href="calorie_tracker.html">Dashboard</a>
+    <a class="text-emerald-400 border-b-2 border-emerald-400 pb-1 font-semibold" href="#">History</a>
+    <a class="text-neutral-500 font-medium hover:text-emerald-300 transition-colors" href="#">Plans</a>
+  </nav>
+  <div class="flex items-center space-x-4">
+    <button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">settings</button>
+    <button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">account_circle</button>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-container-padding pt-24">
+
+  <!-- Page header -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between mb-xl gap-md">
+    <div>
+      <h1 class="font-headline-lg text-headline-lg text-on-background mb-xs">Activity History</h1>
+      <p class="font-label-sm text-label-sm text-on-surface-variant">All logged days — goals: 1,750 kcal net · 150g protein</p>
+    </div>
+    <div class="flex items-center bg-surface-container border border-outline-variant rounded-xl px-md py-sm gap-sm">
+      <span class="material-symbols-outlined text-primary" style="font-size:18px">database</span>
+      <span class="font-label-sm text-label-sm text-on-surface-variant" id="db-info">Loading…</span>
+    </div>
+  </div>
+
+  <!-- Summary banner -->
+  <div class="mb-xl bg-surface-container border border-outline-variant rounded-xl p-lg relative overflow-hidden">
+    <div class="absolute top-0 right-0 p-lg opacity-10 pointer-events-none select-none">
+      <span class="material-symbols-outlined text-primary" style="font-size:120px">monitoring</span>
+    </div>
+    <div class="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-lg">
+      <div>
+        <p class="font-label-sm text-label-sm text-on-surface-variant mb-xs">Avg Daily Burn</p>
+        <p class="font-metric-xl text-metric-xl text-primary" id="avg-burn">—</p>
+        <p class="font-label-sm text-label-sm text-on-surface-variant">kcal</p>
+      </div>
+      <div>
+        <p class="font-label-sm text-label-sm text-on-surface-variant mb-xs">Avg Daily Intake</p>
+        <p class="font-metric-xl text-metric-xl text-secondary" id="avg-intake">—</p>
+        <p class="font-label-sm text-label-sm text-on-surface-variant">kcal</p>
+      </div>
+      <div>
+        <p class="font-label-sm text-label-sm text-on-surface-variant mb-xs">Avg Protein</p>
+        <p class="font-metric-xl text-metric-xl text-on-background" id="avg-protein">—</p>
+        <p class="font-label-sm text-label-sm text-on-surface-variant">g / day</p>
+      </div>
+      <div>
+        <p class="font-label-sm text-label-sm text-on-surface-variant mb-xs">Goal Days</p>
+        <p class="font-metric-xl text-metric-xl text-on-background" id="goal-streak">—</p>
+        <p class="font-label-sm text-label-sm text-on-surface-variant">in perfect range</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- History list -->
+  <div class="space-y-md" id="history-list">
+    <div class="flex flex-col items-center justify-center py-16 text-on-surface-variant" id="empty-state">
+      <span class="material-symbols-outlined mb-3" style="font-size:48px;opacity:0.4">history</span>
+      <p class="font-label-sm text-label-sm">No entries logged yet. Head to the Dashboard to get started.</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- Bottom nav (mobile) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 bg-neutral-950/95 backdrop-blur-md border-t border-neutral-800 md:hidden">
+    <span class="material-symbols-outlined">grid_view</span>
+    <span class="text-[10px] font-medium uppercase tracking-widest">Dashboard</span>
+  </a>
+  <div class="flex flex-col items-center text-emerald-400 bg-emerald-500/10 rounded-xl px-4 py-1">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">history</span>
+    <span class="text-[10px] font-medium uppercase tracking-widest">History</span>
+  </div>
+  <div class="flex flex-col items-center text-neutral-500">
+    <span class="material-symbols-outlined">restaurant_menu</span>
+    <span class="text-[10px] font-medium uppercase tracking-widest">Plans</span>
+  </div>
+</nav>
+
+<script>
+const CAL_GOAL   = 1750;
+const CAL_LOW    = 1700;
+const CAL_HIGH   = 1800;
+const PRO_GOAL   = 150;
+
+let db = null;
+
+// ─── DB init (read-only mirror of tracker's localStorage) ────────────────────
+async function initDB() {
+  const SQL = await initSqlJs({
+    locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`
+  });
+  const saved = localStorage.getItem('aura_db');
+  if (saved) {
+    const buf = Uint8Array.from(atob(saved), c => c.charCodeAt(0));
+    db = new SQL.Database(buf);
+  } else {
+    db = new SQL.Database();
+  }
+  db.run(`CREATE TABLE IF NOT EXISTS entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL, type TEXT NOT NULL, label TEXT NOT NULL,
+    cal INTEGER NOT NULL, hour REAL NOT NULL, protein REAL NOT NULL DEFAULT 0
+  )`);
+  try { db.run('ALTER TABLE entries ADD COLUMN protein REAL NOT NULL DEFAULT 0'); } catch(e) {}
+  db.run(`CREATE TABLE IF NOT EXISTS daily_log (
+    date TEXT PRIMARY KEY, weight_kg REAL, note TEXT NOT NULL DEFAULT ''
+  )`);
+}
+
+// ─── Query helpers ────────────────────────────────────────────────────────────
+function q(sql, params) {
+  const r = db.exec(sql, params);
+  return r.length ? r[0].values : [];
+}
+
+function getAllDates() {
+  return q('SELECT DISTINCT date FROM entries ORDER BY date DESC').map(r => r[0]);
+}
+
+function getDayLog(date) {
+  const res = q('SELECT weight_kg, note FROM daily_log WHERE date=?', [date]);
+  if (!res.length) return { weight_kg: null, note: '' };
+  return { weight_kg: res[0][0], note: res[0][1] || '' };
+}
+
+function getDaySums(date) {
+  const burnt    = q('SELECT COALESCE(SUM(cal),0) FROM entries WHERE date=? AND type="burnt"',    [date])[0]?.[0] || 0;
+  const consumed = q('SELECT COALESCE(SUM(cal),0) FROM entries WHERE date=? AND type="consumed"', [date])[0]?.[0] || 0;
+  const protein  = q('SELECT COALESCE(SUM(protein),0) FROM entries WHERE date=? AND type="consumed"', [date])[0]?.[0] || 0;
+  return { burnt, consumed, protein };
+}
+
+function getDayEntries(date) {
+  return q('SELECT hour, cal, type FROM entries WHERE date=? ORDER BY hour', [date])
+    .map(r => ({ hour: r[0], cal: r[1], type: r[2] }));
+}
+
+// ─── Sparkline ────────────────────────────────────────────────────────────────
+function buildSparkline(entries, color) {
+  const W = 100, H = 28, pts = 12;
+  // cumulative consumed at evenly spaced hour checkpoints
+  const maxHour = 24;
+  const data = Array.from({ length: pts }, (_, i) => {
+    const h = (i / (pts - 1)) * maxHour;
+    return entries.filter(e => e.type === 'consumed' && e.hour <= h).reduce((s, e) => s + e.cal, 0);
+  });
+  const maxVal = Math.max(...data, 1);
+  const points = data.map((v, i) => {
+    const x = (i / (pts - 1)) * W;
+    const y = H - (v / maxVal) * (H - 4);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const d = 'M' + points.join(' L');
+  return `<svg viewBox="0 0 ${W} ${H}" width="110" height="${H}" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="${d}" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
+function calBadge(net) {
+  if (net === 0) return { label:'No data', cls:'bg-surface-variant text-on-surface-variant border-outline-variant' };
+  if (net >= CAL_LOW && net <= CAL_HIGH)
+    return { label:'Perfect ✓', cls:'bg-primary/10 text-primary border-primary/20' };
+  if (net > CAL_HIGH)
+    return { label:'Too much', cls:'bg-secondary/10 text-secondary border-secondary/20' };
+  return { label:'Too little', cls:'bg-error/10 text-error border-error/20' };
+}
+
+function proteinBadge(protein) {
+  if (protein <= 0) return null;
+  if (protein >= PRO_GOAL)
+    return { label: `${Math.round(protein)}g ✓`, cls: 'bg-primary/10 text-primary border-primary/20' };
+  const short = PRO_GOAL - Math.round(protein);
+  return { label: `${Math.round(protein)}g · ${short}g short`, cls: 'bg-surface-variant text-on-surface-variant border-outline-variant' };
+}
+
+function fmtDate(d) {
+  const dt = new Date(d + 'T12:00:00');
+  return {
+    day:  dt.toLocaleDateString(undefined, { weekday:'long' }),
+    date: dt.toLocaleDateString(undefined, { month:'short', day:'numeric' })
+  };
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const dates = getAllDates();
+  const list  = document.getElementById('history-list');
+  const empty = document.getElementById('empty-state');
+
+  // Update DB info
+  const total = q('SELECT COUNT(*) FROM entries')[0]?.[0] || 0;
+  document.getElementById('db-info').textContent = `${total} entr${total === 1 ? 'y' : 'ies'} across ${dates.length} day${dates.length !== 1 ? 's' : ''}`;
+
+  if (!dates.length) { empty.style.display = 'flex'; renderSummary([]); return; }
+  empty.style.display = 'none';
+
+  // Remove old rows
+  list.querySelectorAll('.history-row').forEach(el => el.remove());
+
+  const summaryData = [];
+
+  dates.forEach((date, idx) => {
+    const { burnt, consumed, protein } = getDaySums(date);
+    const { weight_kg, note }          = getDayLog(date);
+    const net     = consumed - burnt;
+    const entries = getDayEntries(date);
+    const badge   = calBadge(net);
+    const protBadge = proteinBadge(protein);
+    const { day, date: dateLabel } = fmtDate(date);
+    const sparkColor = net > CAL_HIGH ? '#ffc07a' : net >= CAL_LOW ? '#54e8ac' : '#ffb4ab';
+    const spark = buildSparkline(entries, sparkColor);
+
+    summaryData.push({ burnt, consumed, protein, net });
+
+    const row = document.createElement('div');
+    row.className = 'history-row row-enter bg-surface-container border border-outline-variant rounded-xl p-md flex flex-col md:flex-row items-center justify-between gap-md hover:bg-surface-container-high transition-colors cursor-pointer';
+    row.style.animationDelay = (idx * 40) + 'ms';
+    row.onclick = () => {
+      window.location.href = `calorie_tracker.html#${date}`;
+    };
+
+    row.innerHTML = `
+      <!-- Date -->
+      <div class="w-full md:w-40 shrink-0">
+        <p class="font-label-sm text-label-sm text-on-surface-variant">${day}</p>
+        <p class="font-body-md font-semibold text-on-background">${dateLabel}</p>
+      </div>
+
+      <!-- Stats -->
+      <div class="flex flex-1 justify-around w-full items-center gap-md">
+        <div class="flex items-center gap-sm">
+          <div class="w-2 h-2 rounded-full bg-primary shrink-0"></div>
+          <div>
+            <p class="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Burnt</p>
+            <p class="font-data-mono text-data-mono text-on-surface">${burnt.toLocaleString()} kcal</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-sm">
+          <div class="w-2 h-2 rounded-full bg-secondary shrink-0"></div>
+          <div>
+            <p class="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Consumed</p>
+            <p class="font-data-mono text-data-mono text-on-surface">${consumed.toLocaleString()} kcal</p>
+          </div>
+        </div>
+        ${protein > 0 ? `
+        <div class="hidden sm:flex items-center gap-sm">
+          <div class="w-2 h-2 rounded-full shrink-0" style="background:#6afcbf"></div>
+          <div>
+            <p class="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Protein</p>
+            <p class="font-data-mono text-data-mono text-on-surface">${Math.round(protein)}g</p>
+          </div>
+        </div>` : ''}
+        <div class="hidden sm:block shrink-0">${spark}</div>
+      </div>
+
+      <!-- Badges -->
+      <div class="flex items-center gap-sm w-full md:w-auto justify-between md:justify-end shrink-0">
+        <div class="flex flex-col gap-1 items-end">
+          <span class="px-md py-xs rounded-full font-label-sm text-label-sm border ${badge.cls}">${badge.label}</span>
+          ${protBadge ? `<span class="px-md py-xs rounded-full font-label-sm text-label-sm border ${protBadge.cls} text-[11px]">${protBadge.label} protein</span>` : ''}
+          ${weight_kg !== null ? `<span class="px-md py-xs rounded-full font-label-sm text-label-sm border border-outline-variant text-on-surface-variant text-[11px]">⚖ ${weight_kg} kg</span>` : ''}
+        </div>
+        <span class="material-symbols-outlined text-on-surface-variant" style="font-size:20px">chevron_right</span>
+      </div>`;
+
+    // Note row (if any)
+    if (note && note.trim()) {
+      const noteDiv = document.createElement('div');
+      noteDiv.className = 'history-row px-md pb-3 -mt-2';
+      noteDiv.innerHTML = `<p class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low border border-outline-variant/40 rounded-lg px-3 py-2 italic">
+        <span class="material-symbols-outlined align-middle not-italic text-on-surface-variant/50 mr-1" style="font-size:14px">notes</span>${escHtml(note)}</p>`;
+      list.appendChild(row);
+      list.appendChild(noteDiv);
+      return;
+    }
+
+    list.appendChild(row);
+  });
+
+  renderSummary(summaryData);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderSummary(data) {
+  if (!data.length) {
+    ['avg-burn','avg-intake','avg-protein','goal-streak'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+    return;
+  }
+  const avgBurn    = Math.round(data.reduce((s,d) => s + d.burnt,    0) / data.length);
+  const avgIntake  = Math.round(data.reduce((s,d) => s + d.consumed, 0) / data.length);
+  const avgProtein = Math.round(data.reduce((s,d) => s + d.protein,  0) / data.length);
+  const perfect    = data.filter(d => d.net >= CAL_LOW && d.net <= CAL_HIGH).length;
+
+  document.getElementById('avg-burn').textContent    = avgBurn.toLocaleString();
+  document.getElementById('avg-intake').textContent  = avgIntake.toLocaleString();
+  document.getElementById('avg-protein').textContent = avgProtein;
+  document.getElementById('goal-streak').textContent = `${perfect}/${data.length}`;
+}
+
+// ─── Auto-refresh ─────────────────────────────────────────────────────────────
+function msUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return midnight - now;
+}
+
+// Re-read localStorage and re-render (picks up saves from tracker tab)
+function refresh() {
+  const saved = localStorage.getItem('aura_db');
+  if (saved) {
+    const buf = Uint8Array.from(atob(saved), c => c.charCodeAt(0));
+    db = new (db.constructor)(buf); // reinitialise from latest snapshot
+  }
+  render();
+}
+
+function scheduleAutoRefresh() {
+  setTimeout(() => { refresh(); scheduleAutoRefresh(); }, msUntilMidnight() + 500);
+}
+
+// Refresh whenever the tab becomes visible (e.g. switching back from tracker)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refresh();
+});
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+(async () => {
+  await initDB();
+  render();
+  scheduleAutoRefresh();
+})();
+</script>
+</body>
+</html>

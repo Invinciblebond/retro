@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AuraHealth — Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:#080e0b;font-family:'Inter',sans-serif;color:#d4ddd8;display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#1e2b24;border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:#2a3a30;}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle;line-height:1;user-select:none;}
+.fl{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4a5e54;margin-bottom:6px;}
+.fi{display:block;width:100%;background:#060b08;border:1px solid #1a2620;border-radius:8px;color:#b8c8be;font-size:13px;font-family:inherit;padding:9px 12px;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none;color-scheme:dark;}
+.fi:focus{border-color:#42d494;box-shadow:0 0 0 3px rgba(66,212,148,.07);}
+.fi::placeholder{color:#1e2b24;}
+textarea.fi{resize:vertical;min-height:72px;line-height:1.6;}
+select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234a5e54' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px;cursor:pointer;}
+select.fi option{background:#060b08;color:#b8c8be;}
+input[type=file].fi{cursor:pointer;padding:7px 12px;color:#6a8070;}
+input[type=datetime-local].fi,input[type=date].fi{color-scheme:dark;}
+input[type=datetime-local]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-calendar-picker-indicator{filter:brightness(0.35) sepia(1) saturate(3) hue-rotate(95deg);cursor:pointer;opacity:.5;}
+input[type=checkbox]{accent-color:#42d494;width:14px;height:14px;cursor:pointer;border-radius:3px;flex-shrink:0;}
+input[type=range]{accent-color:#42d494;}
+.modal-bg{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(3,7,5,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);opacity:0;transition:opacity .18s ease;pointer-events:none;}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal-bg.hidden{display:none;}
+.modal-box{background:#0a1210;border:1px solid #182018;border-radius:18px;padding:24px 26px 26px;width:100%;max-width:460px;margin:0 16px;max-height:90vh;overflow-y:auto;box-shadow:0 40px 120px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.025);transform:translateY(8px) scale(.98);transition:transform .2s cubic-bezier(.16,1,.3,1);}
+.modal-bg.open .modal-box{transform:translateY(0) scale(1);}
+.modal-box::-webkit-scrollbar{width:2px;}
+.modal-box::-webkit-scrollbar-thumb{background:#182018;}
+.modal-title{font-size:15px;font-weight:700;color:#d4ddd8;letter-spacing:-.01em;}
+.modal-sub{font-size:11px;color:#4a5e54;margin-top:2px;}
+.form-row{margin-bottom:14px;}
+.btn-ghost{flex:1;padding:10px 14px;border-radius:9px;font-size:12px;font-weight:600;background:transparent;color:#4a5e54;border:1px solid #182018;cursor:pointer;transition:all .14s;font-family:inherit;}
+.btn-ghost:hover{background:#0d1511;color:#9ab0a4;border-color:#1e2b24;}
+.btn-primary{flex:1;padding:10px 14px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:.02em;background:rgba(66,212,148,.1);color:#42d494;border:1px solid rgba(66,212,148,.2);cursor:pointer;transition:all .14s;font-family:inherit;}
+.btn-primary:hover{background:rgba(66,212,148,.16);border-color:rgba(66,212,148,.35);}
+.btn-primary:active{transform:scale(.98);}
+.btn-danger{flex:1;padding:10px 14px;border-radius:9px;font-size:12px;font-weight:700;background:rgba(239,68,68,.08);color:#fca5a5;border:1px solid rgba(239,68,68,.18);cursor:pointer;transition:all .14s;font-family:inherit;}
+.btn-danger:hover{background:rgba(239,68,68,.14);}
+.icon-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;font-size:11px;font-weight:700;letter-spacing:.03em;border:1px solid #182018;cursor:pointer;transition:all .12s;background:transparent;color:#4a5e54;font-family:inherit;}
+.icon-btn:hover{background:#0d1511;color:#9ab0a4;border-color:#1e2b24;}
+.icon-btn.active{background:rgba(66,212,148,.07);color:#42d494;border-color:rgba(66,212,148,.2);}
+.cbtn{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s;background:transparent;border:none;color:#2e3e36;flex-shrink:0;}
+.cbtn:hover{background:#182018;color:#9ab0a4;}
+.type-pill{padding:6px 13px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:.04em;border:1px solid #182018;cursor:pointer;transition:all .14s;background:#060b08;color:#4a5e54;font-family:inherit;}
+.type-pill:hover{border-color:#1e2b24;color:#9ab0a4;}
+.type-pill.on{background:rgba(66,212,148,.09);color:#42d494;border-color:rgba(66,212,148,.26);}
+.card{border-radius:12px;border:1px solid #182018;background:#101810;position:relative;overflow:hidden;transition:box-shadow .18s,transform .18s,border-color .18s;cursor:grab;}
+.card:hover{box-shadow:0 8px 28px rgba(0,0,0,.4);transform:translateY(-1px);}
+.card:active{cursor:grabbing;}
+.card-inner{padding:13px 14px;position:relative;z-index:1;}
+.card-tint{position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:12px;}
+.card.dragging{opacity:.4;transform:scale(.97);cursor:grabbing!important;}
+.card.drag-over-above{box-shadow:0 -2px 0 0 #42d494;border-top-color:#42d494!important;}
+.card.drag-over-below{box-shadow:0 2px 0 0 #42d494;border-bottom-color:#42d494!important;}
+.col-cards.drag-target-empty{background:rgba(66,212,148,.04);border-radius:8px;border:1px dashed rgba(66,212,148,.2);}
+.col{width:340px;flex-shrink:0;display:flex;flex-direction:column;background:#0c1410;border:1px solid #182018;border-radius:16px;padding:14px;max-height:calc(100vh - 158px);transition:opacity .15s,transform .15s;}
+.col.col-drag-over{border-color:rgba(66,212,148,.4);box-shadow:0 0 0 2px rgba(66,212,148,.12);}
+.col.col-dragging{opacity:.4;transform:scale(.97);}
+.col-cards{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:9px;min-height:40px;padding-right:2px;}
+.col-cards::-webkit-scrollbar{width:2px;}
+.col-cards::-webkit-scrollbar-thumb{background:#182018;}
+.ctx-panel{position:fixed;z-index:600;background:#111a14;border:1px solid #1e2b22;border-radius:14px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.02);min-width:220px;max-width:240px;display:none;}
+.ctx-panel.open{display:block;animation:ctxIn .14s cubic-bezier(.16,1,.3,1);}
+@keyframes ctxIn{from{opacity:0;transform:scale(.95) translateY(-4px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.ctx-header{padding:10px 14px 8px;border-bottom:1px solid #182018;}
+.ctx-header-title{font-size:11px;font-weight:700;color:#4a5e54;letter-spacing:.06em;text-transform:uppercase;}
+.ctx-item{display:flex;align-items:center;gap:11px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer;color:#c8d8d0;white-space:nowrap;transition:background .08s,color .08s;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
+.ctx-item:hover{background:#152018;color:#d4ddd8;}
+.ctx-item.danger{color:#fca5a5;}
+.ctx-item.danger:hover{background:rgba(239,68,68,.07);color:#fca5a5;}
+.ctx-item .ctx-icon{width:30px;height:30px;border-radius:8px;background:#182018;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .08s;}
+.ctx-item:hover .ctx-icon{background:#1e2b22;}
+.ctx-item.danger .ctx-icon{background:rgba(239,68,68,.1);}
+.ctx-item.danger:hover .ctx-icon{background:rgba(239,68,68,.15);}
+.ctx-sep{height:1px;background:#182018;margin:3px 0;}
+.ctx-section-label{padding:6px 14px 2px;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#2e3e36;}
+.col-ctx{position:fixed;z-index:600;background:#111a14;border:1px solid #1e2b22;border-radius:14px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.02);min-width:200px;display:none;}
+.col-ctx.open{display:block;animation:ctxIn .14s cubic-bezier(.16,1,.3,1);}
+.drop-sep{height:1px;background:#182018;margin:3px 8px;}
+@keyframes tickerrun{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.ticker-mq{display:flex;width:max-content;animation:tickerrun 28s linear infinite;}
+.ticker-mq:hover{animation-play-state:paused;}
+.sw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s,border-color .12s,box-shadow .12s;flex-shrink:0;position:relative;}
+.sw:hover{transform:scale(1.25);}
+.sw.on{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.22);}
+.sbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
+.sbadge-draft{background:rgba(250,155,0,.14);color:#fa9b00;border:1px solid rgba(250,155,0,.22);}
+.sbadge-review{background:rgba(255,153,110,.14);color:#ff996e;border:1px solid rgba(255,153,110,.22);}
+.sbadge-pub{background:rgba(66,212,148,.14);color:#42d494;border:1px solid rgba(66,212,148,.22);}
+.utag{display:inline-block;font-size:9px;font-weight:900;letter-spacing:.08em;padding:2px 8px;border-radius:4px;text-transform:uppercase;}
+.utag-red{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.22);}
+.utag-yellow{background:rgba(234,179,8,.12);color:#fde047;border:1px solid rgba(234,179,8,.2);}
+.utag-green{background:rgba(66,212,148,.09);color:#42d494;border:1px solid rgba(66,212,148,.18);}
+.search-wrap{position:relative;display:flex;align-items:center;}
+.search-wrap input{background:#0d1511;border:1px solid #182018;border-radius:22px;color:#9ab0a4;font-size:12px;padding:6px 12px 6px 32px;outline:none;width:210px;transition:border-color .15s,width .2s,box-shadow .15s;font-family:inherit;color-scheme:dark;}
+.search-wrap input:focus{border-color:#2a3e30;width:255px;box-shadow:0 0 0 3px rgba(66,212,148,.04);}
+.search-wrap input::placeholder{color:#1e2b24;}
+.search-ico{position:absolute;left:10px;color:#2e3e36;pointer-events:none;}
+.tz-r{padding:7px 10px;border-radius:7px;cursor:pointer;font-size:12px;color:#9ab0a4;transition:background .08s;}
+.tz-r:hover{background:#101810;color:#d4ddd8;}
+.tz-r.on{background:rgba(66,212,148,.06);color:#42d494;}
+.sf{opacity:0;transition:opacity .4s;font-size:11px;color:#4a5e54;pointer-events:none;}
+.prog-track{height:3px;background:#182018;border-radius:2px;overflow:hidden;}
+.prog-bar{height:100%;background:linear-gradient(90deg,#42d494,#2ccb80);border-radius:2px;transition:width .4s ease;}
+header{background:#060b08;border-bottom:1px solid #182018;position:sticky;top:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:0 24px;height:54px;flex-shrink:0;}
+.nav-link{font-size:12px;font-weight:500;color:#4a5e54;padding:5px 11px;border-radius:7px;text-decoration:none;transition:all .14s;}
+.nav-link:hover{color:#9ab0a4;background:#0d1511;}
+.nav-link.active{font-weight:700;color:#42d494;background:rgba(66,212,148,.07);}
+.settings-bar{background:#060b08;border-bottom:1px solid #182018;padding:0 24px;height:38px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.bar-sep{width:1px;height:14px;background:#182018;}
+#main-board{flex:1;overflow-x:auto;overflow-y:hidden;padding:18px 24px 72px;transition:margin-right .22s cubic-bezier(.16,1,.3,1);}
+#board-container{display:flex;gap:14px;align-items:flex-start;min-width:max-content;}
+footer{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(6,11,8,.95);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid #182018;padding:11px 20px;display:flex;align-items:center;gap:20px;overflow:hidden;cursor:default;flex-shrink:0;}
+.add-card-btn{margin-top:10px;flex-shrink:0;width:100%;padding:9px;background:#090e0b;border:1px solid #182018;border-radius:10px;color:#4a5e54;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .14s;font-family:inherit;}
+.add-card-btn:hover{background:#0d1511;color:#9ab0a4;border-color:#1e2b24;}
+.check-row{display:flex;align-items:flex-start;gap:11px;cursor:pointer;padding:10px 12px;background:#060b08;border:1px solid #182018;border-radius:10px;}
+.check-row:hover{background:#090e0b;}
+#activity-sidebar{position:fixed;top:92px;right:0;bottom:48px;width:300px;background:#090e0b;border-left:1px solid #182018;display:flex;flex-direction:column;z-index:30;transform:translateX(100%);transition:transform .22s cubic-bezier(.16,1,.3,1);}
+#activity-sidebar.open{transform:translateX(0);}
+.sidebar-header{padding:14px 16px 12px;border-bottom:1px solid #182018;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.activity-item{display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #0f1511;transition:background .08s;}
+.activity-item:hover{background:#0c1410;}
+.act-dot{width:6px;height:6px;border-radius:50%;background:#42d494;flex-shrink:0;margin-top:5px;}
+.act-dot.red{background:#ef4444;}
+.act-dot.amber{background:#eab308;}
+.act-dot.blue{background:#60a5fa;}
+#board-switcher-drop{position:fixed;z-index:400;background:#0a1210;border:1px solid #182018;border-radius:13px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.8);min-width:220px;display:none;}
+.board-row{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:12px;cursor:pointer;color:#9ab0a4;transition:background .08s;}
+.board-row:hover{background:#101810;color:#d4ddd8;}
+.board-row.active-board{color:#42d494;font-weight:700;}
+.board-row .bd-dot{width:8px;height:8px;border-radius:50%;background:#2e3e36;flex-shrink:0;}
+.board-row.active-board .bd-dot{background:#42d494;}
+#activity-chart{display:block;width:100%;height:90px;}
+.nw-badge{font-size:9px;font-weight:900;letter-spacing:.07em;padding:2px 7px;border-radius:4px;text-transform:uppercase;flex-shrink:0;}
+.nw-badge-dep{background:rgba(239,68,68,.14);color:#fca5a5;border:1px solid rgba(239,68,68,.2);}
+.nw-badge-app{background:rgba(66,212,148,.12);color:#42d494;border:1px solid rgba(66,212,148,.18);}
+.nw-badge-flat{background:rgba(100,120,110,.1);color:#6a8070;border:1px solid #1e2b24;}
+.nw-badge-gold{background:rgba(250,204,21,.12);color:#facc15;border:1px solid rgba(250,204,21,.22);}
+.nw-badge-crypto{background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.2);}
+.nw-badge-defi{background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.2);}
+.nw-graph-card{border-radius:12px;border:1px solid rgba(66,212,148,.18);background:rgba(66,212,148,.03);padding:14px;margin-top:10px;flex-shrink:0;}
+.copy-toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(10px);background:#182018;border:1px solid rgba(66,212,148,.25);color:#42d494;font-size:12px;font-weight:700;padding:9px 18px;border-radius:9px;z-index:1000;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;}
+.copy-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* Live price pill shown on crypto/gold cards */
+.live-pill{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:900;letter-spacing:.06em;padding:2px 7px;border-radius:4px;text-transform:uppercase;}
+.live-pill-up{background:rgba(66,212,148,.12);color:#42d494;border:1px solid rgba(66,212,148,.2);}
+.live-pill-down{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.2);}
+.live-dot{width:5px;height:5px;border-radius:50%;background:#42d494;animation:livepulse 1.8s ease-in-out infinite;}
+@keyframes livepulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+/* Edit card button on card hover */
+.card-edit-btn{opacity:0;transition:opacity .14s;background:#0d1511;border:1px solid #182018;border-radius:6px;color:#6a8070;font-size:10px;font-weight:700;cursor:pointer;padding:3px 8px;font-family:inherit;display:inline-flex;align-items:center;gap:4px;}
+.card:hover .card-edit-btn{opacity:1;}
+.card-edit-btn:hover{background:#182018;color:#d4ddd8;}
+/* Gold live strip */
+#gold-strip{display:flex;align-items:center;gap:6px;padding:0 8px;background:rgba(250,204,21,.04);border:1px solid rgba(250,204,21,.12);border-radius:8px;height:26px;font-size:10px;font-weight:700;color:#facc15;flex-shrink:0;cursor:default;white-space:nowrap;}
+#gold-strip span.gs-val{color:#d4ddd8;font-weight:600;}
+#gold-strip span.gs-lbl{color:#6a8070;font-weight:700;font-size:9px;letter-spacing:.06em;text-transform:uppercase;}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:28px;">
+    <span style="font-size:19px;font-weight:900;color:#42d494;letter-spacing:-.04em;">AuraHealth</span>
+    <nav style="display:flex;gap:3px;">
+      <a href="#" class="nav-link active">Board</a>
+      <a href="#" class="nav-link">Calorie Tracker</a>
+      <a href="#" class="nav-link">History</a>
+      <a href="#" class="nav-link">Cycle Tracker</a>
+    </nav>
+  </div>
+  <div style="display:flex;align-items:center;gap:9px;">
+    <span id="sf" class="sf">Saved ✓</span>
+    <!-- Live gold strip -->
+    <div id="gold-strip" title="Live gold prices from gold-era.eg">
+      <span class="live-dot"></span>
+      <span class="gs-lbl">24K</span><span class="gs-val" id="gs-24k">—</span>
+      <span style="color:#2e3e36;">·</span>
+      <span class="gs-lbl">21K</span><span class="gs-val" id="gs-21k">—</span>
+      <span style="color:#2e3e36;">·</span>
+      <span class="gs-lbl">18K</span><span class="gs-val" id="gs-18k">—</span>
+      <span style="color:#2e3e36;font-size:9px;">/g</span>
+    </div>
+    <div class="search-wrap">
+      <span class="material-symbols-outlined search-ico" style="font-size:15px;">search</span>
+      <input type="text" placeholder="Search tasks…" id="search-input" oninput="onSearch(this.value)" autocomplete="off"/>
+    </div>
+    <button class="cbtn"><span class="material-symbols-outlined" style="font-size:18px;">notifications</span></button>
+    <button class="cbtn"><span class="material-symbols-outlined" style="font-size:18px;">settings</span></button>
+    <div style="width:30px;height:30px;border-radius:50%;background:#182018;border:1px solid #1e2b24;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <span class="material-symbols-outlined" style="color:#42d494;font-size:16px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;">person</span>
+    </div>
+  </div>
+</header>
+
+<div class="settings-bar">
+  <button class="icon-btn" onclick="toggleBoardSwitcher(event)" id="board-switcher-btn">
+    <span class="material-symbols-outlined" style="font-size:13px;">dashboard</span>
+    <span id="active-board-name">Board</span>
+    <span class="material-symbols-outlined" style="font-size:12px;margin-left:2px;">expand_more</span>
+  </button>
+  <div class="bar-sep"></div>
+  <button class="icon-btn" onclick="openModal('modal-col')">
+    <span class="material-symbols-outlined" style="font-size:13px;">view_column</span>New Column
+  </button>
+  <div class="bar-sep"></div>
+  <button class="icon-btn" onclick="openModal('modal-tz')">
+    <span class="material-symbols-outlined" style="font-size:13px;">language</span>
+    <span id="tz-label">Timezone</span>
+  </button>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+    <span style="font-size:10px;color:#1e2b24;">Right-click any card for options · Drag to reorder</span>
+    <div class="bar-sep"></div>
+    <button class="icon-btn" onclick="toggleSidebar()" id="sidebar-toggle-btn">
+      <span class="material-symbols-outlined" style="font-size:13px;">timeline</span>Activity
+    </button>
+  </div>
+</div>
+
+<div id="board-switcher-drop">
+  <div id="board-list"></div>
+  <div class="drop-sep"></div>
+  <div class="board-row" onclick="openAddBoardModal()" style="color:#42d494;">
+    <span class="material-symbols-outlined" style="font-size:13px;color:#42d494;">add</span>New Board
+  </div>
+</div>
+
+<div style="flex:1;display:flex;overflow:hidden;position:relative;">
+  <main id="main-board">
+    <div id="board-container"></div>
+  </main>
+  <aside id="activity-sidebar">
+    <div class="sidebar-header">
+      <span style="font-size:12px;font-weight:700;color:#d4ddd8;letter-spacing:-.01em;">Activity</span>
+      <button class="cbtn" onclick="toggleSidebar()"><span class="material-symbols-outlined" style="font-size:15px;">close</span></button>
+    </div>
+    <div style="padding:14px 16px 10px;border-bottom:1px solid #182018;flex-shrink:0;">
+      <div style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4a5e54;margin-bottom:10px;">Actions Over Time</div>
+      <canvas id="activity-chart"></canvas>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <span style="font-size:9px;color:#2e3e36;" id="chart-label-start"></span>
+        <span style="font-size:9px;color:#2e3e36;" id="chart-label-end"></span>
+      </div>
+    </div>
+    <div style="padding:12px 16px 6px;flex-shrink:0;">
+      <span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4a5e54;">Recent Changes</span>
+    </div>
+    <div id="activity-list" style="flex:1;overflow-y:auto;"></div>
+  </aside>
+</div>
+
+<footer>
+  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;border-right:1px solid #182018;padding-right:18px;">
+    <span class="material-symbols-outlined" style="color:#42d494;font-size:15px;font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24;">event_note</span>
+    <span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#42d494;white-space:nowrap;">Major Deadlines</span>
+  </div>
+  <div style="flex:1;overflow:hidden;" id="ticker-scroll-area">
+    <div id="ticker-inner"><span style="color:#1e2b24;font-size:12px;font-style:italic;">No major deadlines yet</span></div>
+  </div>
+</footer>
+
+<!-- CARD CONTEXT MENU -->
+<div id="ctx-menu" class="ctx-panel">
+  <input type="hidden" id="ctx-card-id"/>
+  <div class="ctx-header"><span class="ctx-header-title" id="ctx-card-title-label">Card actions</span></div>
+  <div class="ctx-item" onclick="ctxEdit()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#9ab0a4;">edit</span></span>Edit card
+  </div>
+  <div class="ctx-item" onclick="ctxCopyInfo()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#9ab0a4;">content_copy</span></span>Copy card info
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-section-label">Organize</div>
+  <div class="ctx-item" onclick="ctxMarkMajor()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#fa9b00;">push_pin</span></span>Toggle major deadline
+  </div>
+  <div class="ctx-item" onclick="ctxSetDeadline()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#42d494;">schedule</span></span>Set / edit deadline
+  </div>
+  <div class="ctx-item" onclick="ctxTogglePriority()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#fde047;">priority_high</span></span>Toggle priority
+  </div>
+  <div class="ctx-item" onclick="ctxChangeColor()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#a78bfa;">palette</span></span>Change card colour
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-section-label">Net Worth</div>
+  <div class="ctx-item" onclick="ctxOpenTracker()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#2dd4bf;">trending_up</span></span>Depreciation / appreciation
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="ctxDelete()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#fca5a5;">delete</span></span>Delete card
+  </div>
+</div>
+
+<!-- COLUMN CONTEXT MENU -->
+<div id="col-menu" class="col-ctx">
+  <input type="hidden" id="col-menu-id"/>
+  <div class="ctx-item" onclick="colMenuMoveLeft()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#9ab0a4;">arrow_back</span></span>Move left
+  </div>
+  <div class="ctx-item" onclick="colMenuMoveRight()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#9ab0a4;">arrow_forward</span></span>Move right
+  </div>
+  <div class="ctx-item" onclick="colMenuColor()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#a78bfa;">palette</span></span>Column colour
+  </div>
+  <div class="ctx-item" onclick="colMenuRename()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#9ab0a4;">edit</span></span>Rename
+  </div>
+  <div class="ctx-item" onclick="colMenuClear()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#9ab0a4;">clear_all</span></span>Clear all cards
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="colMenuDelete()">
+    <span class="ctx-icon"><span class="material-symbols-outlined" style="font-size:15px;color:#fca5a5;">delete</span></span>Delete column
+  </div>
+</div>
+
+<div id="copy-toast" class="copy-toast">Copied ✓</div>
+
+<!-- ADD / EDIT CARD MODAL -->
+<div id="modal-card" class="modal-bg hidden">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+      <div><div class="modal-title" id="mc-heading">Add Card</div><div class="modal-sub" id="mc-sub"></div></div>
+      <button class="cbtn" onclick="closeModal('modal-card')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <input type="hidden" id="mc-edit-id" value=""/>
+    <div class="form-row">
+      <label class="fl">Title <span style="color:#fca5a5;font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">required</span></label>
+      <input type="text" id="mc-title" class="fi" placeholder="Card title…" autocomplete="off"/>
+    </div>
+    <!-- accomplishments -->
+    <div id="mc-acc" style="display:none;"></div>
+    <!-- publications -->
+    <div id="mc-pub" style="display:none;">
+      <div class="form-row">
+        <label class="fl">Status</label>
+        <select id="mc-status" class="fi"><option value="drafting">Drafting</option><option value="review">Under Review</option><option value="published">Published</option></select>
+      </div>
+      <div class="form-row">
+        <label class="fl">URL <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label>
+        <input type="url" id="mc-link" class="fi" placeholder="https://…" oninput="handleLinkInput(this.value)" autocomplete="off"/>
+      </div>
+      <div id="mc-link-preview" style="display:none;margin-bottom:14px;background:#060b08;border:1px solid #182018;border-radius:10px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid #182018;">
+          <img id="mc-link-favicon" src="" alt="" style="width:14px;height:14px;border-radius:2px;" onerror="this.style.display='none'"/>
+          <span id="mc-link-domain" style="font-size:11px;color:#4a5e54;font-family:monospace;"></span>
+        </div>
+        <div style="padding:10px 11px;"><label class="fl">Display Title</label><input type="text" id="mc-link-title" class="fi" placeholder="Link display title…"/></div>
+      </div>
+      <div class="form-row">
+        <label class="fl">Description <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label>
+        <textarea id="mc-pub-body" class="fi" rows="2" placeholder="Short description…"></textarea>
+      </div>
+    </div>
+    <!-- notes -->
+    <div id="mc-notes" style="display:none;">
+      <div class="form-row"><label class="fl">Body <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label><textarea id="mc-body" class="fi" rows="3" placeholder="Details, thoughts…"></textarea></div>
+      <div class="form-row">
+        <label class="fl">Card Type</label>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;">
+          <button type="button" class="type-pill on" id="ct-default" onclick="setCardType('default')">Default</button>
+          <button type="button" class="type-pill" id="ct-priority" onclick="setCardType('priority')">⭑ Priority</button>
+          <button type="button" class="type-pill" id="ct-project" onclick="setCardType('project')">◻ Project</button>
+        </div>
+      </div>
+      <div id="mc-image-wrap" style="display:none;" class="form-row">
+        <label class="fl">Cover Image <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label>
+        <input type="file" id="mc-image" accept="image/*" class="fi"/>
+      </div>
+      <div id="mc-progress-wrap" style="display:none;" class="form-row">
+        <label class="fl">Progress <span id="mc-progress-val" style="color:#42d494;font-weight:600;text-transform:none;letter-spacing:0;font-size:11px;">0%</span></label>
+        <input type="range" id="mc-progress" min="0" max="100" value="0" class="fi" style="padding:4px 0;cursor:pointer;background:transparent;border:none;" oninput="document.getElementById('mc-progress-val').textContent=this.value+'%'"/>
+      </div>
+      <div class="form-row"><label class="fl">Card Colour</label><div style="display:flex;gap:9px;margin-top:6px;flex-wrap:wrap;align-items:center;" id="mc-swatches"></div></div>
+      <div class="form-row"><label class="fl">Tags <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label><input type="text" id="mc-tags" class="fi" placeholder="#idea  #feature" autocomplete="off"/></div>
+      <div class="form-row"><label class="fl">Deadline <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label><input type="datetime-local" id="mc-deadline" class="fi"/></div>
+      <label class="check-row" style="margin-bottom:0;">
+        <input type="checkbox" id="mc-major"/>
+        <div><div style="font-size:12px;font-weight:600;color:#b8c8be;">Mark as Major Deadline</div><div style="font-size:10px;color:#4a5e54;margin-top:2px;">Pins this card to the footer ticker</div></div>
+      </label>
+    </div>
+    <!-- general -->
+    <div id="mc-gen" style="display:none;">
+      <div class="form-row"><label class="fl">Body <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label><textarea id="mc-gen-body" class="fi" rows="3" placeholder="Details…"></textarea></div>
+      <div class="form-row"><label class="fl">Card Colour</label><div style="display:flex;gap:9px;margin-top:6px;flex-wrap:wrap;align-items:center;" id="mc-swatches-gen"></div></div>
+    </div>
+    <!-- networth -->
+    <div id="mc-networth" style="display:none;">
+      <div class="form-row">
+        <label class="fl">Asset Sub-type</label>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;">
+          <button type="button" class="type-pill on" id="nwst-generic" onclick="setNWSubtype('generic')">Generic</button>
+          <button type="button" class="type-pill" id="nwst-gold" onclick="setNWSubtype('gold')">🥇 Gold</button>
+          <button type="button" class="type-pill" id="nwst-crypto" onclick="setNWSubtype('crypto')">₿ Crypto</button>
+          <button type="button" class="type-pill" id="nwst-defi" onclick="setNWSubtype('defi')">⬡ DeFi</button>
+        </div>
+      </div>
+
+      <!-- GOLD fields -->
+      <div id="nw-gold-fields" style="display:none;">
+        <div class="form-row">
+          <label class="fl">Karat</label>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;">
+            <button type="button" class="type-pill" id="gk-24" onclick="setGoldKarat('24k')">24K</button>
+            <button type="button" class="type-pill on" id="gk-21" onclick="setGoldKarat('21k')">21K</button>
+            <button type="button" class="type-pill" id="gk-18" onclick="setGoldKarat('18k')">18K</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="fl">Weight (grams)</label>
+          <input type="number" id="mc-gold-grams" class="fi" placeholder="e.g. 5" min="0" step="0.01" oninput="recalcGoldValue()"/>
+        </div>
+        <div id="gold-live-preview" style="display:none;background:#060b08;border:1px solid rgba(250,204,21,.15);border-radius:9px;padding:10px 12px;margin-bottom:14px;">
+          <div style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4a5e54;margin-bottom:6px;">Live Value</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><span style="font-size:16px;font-weight:800;color:#facc15;" id="gold-live-usd">—</span><span style="font-size:10px;color:#4a5e54;margin-left:4px;">USD</span></div>
+            <div style="text-align:right;"><span style="font-size:12px;color:#6a8070;" id="gold-live-egp">—</span><span style="font-size:10px;color:#4a5e54;margin-left:3px;">EGP</span></div>
+          </div>
+          <div style="font-size:10px;color:#4a5e54;margin-top:4px;" id="gold-live-rate">— /g</div>
+        </div>
+      </div>
+
+      <!-- CRYPTO fields -->
+      <div id="nw-crypto-fields" style="display:none;">
+        <div class="form-row">
+          <label class="fl">Coin</label>
+          <select id="mc-crypto-symbol" class="fi" onchange="recalcCryptoValue()">
+            <option value="">Loading prices…</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="fl">Amount (units)</label>
+          <input type="number" id="mc-crypto-amount" class="fi" placeholder="e.g. 0.05" min="0" step="any" oninput="recalcCryptoValue()"/>
+        </div>
+        <div id="crypto-live-preview" style="display:none;background:#060b08;border:1px solid rgba(96,165,250,.15);border-radius:9px;padding:10px 12px;margin-bottom:14px;">
+          <div style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4a5e54;margin-bottom:6px;">Live Value</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><span style="font-size:16px;font-weight:800;color:#60a5fa;" id="crypto-live-usd">—</span><span style="font-size:10px;color:#4a5e54;margin-left:4px;">USD</span></div>
+            <div style="text-align:right;font-size:11px;color:#6a8070;" id="crypto-live-price">— /coin</div>
+          </div>
+          <div style="font-size:10px;margin-top:4px;" id="crypto-live-change"></div>
+        </div>
+      </div>
+
+      <!-- DEFI fields -->
+      <div id="nw-defi-fields" style="display:none;">
+        <div class="form-row">
+          <label class="fl">Platform</label>
+          <input type="text" id="mc-defi-platform" class="fi" placeholder="e.g. Uniswap, Aave, Curve…" autocomplete="off"/>
+        </div>
+        <div class="form-row">
+          <label class="fl">Expected APR (%)</label>
+          <input type="number" id="mc-defi-apr" class="fi" placeholder="e.g. 12.5" min="0" step="0.01"/>
+        </div>
+        <div class="form-row">
+          <label class="fl">Inserted / Start Date</label>
+          <input type="date" id="mc-defi-date" class="fi"/>
+        </div>
+        <div class="form-row">
+          <label class="fl">Current Value (USD)</label>
+          <input type="number" id="mc-nw-value" class="fi" placeholder="e.g. 1500" min="0" step="0.01" autocomplete="off"/>
+        </div>
+      </div>
+
+      <!-- GENERIC fields -->
+      <div id="nw-generic-fields">
+        <div class="form-row">
+          <label class="fl">Current Value (USD)</label>
+          <input type="number" id="mc-nw-value-generic" class="fi" placeholder="e.g. 1500" min="0" step="0.01" autocomplete="off"/>
+        </div>
+        <div class="form-row">
+          <label class="fl">Tracker Type</label>
+          <div style="display:flex;gap:7px;margin-top:4px;">
+            <button type="button" class="type-pill on" id="nwt-flat" onclick="setNWType('flat')">Static</button>
+            <button type="button" class="type-pill" id="nwt-dep" onclick="setNWType('dep')">↓ Depreciates</button>
+            <button type="button" class="type-pill" id="nwt-app" onclick="setNWType('app')">↑ Appreciates</button>
+          </div>
+        </div>
+        <div id="mc-nw-rate-wrap" style="display:none;" class="form-row">
+          <label class="fl">Rate per Year</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="number" id="mc-nw-rate" class="fi" placeholder="e.g. 10" min="0" step="0.01" style="flex:1;"/>
+            <select id="mc-nw-unit" class="fi" style="width:90px;"><option value="pct">% / yr</option><option value="usd">$ / yr</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="fl">Notes <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label>
+        <textarea id="mc-nw-body" class="fi" rows="2" placeholder="e.g. 7g 18k gold ring…"></textarea>
+      </div>
+    </div>
+
+    <div id="mc-error" style="display:none;font-size:11px;color:#fca5a5;margin-top:10px;padding:8px 11px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:7px;">Title is required.</div>
+    <div style="display:flex;gap:9px;margin-top:18px;">
+      <button class="btn-ghost" onclick="closeModal('modal-card')">Cancel</button>
+      <button class="btn-primary" id="mc-submit-btn" onclick="submitCard()">Add Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW COLUMN MODAL -->
+<div id="modal-col" class="modal-bg hidden">
+  <div class="modal-box" style="max-width:400px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title">New Column</div>
+      <button class="cbtn" onclick="closeModal('modal-col')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <div class="form-row"><label class="fl">Column Name</label><input type="text" id="col-name" class="fi" placeholder="e.g. In Progress" autocomplete="off"/></div>
+    <div class="form-row">
+      <label class="fl">Column Type</label>
+      <select id="col-type" class="fi">
+        <option value="accomplishments">Daily Accomplishments</option>
+        <option value="publications">Publications</option>
+        <option value="notes">Notes &amp; Planning</option>
+        <option value="general">General</option>
+        <option value="networth">💰 Net Worth Tracker</option>
+      </select>
+    </div>
+    <div class="form-row" style="margin-bottom:18px;">
+      <label class="fl">Column Colour <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label>
+      <div style="display:flex;gap:9px;margin-top:8px;flex-wrap:wrap;align-items:center;" id="new-col-swatches"></div>
+    </div>
+    <div style="display:flex;gap:9px;"><button class="btn-ghost" onclick="closeModal('modal-col')">Cancel</button><button class="btn-primary" onclick="submitColumn()">Create Column</button></div>
+  </div>
+</div>
+
+<!-- TIMEZONE MODAL -->
+<div id="modal-tz" class="modal-bg hidden">
+  <div class="modal-box" style="max-width:400px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="modal-title">Select Timezone</div>
+      <button class="cbtn" onclick="closeModal('modal-tz')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <input type="text" id="tz-search" class="fi" placeholder="Search timezone or city…" oninput="filterTZ(this.value)" autocomplete="off" style="margin-bottom:10px;"/>
+    <div id="tz-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
+  </div>
+</div>
+
+<!-- SET DEADLINE MODAL -->
+<div id="modal-deadline" class="modal-bg hidden">
+  <div class="modal-box" style="max-width:340px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title">Set Deadline</div>
+      <button class="cbtn" onclick="closeModal('modal-deadline')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <input type="hidden" id="dl-card-id"/>
+    <div class="form-row"><label class="fl">Date &amp; Time</label><input type="datetime-local" id="dl-dt" class="fi"/></div>
+    <label class="check-row" style="margin-bottom:18px;">
+      <input type="checkbox" id="dl-major"/>
+      <div><div style="font-size:12px;font-weight:600;color:#b8c8be;">Mark as Major Deadline</div><div style="font-size:10px;color:#4a5e54;margin-top:2px;">Pins to footer ticker</div></div>
+    </label>
+    <div style="display:flex;gap:9px;"><button class="btn-ghost" onclick="closeModal('modal-deadline')">Cancel</button><button class="btn-primary" onclick="submitDeadline()">Save Deadline</button></div>
+  </div>
+</div>
+
+<!-- RENAME COLUMN MODAL -->
+<div id="modal-rename" class="modal-bg hidden">
+  <div class="modal-box" style="max-width:340px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title">Rename Column</div>
+      <button class="cbtn" onclick="closeModal('modal-rename')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <input type="hidden" id="rn-col-id"/>
+    <div class="form-row" style="margin-bottom:18px;"><label class="fl">Name</label><input type="text" id="rn-name" class="fi"/></div>
+    <div style="display:flex;gap:9px;"><button class="btn-ghost" onclick="closeModal('modal-rename')">Cancel</button><button class="btn-primary" onclick="submitRename()">Rename</button></div>
+  </div>
+</div>
+
+<!-- CARD COLOUR MODAL -->
+<div id="modal-color" class="modal-bg hidden">
+  <div class="modal-box" style="max-width:300px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="modal-title">Card Colour</div>
+      <button class="cbtn" onclick="closeModal('modal-color')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <input type="hidden" id="clr-card-id"/>
+    <div id="clr-swatches" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center;"></div>
+    <div style="display:flex;gap:9px;"><button class="btn-ghost" onclick="closeModal('modal-color')">Cancel</button><button class="btn-primary" onclick="submitColor()">Apply</button></div>
+  </div>
+</div>
+
+<!-- COLUMN COLOUR MODAL -->
+<div id="modal-col-color" class="modal-bg hidden">
+  <div class="modal-box" style="max-width:300px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="modal-title">Column Colour</div>
+      <button class="cbtn" onclick="closeModal('modal-col-color')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <input type="hidden" id="col-clr-id"/>
+    <div id="col-clr-swatches" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center;"></div>
+    <div style="display:flex;gap:9px;"><button class="btn-ghost" onclick="closeModal('modal-col-color')">Cancel</button><button class="btn-primary" onclick="submitColColor()">Apply</button></div>
+  </div>
+</div>
+
+<!-- NEW BOARD MODAL -->
+<div id="modal-board" class="modal-bg hidden">
+  <div class="modal-box" style="max-width:340px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title">New Board</div>
+      <button class="cbtn" onclick="closeModal('modal-board')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <div class="form-row" style="margin-bottom:18px;"><label class="fl">Board Name</label><input type="text" id="new-board-name" class="fi" placeholder="e.g. Personal, Work…" autocomplete="off"/></div>
+    <div style="display:flex;gap:9px;"><button class="btn-ghost" onclick="closeModal('modal-board')">Cancel</button><button class="btn-primary" onclick="submitNewBoard()">Create Board</button></div>
+  </div>
+</div>
+
+<!-- ASSET TRACKER MODAL -->
+<div id="modal-tracker" class="modal-bg hidden">
+  <div class="modal-box" style="max-width:420px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+      <div><div class="modal-title">Asset Tracker</div><div class="modal-sub" id="tracker-card-name"></div></div>
+      <button class="cbtn" onclick="closeModal('modal-tracker')"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button>
+    </div>
+    <input type="hidden" id="tracker-card-id"/>
+    <div class="form-row">
+      <label class="fl">Current Value (USD)</label>
+      <input type="number" id="tr-value" class="fi" placeholder="e.g. 1500" min="0" step="0.01"/>
+    </div>
+    <div class="form-row">
+      <label class="fl">Tracker Type</label>
+      <div style="display:flex;gap:7px;margin-top:4px;">
+        <button type="button" class="type-pill on" id="trt-flat" onclick="setTrackerType('flat')">Static</button>
+        <button type="button" class="type-pill" id="trt-dep" onclick="setTrackerType('dep')">↓ Depreciates</button>
+        <button type="button" class="type-pill" id="trt-app" onclick="setTrackerType('app')">↑ Appreciates</button>
+      </div>
+    </div>
+    <div id="tr-rate-wrap" style="display:none;" class="form-row">
+      <label class="fl">Rate per Year</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="tr-rate" class="fi" placeholder="e.g. 10" min="0" step="0.01" style="flex:1;"/>
+        <select id="tr-unit" class="fi" style="width:90px;"><option value="pct">% / yr</option><option value="usd">$ / yr</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="fl">Purchase Date <span style="color:#4a5e54;font-weight:400;text-transform:none;letter-spacing:0;">optional</span></label>
+      <input type="date" id="tr-date" class="fi"/>
+    </div>
+    <div style="background:#060b08;border:1px solid #182018;border-radius:10px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4a5e54;margin-bottom:10px;">Live Preview</div>
+      <canvas id="tr-preview-canvas" style="display:block;width:100%;height:80px;"></canvas>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;">
+        <div><div style="font-size:9px;color:#4a5e54;">Today</div><div style="font-size:13px;font-weight:700;color:#d4ddd8;" id="tr-val-now">—</div></div>
+        <div style="text-align:right;"><div style="font-size:9px;color:#4a5e54;">In 5 years</div><div style="font-size:13px;font-weight:700;color:#d4ddd8;" id="tr-val-5y">—</div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:9px;">
+      <button class="btn-ghost" onclick="closeModal('modal-tracker')">Cancel</button>
+      <button class="btn-danger" style="flex:0.5;" onclick="clearTracker()">Remove</button>
+      <button class="btn-primary" onclick="submitTracker()">Save Tracker</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const GOLD_WORKER   = 'https://gold.aboodgoudagad.workers.dev/';
+const CRYPTO_WORKER = 'https://tokentracker.aboodgoudagad.workers.dev/';
+const EGP_TO_USD    = 52.22;
+
+// ── Live price caches ─────────────────────────────────────────────────────────
+let goldPrices  = null; // { "24k": {buy_usd, sell_usd, buy_egp, sell_egp}, … }
+let cryptoPrices = {};  // symbol → { price_usd, percent_change_24h, name }
+let goldLastFetch = 0, cryptoLastFetch = 0;
+const GOLD_TTL  = 3 * 60 * 1000;
+const CRYPTO_TTL = 3 * 60 * 1000;
+
+async function fetchGoldPrices() {
+  if (goldPrices && Date.now() - goldLastFetch < GOLD_TTL) return goldPrices;
+  try {
+    const r = await fetch(GOLD_WORKER);
+    const d = await r.json();
+    if (d.prices) { goldPrices = d.prices; goldLastFetch = Date.now(); updateGoldStrip(); }
+  } catch(e) { console.warn('Gold fetch failed', e); }
+  return goldPrices;
+}
+
+async function fetchCryptoPrices() {
+  if (Object.keys(cryptoPrices).length && Date.now() - cryptoLastFetch < CRYPTO_TTL) return cryptoPrices;
+  try {
+    const r = await fetch(CRYPTO_WORKER);
+    const d = await r.json();
+    if (d.tokens) {
+      cryptoPrices = {};
+      d.tokens.forEach(t => { cryptoPrices[t.symbol] = t; });
+      cryptoLastFetch = Date.now();
+      populateCryptoSelect();
+    }
+  } catch(e) { console.warn('Crypto fetch failed', e); }
+  return cryptoPrices;
+}
+
+function updateGoldStrip() {
+  if (!goldPrices) return;
+  const fmt = v => v != null ? '$' + v.toFixed(2) : '—';
+  const s = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = fmt(goldPrices[key]?.sell_usd); };
+  s('gs-24k','24k'); s('gs-21k','21k'); s('gs-18k','18k');
+}
+
+function populateCryptoSelect() {
+  const sel = document.getElementById('mc-crypto-symbol');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = Object.values(cryptoPrices).sort((a,b)=>a.rank-b.rank)
+    .map(t=>`<option value="${t.symbol}">${t.symbol} — ${t.name} ($${fmt2(t.price_usd)})</option>`).join('');
+  if (cur && cryptoPrices[cur]) sel.value = cur;
+}
+
+// ── Palette / constants ───────────────────────────────────────────────────────
+const PALETTE=[
+  {name:'None',hex:'',tint:'',border:''},
+  {name:'Mint',hex:'#42d494',tint:'rgba(66,212,148,.14)',border:'rgba(66,212,148,.25)'},
+  {name:'Amber',hex:'#ffc07a',tint:'rgba(255,192,122,.14)',border:'rgba(255,192,122,.25)'},
+  {name:'Coral',hex:'#ff6b6b',tint:'rgba(255,107,107,.14)',border:'rgba(255,107,107,.25)'},
+  {name:'Violet',hex:'#a78bfa',tint:'rgba(167,139,250,.14)',border:'rgba(167,139,250,.25)'},
+  {name:'Sky',hex:'#60a5fa',tint:'rgba(96,165,250,.14)',border:'rgba(96,165,250,.25)'},
+  {name:'Rose',hex:'#f472b6',tint:'rgba(244,114,182,.14)',border:'rgba(244,114,182,.25)'},
+  {name:'Gold',hex:'#facc15',tint:'rgba(250,204,21,.14)',border:'rgba(250,204,21,.25)'},
+  {name:'Teal',hex:'#2dd4bf',tint:'rgba(45,212,191,.14)',border:'rgba(45,212,191,.25)'},
+];
+const COL_PALETTE=[
+  {name:'None',hex:'',bg:'#0c1410',border:'#182018',header:''},
+  {name:'Mint',hex:'#42d494',bg:'rgba(66,212,148,.04)',border:'rgba(66,212,148,.22)',header:'rgba(66,212,148,.06)'},
+  {name:'Amber',hex:'#ffc07a',bg:'rgba(255,192,122,.04)',border:'rgba(255,192,122,.22)',header:'rgba(255,192,122,.06)'},
+  {name:'Coral',hex:'#ff6b6b',bg:'rgba(255,107,107,.04)',border:'rgba(255,107,107,.22)',header:'rgba(255,107,107,.06)'},
+  {name:'Violet',hex:'#a78bfa',bg:'rgba(167,139,250,.04)',border:'rgba(167,139,250,.22)',header:'rgba(167,139,250,.06)'},
+  {name:'Sky',hex:'#60a5fa',bg:'rgba(96,165,250,.04)',border:'rgba(96,165,250,.22)',header:'rgba(96,165,250,.06)'},
+  {name:'Rose',hex:'#f472b6',bg:'rgba(244,114,182,.04)',border:'rgba(244,114,182,.22)',header:'rgba(244,114,182,.06)'},
+  {name:'Teal',hex:'#2dd4bf',bg:'rgba(45,212,191,.04)',border:'rgba(45,212,191,.22)',header:'rgba(45,212,191,.06)'},
+];
+const TZ=[
+  {l:'UTC (UTC+0)',v:'UTC'},{l:'Azores (UTC-1)',v:'Atlantic/Azores'},{l:'Cape Verde (UTC-1)',v:'Atlantic/Cape_Verde'},
+  {l:'Newfoundland (UTC-3:30)',v:'America/St_Johns'},{l:'Brasilia (UTC-3)',v:'America/Sao_Paulo'},{l:'Buenos Aires (UTC-3)',v:'America/Argentina/Buenos_Aires'},
+  {l:'Halifax (UTC-4)',v:'America/Halifax'},{l:'New York / Eastern (UTC-5/-4)',v:'America/New_York'},{l:'Chicago / Central (UTC-6/-5)',v:'America/Chicago'},
+  {l:'Denver / Mountain (UTC-7/-6)',v:'America/Denver'},{l:'Los Angeles / Pacific (UTC-8/-7)',v:'America/Los_Angeles'},{l:'Anchorage (UTC-9/-8)',v:'America/Anchorage'},
+  {l:'Honolulu (UTC-10)',v:'Pacific/Honolulu'},{l:'London / Dublin (UTC+0/+1)',v:'Europe/London'},{l:'Lisbon (UTC+0/+1)',v:'Europe/Lisbon'},
+  {l:'Paris / Berlin / Rome (UTC+1/+2)',v:'Europe/Paris'},{l:'Helsinki / Kyiv (UTC+2/+3)',v:'Europe/Helsinki'},{l:'Athens (UTC+2/+3)',v:'Europe/Athens'},
+  {l:'Cairo (UTC+2)',v:'Africa/Cairo'},{l:'Moscow (UTC+3)',v:'Europe/Moscow'},{l:'Johannesburg (UTC+2)',v:'Africa/Johannesburg'},
+  {l:'Nairobi (UTC+3)',v:'Africa/Nairobi'},{l:'Lagos (UTC+1)',v:'Africa/Lagos'},{l:'Dubai (UTC+4)',v:'Asia/Dubai'},
+  {l:'Riyadh (UTC+3)',v:'Asia/Riyadh'},{l:'Karachi (UTC+5)',v:'Asia/Karachi'},{l:'Mumbai / Delhi (UTC+5:30)',v:'Asia/Kolkata'},
+  {l:'Dhaka (UTC+6)',v:'Asia/Dhaka'},{l:'Bangkok (UTC+7)',v:'Asia/Bangkok'},{l:'Singapore (UTC+8)',v:'Asia/Singapore'},
+  {l:'Hong Kong (UTC+8)',v:'Asia/Hong_Kong'},{l:'Beijing / Shanghai (UTC+8)',v:'Asia/Shanghai'},{l:'Seoul (UTC+9)',v:'Asia/Seoul'},
+  {l:'Tokyo (UTC+9)',v:'Asia/Tokyo'},{l:'Sydney (UTC+10/+11)',v:'Australia/Sydney'},{l:'Auckland (UTC+12/+13)',v:'Pacific/Auckland'},
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let db=null;
+let curColId=null,curColType=null,curCardType='default',curNWType='flat',curTrackerType='flat';
+let curNWSubtype='generic',curGoldKarat='21k';
+let curSwatchHex='',ctxSwatchHex='',colSwatchHex='',newColSwatchHex='';
+let searchQ='';
+let sidebarOpen=false;
+let curBoardId=null;
+let dragCardId=null,dragSourceColId=null;
+let dragColId=null;
+let editingCardId=null; // null = adding new, else = editing existing
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt$=v=>'$'+Number(v).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+const fmt2=v=>Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtEGP=v=>'EGP '+Number(v).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+function flash(){const e=document.getElementById('sf');e.style.opacity='1';setTimeout(()=>e.style.opacity='0',1600);}
+function showToast(msg){const t=document.getElementById('copy-toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function qs(sql,p){const r=db.exec(sql,p);return r.length?r[0].values:[];}
+function getSetting(k,def=''){const r=qs('SELECT value FROM board_settings WHERE key=?',[k]);return r.length?r[0][0]:def;}
+function setSetting(k,v){db.run('INSERT INTO board_settings(key,value)VALUES(?,?)ON CONFLICT(key)DO UPDATE SET value=excluded.value',[k,v]);}
+function localDt(d){d=d||new Date();const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;}
+function fmtDl(iso){if(!iso)return'';const tz=getSetting('timezone',Intl.DateTimeFormat().resolvedOptions().timeZone);try{return new Date(iso).toLocaleString(undefined,{timeZone:tz,month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return new Date(iso).toLocaleString();}}
+function dlStatus(iso){if(!iso)return null;const h=(new Date(iso)-Date.now())/3600000;if(h<0)return{border:'rgba(239,68,68,.5)',bg:'rgba(239,68,68,.03)',tag:'OVERDUE',tagClass:'utag utag-red'};if(h<12)return{border:'rgba(239,68,68,.5)',bg:'rgba(239,68,68,.03)',tag:'DUE < 12H',tagClass:'utag utag-red'};if(h<48)return{border:'rgba(234,179,8,.45)',bg:'rgba(234,179,8,.02)',tag:'URGENT',tagClass:'utag utag-yellow'};if(h<72)return{border:'rgba(234,179,8,.3)',bg:'',tag:'SOON',tagClass:'utag utag-yellow'};return{border:'#182018',bg:'',tag:'IN PROGRESS',tagClass:'utag utag-green'};}
+function palFromHex(hex){return PALETTE.find(p=>p.hex===hex)||PALETTE[0];}
+function colPalFromHex(hex){return COL_PALETTE.find(p=>p.hex===hex)||COL_PALETTE[0];}
+function timeAgo(iso){const diff=(Date.now()-new Date(iso))/1000;if(diff<60)return'just now';if(diff<3600)return Math.floor(diff/60)+'m ago';if(diff<86400)return Math.floor(diff/3600)+'h ago';return Math.floor(diff/86400)+'d ago';}
+
+// ── Asset value calculation ───────────────────────────────────────────────────
+function calcAssetValue(card, yearsOffset) {
+  // Crypto: use live price × stored amount
+  if (card.nw_subtype === 'crypto' && card.nw_crypto_symbol) {
+    const tok = cryptoPrices[card.nw_crypto_symbol];
+    if (tok) return tok.price_usd * (parseFloat(card.nw_crypto_amount)||0);
+  }
+  // Gold: use live price × stored grams
+  if (card.nw_subtype === 'gold' && card.nw_gold_karat && card.nw_gold_grams) {
+    if (goldPrices && goldPrices[card.nw_gold_karat]) {
+      return goldPrices[card.nw_gold_karat].sell_usd * parseFloat(card.nw_gold_grams);
+    }
+  }
+  // Generic / DeFi: stored value with dep/app
+  const base = parseFloat(card.nw_value)||0;
+  const rate  = parseFloat(card.nw_rate)||0;
+  const type  = card.nw_type||'flat';
+  const unit  = card.nw_unit||'pct';
+  let yrs = yearsOffset||0;
+  if (card.nw_purchase_date && yearsOffset===0) {
+    const ms = Date.now()-new Date(card.nw_purchase_date).getTime();
+    yrs = ms/(365.25*24*3600*1000);
+  }
+  if (type==='flat'||rate===0) return base;
+  if (type==='dep') { if(unit==='pct') return Math.max(0,base*Math.pow(1-rate/100,yrs)); return Math.max(0,base-rate*yrs); }
+  if (type==='app') { if(unit==='pct') return base*Math.pow(1+rate/100,yrs); return base+rate*yrs; }
+  return base;
+}
+function calcCurrentValue(card){ return calcAssetValue(card,0); }
+
+// ── DB init ───────────────────────────────────────────────────────────────────
+async function initDB(){
+  const SQL=await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
+  const saved=localStorage.getItem('aura_db_v4');
+  db=saved?new SQL.Database(Uint8Array.from(atob(saved),c=>c.charCodeAt(0))):new SQL.Database();
+  db.run(`CREATE TABLE IF NOT EXISTS boards(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,position INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL)`);
+  db.run(`CREATE TABLE IF NOT EXISTS board_columns(id INTEGER PRIMARY KEY AUTOINCREMENT,board_id INTEGER NOT NULL DEFAULT 1,title TEXT NOT NULL,col_type TEXT NOT NULL DEFAULT 'general',position INTEGER NOT NULL DEFAULT 0,color_hex TEXT NOT NULL DEFAULT '')`);
+  db.run(`CREATE TABLE IF NOT EXISTS board_cards(id INTEGER PRIMARY KEY AUTOINCREMENT,column_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL DEFAULT '',completed INTEGER NOT NULL DEFAULT 0,card_type TEXT NOT NULL DEFAULT 'default',status TEXT NOT NULL DEFAULT 'drafting',link_url TEXT NOT NULL DEFAULT '',link_title TEXT NOT NULL DEFAULT '',link_favicon TEXT NOT NULL DEFAULT '',image_data TEXT NOT NULL DEFAULT '',deadline TEXT NOT NULL DEFAULT '',is_major_deadline INTEGER NOT NULL DEFAULT 0,tags TEXT NOT NULL DEFAULT '',color_hex TEXT NOT NULL DEFAULT '',progress INTEGER NOT NULL DEFAULT 0,position INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,nw_value REAL NOT NULL DEFAULT 0,nw_type TEXT NOT NULL DEFAULT 'flat',nw_rate REAL NOT NULL DEFAULT 0,nw_unit TEXT NOT NULL DEFAULT 'pct',nw_purchase_date TEXT NOT NULL DEFAULT '',nw_subtype TEXT NOT NULL DEFAULT 'generic',nw_gold_karat TEXT NOT NULL DEFAULT '',nw_gold_grams REAL NOT NULL DEFAULT 0,nw_crypto_symbol TEXT NOT NULL DEFAULT '',nw_crypto_amount REAL NOT NULL DEFAULT 0,nw_defi_platform TEXT NOT NULL DEFAULT '',nw_defi_apr REAL NOT NULL DEFAULT 0,FOREIGN KEY(column_id) REFERENCES board_columns(id))`);
+  db.run(`CREATE TABLE IF NOT EXISTS board_settings(key TEXT PRIMARY KEY,value TEXT NOT NULL)`);
+  db.run(`CREATE TABLE IF NOT EXISTS activity_log(id INTEGER PRIMARY KEY AUTOINCREMENT,board_id INTEGER NOT NULL DEFAULT 1,action TEXT NOT NULL,card_title TEXT NOT NULL DEFAULT '',col_title TEXT NOT NULL DEFAULT '',ts TEXT NOT NULL)`);
+
+  // Migrations for old columns
+  const cardMigs=[
+    'image_data TEXT NOT NULL DEFAULT ""','is_major_deadline INTEGER NOT NULL DEFAULT 0','deadline TEXT NOT NULL DEFAULT ""',
+    'tags TEXT NOT NULL DEFAULT ""','link_favicon TEXT NOT NULL DEFAULT ""','body TEXT NOT NULL DEFAULT ""',
+    'status TEXT NOT NULL DEFAULT "drafting"','link_url TEXT NOT NULL DEFAULT ""','link_title TEXT NOT NULL DEFAULT ""',
+    'color_hex TEXT NOT NULL DEFAULT ""','progress INTEGER NOT NULL DEFAULT 0','nw_value REAL NOT NULL DEFAULT 0',
+    'nw_type TEXT NOT NULL DEFAULT "flat"','nw_rate REAL NOT NULL DEFAULT 0','nw_unit TEXT NOT NULL DEFAULT "pct"',
+    'nw_purchase_date TEXT NOT NULL DEFAULT ""','nw_subtype TEXT NOT NULL DEFAULT "generic"',
+    'nw_gold_karat TEXT NOT NULL DEFAULT ""','nw_gold_grams REAL NOT NULL DEFAULT 0',
+    'nw_crypto_symbol TEXT NOT NULL DEFAULT ""','nw_crypto_amount REAL NOT NULL DEFAULT 0',
+    'nw_defi_platform TEXT NOT NULL DEFAULT ""','nw_defi_apr REAL NOT NULL DEFAULT 0'
+  ];
+  cardMigs.forEach(c=>{try{db.run('ALTER TABLE board_cards ADD COLUMN '+c);}catch(e){}});
+  ['col_type TEXT NOT NULL DEFAULT "general"','board_id INTEGER NOT NULL DEFAULT 1','color_hex TEXT NOT NULL DEFAULT ""']
+    .forEach(c=>{try{db.run('ALTER TABLE board_columns ADD COLUMN '+c);}catch(e){}});
+
+  // Migrate from v3
+  const oldSaved=localStorage.getItem('aura_db_v3');
+  if(oldSaved&&!saved){
+    try{
+      const SQL2=await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
+      const oldDb=new SQL2.Database(Uint8Array.from(atob(oldSaved),c=>c.charCodeAt(0)));
+      const cols=oldDb.exec('SELECT * FROM board_columns')[0];
+      const cards=oldDb.exec('SELECT * FROM board_cards')[0];
+      if(cols)cols.values.forEach(r=>db.run('INSERT OR IGNORE INTO board_columns(id,board_id,title,col_type,position,color_hex)VALUES(?,?,?,?,?,?)',[r[0],r[1]||1,r[2],r[3]||'general',r[4]||0,r[5]||'']));
+      if(cards)cards.values.forEach(r=>db.run('INSERT OR IGNORE INTO board_cards(id,column_id,title,body,completed,card_type,status,link_url,link_title,link_favicon,image_data,deadline,is_major_deadline,tags,color_hex,progress,position,created_at,nw_value,nw_type,nw_rate,nw_unit,nw_purchase_date)VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [r[0],r[1],r[2],r[3]||'',r[4]||0,r[5]||'default',r[6]||'drafting',r[7]||'',r[8]||'',r[9]||'',r[10]||'',r[11]||'',r[12]||0,r[13]||'',r[14]||'',r[15]||0,r[16]||0,r[17]||new Date().toISOString(),r[18]||0,r[19]||'flat',r[20]||0,r[21]||'pct',r[22]||'']));
+    }catch(e){console.warn('Migration v3→v4 failed',e);}
+  }
+
+  if(!qs('SELECT COUNT(*) FROM boards')[0][0]){db.run("INSERT INTO boards(name,position,created_at)VALUES('Main Board',0,?)",[new Date().toISOString()]);}
+  if(!qs('SELECT COUNT(*) FROM board_columns')[0][0]){
+    const bid=qs('SELECT id FROM boards ORDER BY position LIMIT 1')[0][0];
+    db.run("INSERT INTO board_columns(board_id,title,col_type,position)VALUES(?,?,?,?)",[bid,'Daily Accomplishments','accomplishments',0]);
+    db.run("INSERT INTO board_columns(board_id,title,col_type,position)VALUES(?,?,?,?)",[bid,'Publications','publications',1]);
+    db.run("INSERT INTO board_columns(board_id,title,col_type,position)VALUES(?,?,?,?)",[bid,'Notes & Planning','notes',2]);
+  }
+  const savedBoard=getSetting('active_board','');
+  const firstBoard=qs('SELECT id FROM boards ORDER BY position LIMIT 1')[0];
+  curBoardId=savedBoard?parseInt(savedBoard):(firstBoard?firstBoard[0]:1);
+  saveDB();
+}
+
+function saveDB(){const d=db.export();try{localStorage.setItem('aura_db_v4',btoa(String.fromCharCode(...d)));flash();}catch(e){console.warn('Storage full');}}
+function logActivity(action,cardTitle,colTitle){
+  db.run('INSERT INTO activity_log(board_id,action,card_title,col_title,ts)VALUES(?,?,?,?,?)',[curBoardId,action,cardTitle||'',colTitle||'',new Date().toISOString()]);
+  db.run('DELETE FROM activity_log WHERE board_id=? AND id NOT IN (SELECT id FROM activity_log WHERE board_id=? ORDER BY id DESC LIMIT 200)',[curBoardId,curBoardId]);
+  if(sidebarOpen)renderSidebar();
+}
+
+// ── Data getters ──────────────────────────────────────────────────────────────
+function getCols(){return qs('SELECT id,title,col_type,position,color_hex FROM board_columns WHERE board_id=? ORDER BY position',[curBoardId]).map(r=>({id:r[0],title:r[1],col_type:r[2],position:r[3],color_hex:r[4]||''}));}
+function getCards(colId){
+  return qs('SELECT id,title,body,completed,card_type,status,link_url,link_title,link_favicon,image_data,deadline,is_major_deadline,tags,color_hex,progress,position,created_at,nw_value,nw_type,nw_rate,nw_unit,nw_purchase_date,nw_subtype,nw_gold_karat,nw_gold_grams,nw_crypto_symbol,nw_crypto_amount,nw_defi_platform,nw_defi_apr FROM board_cards WHERE column_id=? ORDER BY position,id',[colId])
+  .map(r=>({id:r[0],title:r[1],body:r[2],completed:r[3],card_type:r[4],status:r[5],link_url:r[6],link_title:r[7],link_favicon:r[8],image_data:r[9],deadline:r[10],is_major_deadline:r[11],tags:r[12],color_hex:r[13],progress:r[14]||0,position:r[15],created_at:r[16],nw_value:r[17]||0,nw_type:r[18]||'flat',nw_rate:r[19]||0,nw_unit:r[20]||'pct',nw_purchase_date:r[21]||'',nw_subtype:r[22]||'generic',nw_gold_karat:r[23]||'',nw_gold_grams:r[24]||0,nw_crypto_symbol:r[25]||'',nw_crypto_amount:r[26]||0,nw_defi_platform:r[27]||'',nw_defi_apr:r[28]||0}));
+}
+function getMajors(){const seen=new Set();return qs('SELECT id,title,deadline FROM board_cards WHERE is_major_deadline=1 ORDER BY deadline').filter(r=>{if(seen.has(r[0]))return false;seen.add(r[0]);return true;}).map(r=>({id:r[0],title:r[1],deadline:r[2]}));}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderAll(){const cols=getCols();const bc=document.getElementById('board-container');bc.innerHTML='';cols.forEach(col=>bc.appendChild(buildCol(col)));renderTicker();renderTZLabel();}
+
+function buildCol(col){
+  const allCards=getCards(col.id);
+  const colPal=colPalFromHex(col.color_hex);
+  const cards=allCards.filter(c=>!searchQ||c.title.toLowerCase().includes(searchQ)||c.body.toLowerCase().includes(searchQ)||(c.tags||'').toLowerCase().includes(searchQ));
+  const wrap=document.createElement('div');
+  wrap.className='col';
+  wrap.setAttribute('data-col-id',col.id);
+  if(colPal.hex){wrap.style.background=colPal.bg;wrap.style.borderColor=colPal.border;}
+  wrap.addEventListener('dragover',e=>{if(dragColId!==null&&dragColId!==col.id){e.preventDefault();wrap.classList.add('col-drag-over');}});
+  wrap.addEventListener('dragleave',e=>{if(!wrap.contains(e.relatedTarget))wrap.classList.remove('col-drag-over');});
+  wrap.addEventListener('drop',e=>{e.preventDefault();wrap.classList.remove('col-drag-over');if(dragColId!==null&&dragColId!==col.id)dropCol(col.id);});
+  const iconMap={accomplishments:'task_alt',publications:'article',notes:'sticky_note_2',general:'view_agenda',networth:'account_balance_wallet'};
+  const hdr=document.createElement('div');
+  hdr.style.cssText=`display:flex;justify-content:space-between;align-items:center;margin-bottom:13px;flex-shrink:0;padding:6px 8px;border-radius:10px;cursor:grab;${colPal.hex?'background:'+colPal.header+';':''}`;
+  hdr.setAttribute('draggable','true');
+  hdr.addEventListener('dragstart',e=>{dragColId=col.id;e.dataTransfer.effectAllowed='move';setTimeout(()=>wrap.classList.add('col-dragging'),0);});
+  hdr.addEventListener('dragend',()=>{wrap.classList.remove('col-dragging');document.querySelectorAll('.col-drag-over').forEach(x=>x.classList.remove('col-drag-over'));dragColId=null;});
+  const iconColor=colPal.hex||'#42d494';
+  hdr.innerHTML=`<div style="display:flex;align-items:center;gap:8px;min-width:0;"><span class="material-symbols-outlined" style="color:${iconColor};font-size:15px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;">${iconMap[col.col_type]||'view_agenda'}</span><span style="font-size:14px;font-weight:700;color:#d4ddd8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em;">${esc(col.title)}</span><span style="background:rgba(44,203,130,.15);color:#2ccb82;font-size:9px;font-weight:900;letter-spacing:.04em;padding:2px 7px;border-radius:20px;flex-shrink:0;">${allCards.length}</span></div><button class="cbtn" onclick="openColMenu(event,${col.id})" style="flex-shrink:0;"><span class="material-symbols-outlined" style="font-size:16px;">more_horiz</span></button>`;
+  wrap.appendChild(hdr);
+  const area=document.createElement('div');
+  area.className='col-cards';
+  cards.filter(c=>col.col_type==='networth'?c.card_type==='networth':c.card_type!=='networth').forEach(card=>{const el=buildCard(card,col.col_type);initDrag(el,card.id,col.id);area.appendChild(el);});
+  initColDrop(area,col.id);
+  if(cards.length===0&&searchQ){const e=document.createElement('div');e.style.cssText='text-align:center;padding:20px 0;font-size:11px;color:#2e3e36;font-style:italic;';e.textContent='No matches';area.appendChild(e);}
+  wrap.appendChild(area);
+  if(col.col_type==='networth'){
+    const nwCards=getCards(col.id).filter(c=>c.card_type==='networth');
+    wrap.appendChild(buildNetworthGraph(nwCards,col.id));
+  }
+  const btn=document.createElement('button');
+  btn.className='add-card-btn';
+  btn.innerHTML=`<span class="material-symbols-outlined" style="font-size:14px;">add</span> ${col.col_type==='networth'?'Add Asset':'Add Card'}`;
+  btn.onclick=()=>openAddCard(col.id,col.col_type);
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+function buildNetworthGraph(nwCards,colId){
+  const wrap=document.createElement('div');
+  wrap.className='nw-graph-card';
+  const total=nwCards.reduce((s,c)=>s+calcCurrentValue(c),0);
+  const totalIn5=nwCards.reduce((s,c)=>s+calcAssetValue(c,5),0);
+  const change=totalIn5-total;
+  const changeSign=change>=0?'+':'';
+  const changePct=total>0?((change/total)*100).toFixed(1):'0';
+
+  // Group by subtype for summary
+  const groups={gold:0,crypto:0,defi:0,generic:0};
+  nwCards.forEach(c=>{ groups[c.nw_subtype||'generic']+=calcCurrentValue(c); });
+  const groupHtml=Object.entries(groups).filter(([,v])=>v>0).map(([k,v])=>{
+    const labels={gold:'🥇 Gold',crypto:'₿ Crypto',defi:'⬡ DeFi',generic:'◈ Other'};
+    return`<div style="font-size:10px;color:#6a8070;margin-bottom:1px;">${labels[k]||k}: <span style="color:#9ab0a4;">${fmt$(v)}</span></div>`;
+  }).join('');
+
+  wrap.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div><div style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4a5e54;margin-bottom:4px;">Net Worth</div><div style="font-size:20px;font-weight:800;color:#d4ddd8;letter-spacing:-.02em;">${fmt$(total)}</div><div style="font-size:10px;color:${change>=0?'#42d494':'#fca5a5'};margin-top:2px;font-weight:600;">${changeSign}${fmt$(change)} (${changeSign}${changePct}%) in 5yr</div></div><div style="text-align:right;"><div style="font-size:9px;color:#4a5e54;margin-bottom:3px;">${nwCards.length} asset${nwCards.length!==1?'s':''}</div>${groupHtml}</div></div>`;
+  const canvas=document.createElement('canvas');
+  canvas.style.cssText='display:block;width:100%;height:70px;';
+  wrap.appendChild(canvas);
+  const lbl=document.createElement('div');lbl.style.cssText='display:flex;justify-content:space-between;margin-top:5px;';
+  lbl.innerHTML='<span style="font-size:9px;color:#2e3e36;">Now</span><span style="font-size:9px;color:#2e3e36;">5 years</span>';
+  wrap.appendChild(lbl);
+  requestAnimationFrame(()=>renderNWGraph(canvas,nwCards));
+  return wrap;
+}
+
+function renderNWGraph(canvas,nwCards){
+  const W=canvas.offsetWidth||290,H=70;canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,W,H);
+  if(!nwCards.length){ctx.font='11px Inter,sans-serif';ctx.fillStyle='#2e3e36';ctx.textAlign='center';ctx.fillText('Add assets to see trend',W/2,H/2);return;}
+  const steps=20;const vals=[];
+  for(let i=0;i<=steps;i++){vals.push(nwCards.reduce((s,c)=>s+calcAssetValue(c,i*(5/steps)),0));}
+  const min=Math.min(...vals),max=Math.max(...vals,min+1);
+  const pad={t:6,b:4,l:4,r:4};const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const pts=vals.map((v,i)=>({x:pad.l+i*(cW/steps),y:pad.t+cH-(v-min)/(max-min)*cH}));
+  const upward=vals[vals.length-1]>=vals[0];
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[pts.length-1].x,pad.t+cH);ctx.lineTo(pts[0].x,pad.t+cH);ctx.closePath();
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+cH);
+  if(upward){grad.addColorStop(0,'rgba(66,212,148,.22)');grad.addColorStop(1,'rgba(66,212,148,.01)');}
+  else{grad.addColorStop(0,'rgba(239,68,68,.18)');grad.addColorStop(1,'rgba(239,68,68,.01)');}
+  ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length;i++){const cp=(pts[i-1].x+pts[i].x)/2;ctx.bezierCurveTo(cp,pts[i-1].y,cp,pts[i].y,pts[i].x,pts[i].y);}
+  ctx.strokeStyle=upward?'#42d494':'#ef4444';ctx.lineWidth=1.5;ctx.stroke();
+  [pts[0],pts[pts.length-1]].forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle=upward?'#42d494':'#ef4444';ctx.fill();});
+}
+
+// ── Card building ─────────────────────────────────────────────────────────────
+function buildCard(card,colType){
+  const el=document.createElement('div');
+  if(card.card_type==='networth'||colType==='networth'){
+    return buildNWCard(card,el);
+  }
+  if(colType==='accomplishments'){
+    el.className='card';const done=!!card.completed;
+    el.innerHTML=`<div class="card-inner" style="display:flex;align-items:flex-start;gap:10px;"><button onclick="toggleComplete(${card.id})" style="background:none;border:none;cursor:pointer;padding:0;flex-shrink:0;margin-top:1px;"><span class="material-symbols-outlined" style="font-size:20px;color:${done?'#42d494':'#2e3e36'};font-variation-settings:'FILL' ${done?1:0},'wght' 400,'GRAD' 0,'opsz' 24;">${done?'check_circle':'radio_button_unchecked'}</span></button><div style="flex:1;min-width:0;"><p style="font-size:13px;color:${done?'#2e3e36':'#b8c8be'};${done?'text-decoration:line-through;':''}line-height:1.5;margin:0;font-weight:${done?400:500};">${esc(card.title)}</p><p style="font-size:10px;color:#2e3e36;margin:4px 0 0;">${new Date(card.created_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</p></div><div style="display:flex;gap:4px;"><button onclick="event.stopPropagation();openEditCard(${card.id})" class="card-edit-btn"><span class="material-symbols-outlined" style="font-size:11px;">edit</span></button><button onclick="event.stopPropagation();deleteCard(${card.id})" class="cbtn" style="opacity:0;transition:opacity .14s;width:22px;height:22px;"><span class="material-symbols-outlined" style="font-size:12px;">close</span></button></div></div>`;
+    el.onmouseenter=()=>el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='1');
+    el.onmouseleave=()=>el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='0');
+    el.oncontextmenu=ev=>{ev.preventDefault();showCtxMenu(ev,card.id,card.title);};
+  } else if(colType==='publications'){
+    const sm={drafting:{cls:'sbadge sbadge-draft',lbl:'Drafting',icon:'edit'},review:{cls:'sbadge sbadge-review',lbl:'Under Review',icon:'visibility'},published:{cls:'sbadge sbadge-pub',lbl:'Published',icon:'verified'}};
+    const st=sm[card.status]||sm.drafting;el.className='card';
+    el.innerHTML=`<div class="card-inner"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;"><span class="${st.cls}"><span class="material-symbols-outlined" style="font-size:10px;font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 20;">${st.icon}</span>${st.lbl}</span><div style="display:flex;gap:4px;"><button onclick="event.stopPropagation();openEditCard(${card.id})" class="card-edit-btn"><span class="material-symbols-outlined" style="font-size:11px;">edit</span></button><button onclick="event.stopPropagation();deleteCard(${card.id})" class="cbtn" style="opacity:0;transition:opacity .14s;width:22px;height:22px;"><span class="material-symbols-outlined" style="font-size:12px;">close</span></button></div></div><div style="font-size:13px;font-weight:700;color:#d4ddd8;line-height:1.45;margin-bottom:${card.body?'7px':'0'};">${esc(card.title)}</div>${card.body?`<div style="font-size:12px;color:#4a5e54;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(card.body)}</div>`:''}${card.link_url?`<a href="${esc(card.link_url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#060b08;border:1px solid #182018;border-radius:8px;margin-top:10px;text-decoration:none;" onmouseover="this.style.borderColor='rgba(66,212,148,.22)'" onmouseout="this.style.borderColor='#182018'">${card.link_favicon?`<img src="${esc(card.link_favicon)}" style="width:13px;height:13px;border-radius:2px;flex-shrink:0;" onerror="this.style.display='none'"/>`:'<span class="material-symbols-outlined" style="font-size:12px;color:#2e3e36;flex-shrink:0;">link</span>'}<span style="font-size:11px;color:#42d494;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(card.link_title||card.link_url)}</span><span class="material-symbols-outlined" style="font-size:11px;color:#2e3e36;flex-shrink:0;">open_in_new</span></a>`:''}</div>`;
+    el.onmouseenter=()=>el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='1');
+    el.onmouseleave=()=>el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='0');
+    el.oncontextmenu=ev=>{ev.preventDefault();showCtxMenu(ev,card.id,card.title);};
+  } else if(colType==='notes'){
+    const ds=card.deadline?dlStatus(card.deadline):null;
+    const isPriority=card.card_type==='priority';const isProject=card.card_type==='project';
+    const pal=palFromHex(card.color_hex);
+    let borderColor='#182018',bgBase='#101810';
+    if(isPriority&&!ds){borderColor='rgba(66,212,148,.28)';bgBase='rgba(66,212,148,.025)';}
+    if(ds){borderColor=ds.border;if(ds.bg)bgBase=ds.bg;}
+    if(pal.border&&!ds&&!isPriority)borderColor=pal.border;
+    el.className='card';el.style.borderColor=borderColor;el.style.background=bgBase;el.style.cursor='context-menu';
+    el.setAttribute('data-card-id',card.id);el.oncontextmenu=ev=>{ev.preventDefault();showCtxMenu(ev,card.id,card.title);};
+    let html='';
+    if(pal.tint)html+=`<div class="card-tint" style="background:${pal.tint};border-radius:12px;"></div>`;
+    html+='<div class="card-inner">';
+    if(isProject&&card.image_data)html+=`<div style="position:relative;margin:-13px -14px 12px;height:112px;overflow:hidden;border-radius:12px 12px 0 0;"><img src="${card.image_data}" style="width:100%;height:100%;object-fit:cover;display:block;" alt=""/><div style="position:absolute;bottom:0;left:0;right:0;height:56px;background:linear-gradient(to top,${bgBase||'#101810'},transparent);"></div></div>`;
+    if(isPriority)html+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="width:6px;height:6px;border-radius:50%;background:#42d494;display:inline-block;flex-shrink:0;box-shadow:0 0 6px rgba(66,212,148,.6);"></span><span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#42d494;">Priority</span></div>`;
+    if(ds)html+=`<span class="${ds.tagClass}" style="margin-bottom:6px;display:inline-block;">${ds.tag}</span>`;
+    html+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;"><div style="flex:1;min-width:0;">${card.is_major_deadline?'<span style="color:#fa9b00;font-size:11px;font-weight:900;margin-right:4px;">★</span>':''}<span style="font-size:13px;font-weight:${isPriority?600:500};color:#d4ddd8;line-height:1.5;">${esc(card.title)}</span></div><div style="display:flex;gap:4px;"><button onclick="event.stopPropagation();openEditCard(${card.id})" class="card-edit-btn"><span class="material-symbols-outlined" style="font-size:11px;">edit</span></button><button onclick="event.stopPropagation();deleteCard(${card.id})" class="cbtn" style="opacity:0;width:22px;height:22px;transition:opacity .14s;"><span class="material-symbols-outlined" style="font-size:12px;">close</span></button></div></div>`;
+    if(card.body)html+=`<div style="font-size:12px;color:#4a5e54;line-height:1.6;margin-top:5px;">${esc(card.body)}</div>`;
+    if(isProject&&card.progress>0)html+=`<div style="margin-top:10px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><span style="font-size:10px;color:#4a5e54;font-weight:600;">${card.progress}% complete</span></div><div class="prog-track"><div class="prog-bar" style="width:${card.progress}%;"></div></div></div>`;
+    if(card.tags){const tags=card.tags.trim().split(/\s+/).filter(t=>t);if(tags.length)html+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;">${tags.map(t=>`<span style="font-size:10px;background:#0a0f0c;border:1px solid #182018;padding:2px 8px;border-radius:4px;color:#4a5e54;">${esc(t)}</span>`).join('')}</div>`;}
+    if(card.deadline)html+=`<div style="display:flex;align-items:center;gap:4px;margin-top:9px;"><span class="material-symbols-outlined" style="font-size:11px;color:#2e3e36;">schedule</span><span style="font-size:11px;color:#2e3e36;">${fmtDl(card.deadline)}</span></div>`;
+    html+='</div>';el.innerHTML=html;
+    el.onmouseenter=()=>el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='1');
+    el.onmouseleave=()=>el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='0');
+  } else {
+    const pal=palFromHex(card.color_hex);el.className='card';let html='';
+    if(pal.tint)html+=`<div class="card-tint" style="background:${pal.tint};border-radius:12px;"></div>`;
+    if(pal.border)el.style.borderColor=pal.border;
+    html+=`<div class="card-inner"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;"><p style="font-size:13px;color:#b8c8be;line-height:1.5;margin:0;flex:1;min-width:0;font-weight:500;">${esc(card.title)}</p><div style="display:flex;gap:4px;"><button onclick="event.stopPropagation();openEditCard(${card.id})" class="card-edit-btn"><span class="material-symbols-outlined" style="font-size:11px;">edit</span></button><button onclick="event.stopPropagation();deleteCard(${card.id})" class="cbtn" style="opacity:0;width:22px;height:22px;transition:opacity .14s;"><span class="material-symbols-outlined" style="font-size:12px;">close</span></button></div></div>${card.body?`<p style="font-size:12px;color:#4a5e54;line-height:1.55;margin:5px 0 0;">${esc(card.body)}</p>`:''}</div>`;
+    el.innerHTML=html;
+    el.onmouseenter=()=>el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='1');
+    el.onmouseleave=()=>el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='0');
+    el.oncontextmenu=ev=>{ev.preventDefault();showCtxMenu(ev,card.id,card.title);};
+  }
+  return el;
+}
+
+function buildNWCard(card, el) {
+  const curVal = calcCurrentValue(card);
+  const sub = card.nw_subtype || 'generic';
+
+  // Subtype badge
+  const subLabels = { gold:'🥇 Gold', crypto:'₿ Crypto', defi:'⬡ DeFi', generic:'Asset' };
+  const subBadgeClass = { gold:'nw-badge-gold', crypto:'nw-badge-crypto', defi:'nw-badge-defi', generic:'nw-badge-flat' };
+
+  let detailHtml = '';
+
+  if (sub === 'gold') {
+    const pricePerG = goldPrices?.[card.nw_gold_karat]?.sell_usd;
+    const kLabel = (card.nw_gold_karat||'').toUpperCase();
+    detailHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px;">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:#facc15;letter-spacing:-.02em;">${fmt$(curVal)}</div>
+          <div style="font-size:10px;color:#6a8070;margin-top:2px;">${card.nw_gold_grams}g · ${kLabel}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:#4a5e54;">EGP equiv.</div>
+          <div style="font-size:11px;color:#9ab0a4;">${fmtEGP(curVal * EGP_TO_USD)}</div>
+          ${pricePerG ? `<div style="font-size:9px;color:#4a5e54;margin-top:1px;">$${fmt2(pricePerG)}/g live</div>` : ''}
+        </div>
+      </div>`;
+  } else if (sub === 'crypto') {
+    const tok = cryptoPrices[card.nw_crypto_symbol];
+    const chg = tok?.percent_change_24h;
+    const chgHtml = chg!=null ? `<span class="live-pill ${chg>=0?'live-pill-up':'live-pill-down'}">${chg>=0?'▲':'▼'} ${Math.abs(chg).toFixed(2)}% 24h</span>` : '';
+    detailHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px;">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:#60a5fa;letter-spacing:-.02em;">${fmt$(curVal)}</div>
+          <div style="font-size:10px;color:#6a8070;margin-top:2px;">${card.nw_crypto_amount} ${card.nw_crypto_symbol}</div>
+        </div>
+        <div style="text-align:right;">${chgHtml}${tok?`<div style="font-size:10px;color:#4a5e54;margin-top:3px;">$${fmt2(tok.price_usd)}/coin</div>`:''}
+        </div>
+      </div>`;
+  } else if (sub === 'defi') {
+    const aprVal = parseFloat(card.nw_defi_apr)||0;
+    const earned = aprVal > 0 ? (curVal * aprVal / 100) : 0;
+    detailHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px;">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:#a78bfa;letter-spacing:-.02em;">${fmt$(curVal)}</div>
+          <div style="font-size:10px;color:#6a8070;margin-top:2px;">${card.nw_defi_platform||'DeFi'} · ${aprVal}% APR</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:9px;color:#4a5e54;">~Yearly yield</div>
+          <div style="font-size:11px;color:#a78bfa;">${fmt$(earned)}</div>
+          ${card.nw_purchase_date?`<div style="font-size:9px;color:#4a5e54;margin-top:1px;">Since ${new Date(card.nw_purchase_date).toLocaleDateString(undefined,{month:'short',year:'numeric'})}</div>`:''}
+        </div>
+      </div>`;
+  } else {
+    const type = card.nw_type||'flat';
+    const badge = type==='dep'?'nw-badge-dep':type==='app'?'nw-badge-app':'nw-badge-flat';
+    const rateStr = type!=='flat'&&card.nw_rate?(card.nw_unit==='pct'?card.nw_rate+'%/yr':fmt$(card.nw_rate)+'/yr'):'';
+    const val1y = calcAssetValue(card,1); const delta = val1y-curVal; const dSign=delta>=0?'+':'';
+    detailHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px;">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:#d4ddd8;letter-spacing:-.02em;">${fmt$(curVal)}</div>
+          ${type!=='flat'?`<div style="font-size:10px;color:${delta>=0?'#42d494':'#fca5a5'};font-weight:600;margin-top:2px;">${dSign}${fmt$(delta)}/yr</div>`:''}
+        </div>
+        <div><span class="nw-badge ${badge}">${type==='dep'?'Depreciating':type==='app'?'Appreciating':'Static'}${rateStr?' · '+rateStr:''}</span></div>
+      </div>`;
+  }
+
+  el.className = 'card';
+  el.style.cursor = 'context-menu';
+  el.setAttribute('data-card-id', card.id);
+  el.oncontextmenu = ev => { ev.preventDefault(); showCtxMenu(ev, card.id, card.title); };
+  el.innerHTML = `<div class="card-inner">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span class="nw-badge ${subBadgeClass[sub]||'nw-badge-flat'}">${subLabels[sub]||'Asset'}</span>
+          ${(sub==='crypto'||sub==='gold')?'<span class="live-dot" style="width:5px;height:5px;border-radius:50%;background:#42d494;flex-shrink:0;"></span>':'' }
+        </div>
+        <div style="font-size:13px;font-weight:600;color:#d4ddd8;">${esc(card.title)}</div>
+      </div>
+      <div style="display:flex;gap:4px;">
+        <button onclick="event.stopPropagation();openEditCard(${card.id})" class="card-edit-btn"><span class="material-symbols-outlined" style="font-size:11px;">edit</span></button>
+        <button onclick="event.stopPropagation();deleteCard(${card.id})" class="cbtn" style="opacity:0;width:22px;height:22px;transition:opacity .14s;"><span class="material-symbols-outlined" style="font-size:12px;">close</span></button>
+      </div>
+    </div>
+    ${detailHtml}
+    ${card.body?`<div style="font-size:11px;color:#4a5e54;line-height:1.5;margin-top:8px;border-top:1px solid #182018;padding-top:8px;">${esc(card.body)}</div>`:''}
+  </div>`;
+  el.onmouseenter = () => el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='1');
+  el.onmouseleave = () => el.querySelectorAll('.cbtn').forEach(b=>b.style.opacity='0');
+  return el;
+}
+
+// ── Drag ──────────────────────────────────────────────────────────────────────
+function initDrag(el,cardId,colId){
+  el.draggable=true;
+  el.addEventListener('dragstart',e=>{if(dragColId!==null)return;dragCardId=cardId;dragSourceColId=colId;setTimeout(()=>el.classList.add('dragging'),0);e.dataTransfer.effectAllowed='move';});
+  el.addEventListener('dragend',()=>{el.classList.remove('dragging');document.querySelectorAll('.drag-over-above,.drag-over-below,.drag-target-empty').forEach(x=>x.classList.remove('drag-over-above','drag-over-below','drag-target-empty'));});
+  el.addEventListener('dragover',e=>{if(dragColId!==null)return;e.preventDefault();e.dataTransfer.dropEffect='move';if(dragCardId===cardId)return;document.querySelectorAll('.drag-over-above,.drag-over-below').forEach(x=>x.classList.remove('drag-over-above','drag-over-below'));const rect=el.getBoundingClientRect();el.classList.add(e.clientY<rect.top+rect.height/2?'drag-over-above':'drag-over-below');});
+  el.addEventListener('dragleave',()=>el.classList.remove('drag-over-above','drag-over-below'));
+  el.addEventListener('drop',e=>{e.preventDefault();if(dragCardId===null||dragCardId===cardId)return;const rect=el.getBoundingClientRect();dropCardNear(cardId,colId,e.clientY<rect.top+rect.height/2);});
+}
+function initColDrop(areaEl,colId){
+  areaEl.addEventListener('dragover',e=>{if(dragColId!==null)return;e.preventDefault();e.dataTransfer.dropEffect='move';if(!areaEl.querySelector('.card'))areaEl.classList.add('drag-target-empty');});
+  areaEl.addEventListener('dragleave',e=>{if(!areaEl.contains(e.relatedTarget))areaEl.classList.remove('drag-target-empty');});
+  areaEl.addEventListener('drop',e=>{e.preventDefault();areaEl.classList.remove('drag-target-empty');if(dragCardId===null)return;if(!areaEl.querySelector('.card'))dropCardToEmptyCol(colId);});
+}
+function dropCardNear(targetCardId,targetColId,before){
+  const cards=getCards(targetColId);const targetPos=cards.find(c=>c.id===targetCardId)?.position??0;
+  db.run('UPDATE board_cards SET column_id=? WHERE id=?',[targetColId,dragCardId]);
+  if(before){db.run('UPDATE board_cards SET position=position+1 WHERE column_id=? AND position>=? AND id!=?',[targetColId,targetPos,dragCardId]);db.run('UPDATE board_cards SET position=? WHERE id=?',[targetPos,dragCardId]);}
+  else{db.run('UPDATE board_cards SET position=position+1 WHERE column_id=? AND position>? AND id!=?',[targetColId,targetPos,dragCardId]);db.run('UPDATE board_cards SET position=? WHERE id=?',[targetPos+1,dragCardId]);}
+  const r=qs('SELECT title FROM board_cards WHERE id=?',[dragCardId]);
+  logActivity('Moved card',r.length?r[0][0]:'','');saveDB();renderAll();dragCardId=null;
+}
+function dropCardToEmptyCol(colId){
+  db.run('UPDATE board_cards SET column_id=?,position=0 WHERE id=?',[colId,dragCardId]);
+  const r=qs('SELECT title FROM board_cards WHERE id=?',[dragCardId]);
+  logActivity('Moved card',r.length?r[0][0]:'','');saveDB();renderAll();dragCardId=null;
+}
+function dropCol(targetColId){
+  if(dragColId===null||dragColId===targetColId)return;
+  const cols=getCols();
+  const srcPos=cols.find(c=>c.id===dragColId)?.position??0;
+  const tgtPos=cols.find(c=>c.id===targetColId)?.position??0;
+  if(srcPos<tgtPos){db.run('UPDATE board_columns SET position=position-1 WHERE board_id=? AND position>? AND position<=? AND id!=?',[curBoardId,srcPos,tgtPos,dragColId]);db.run('UPDATE board_columns SET position=? WHERE id=?',[tgtPos,dragColId]);}
+  else{db.run('UPDATE board_columns SET position=position+1 WHERE board_id=? AND position>=? AND position<? AND id!=?',[curBoardId,tgtPos,srcPos,dragColId]);db.run('UPDATE board_columns SET position=? WHERE id=?',[tgtPos,dragColId]);}
+  saveDB();renderAll();dragColId=null;
+}
+
+// ── Ticker ────────────────────────────────────────────────────────────────────
+function renderTicker(){
+  const majors=getMajors();const inner=document.getElementById('ticker-inner');
+  if(!majors.length){inner.innerHTML='<span style="color:#1e2b24;font-size:12px;font-style:italic;">No major deadlines yet</span>';inner.className='';inner.style.animationDuration='';return;}
+  const buildItem=d=>{const ds=d.deadline?dlStatus(d.deadline):null;let clr='#d4ddd8';if(ds)clr=(['OVERDUE','DUE < 12H'].includes(ds.tag))?'#ef4444':(['URGENT','SOON'].includes(ds.tag))?'#eab308':'#42d494';return`<span style="display:inline-flex;align-items:center;gap:10px;margin:0 28px;flex-shrink:0;"><span style="font-size:12px;font-weight:700;color:${clr};">${esc(d.title)}</span><span style="font-size:11px;color:#2e3e36;">• ${d.deadline?fmtDl(d.deadline):'No date set'}</span></span>`;};
+  const single=majors.map(buildItem).join('');const area=document.getElementById('ticker-scroll-area');area.style.overflow='hidden';
+  inner.className='';inner.style.animationDuration='';inner.innerHTML=single;
+  requestAnimationFrame(()=>{const setW=inner.scrollWidth,containerW=area.clientWidth||window.innerWidth;if(setW>containerW){inner.innerHTML=single+single;inner.className='ticker-mq';inner.style.animationDuration=Math.max(14,Math.round(setW/55))+'s';}});
+}
+function renderTZLabel(){const tz=getSetting('timezone',Intl.DateTimeFormat().resolvedOptions().timeZone);const found=TZ.find(t=>t.v===tz);document.getElementById('tz-label').textContent=found?found.l.split('(')[0].trim():tz.split('/').pop().replace(/_/g,' ');}
+
+// ── Swatches ──────────────────────────────────────────────────────────────────
+function buildSwatches(containerId,current,onSelect){
+  const c=document.getElementById(containerId);if(!c)return;c.innerHTML='';
+  PALETTE.forEach(p=>{const sw=document.createElement('button');sw.type='button';sw.title=p.name;sw.className='sw'+(p.hex===current?' on':'');if(p.hex){sw.style.cssText=`background:${p.hex};`;}else{sw.style.cssText='background:transparent;border:2px solid #1e2b24;position:relative;';sw.innerHTML=`<span style="position:absolute;inset:2px;border-radius:50%;background:repeating-linear-gradient(45deg,#1e2b24 0,#1e2b24 2px,transparent 2px,transparent 6px);"></span>`;}sw.onclick=()=>{c.querySelectorAll('.sw').forEach(s=>s.classList.remove('on'));sw.classList.add('on');onSelect(p.hex);};c.appendChild(sw);});
+}
+function buildColSwatches(containerId,current,onSelect){
+  const c=document.getElementById(containerId);if(!c)return;c.innerHTML='';
+  COL_PALETTE.forEach(p=>{
+    const sw=document.createElement('button');sw.type='button';sw.title=p.name;
+    sw.style.cssText=`width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid ${p.hex===current?'#fff':'transparent'};flex-shrink:0;transition:transform .12s,border-color .12s;background:${p.hex||'transparent'};position:relative;`;
+    if(!p.hex)sw.innerHTML=`<span style="position:absolute;inset:2px;border-radius:50%;background:repeating-linear-gradient(45deg,#1e2b24 0,#1e2b24 2px,transparent 2px,transparent 6px);"></span>`;
+    if(p.hex===current)sw.style.boxShadow='0 0 0 2px rgba(255,255,255,.22)';
+    sw.onmouseenter=()=>sw.style.transform='scale(1.3)';
+    sw.onmouseleave=()=>sw.style.transform='';
+    sw.onclick=()=>{c.querySelectorAll('button').forEach(s=>{s.style.borderColor='transparent';s.style.boxShadow='';});sw.style.borderColor='#fff';sw.style.boxShadow='0 0 0 2px rgba(255,255,255,.22)';onSelect(p.hex);};
+    c.appendChild(sw);
+  });
+}
+
+// ── Open Add / Edit card modal ────────────────────────────────────────────────
+function openAddCard(colId, colType) {
+  editingCardId = null;
+  curColId = colId; curColType = colType;
+  curCardType = 'default'; curSwatchHex = ''; curNWType = 'flat'; curNWSubtype = 'generic'; curGoldKarat = '21k';
+  resetCardForm();
+  document.getElementById('mc-heading').textContent = {accomplishments:'Log Accomplishment',publications:'Add Publication',notes:'Add Note',general:'Add Card',networth:'Add Asset'}[colType]||'Add Card';
+  document.getElementById('mc-title').placeholder = {accomplishments:'What did you accomplish today?',publications:'Publication title…',notes:"What's on your mind?",general:'Card title…',networth:'Asset name…'}[colType]||'Card title…';
+  document.getElementById('mc-submit-btn').textContent = 'Add Card';
+  document.getElementById('mc-edit-id').value = '';
+  showColTypeSection(colType);
+  openModal('modal-card');
+  setTimeout(()=>document.getElementById('mc-title').focus(),80);
+}
+
+function openEditCard(cardId) {
+  const rows = qs('SELECT id,column_id,title,body,completed,card_type,status,link_url,link_title,link_favicon,image_data,deadline,is_major_deadline,tags,color_hex,progress,nw_value,nw_type,nw_rate,nw_unit,nw_purchase_date,nw_subtype,nw_gold_karat,nw_gold_grams,nw_crypto_symbol,nw_crypto_amount,nw_defi_platform,nw_defi_apr FROM board_cards WHERE id=?',[cardId]);
+  if(!rows.length) return;
+  const r = rows[0];
+  const card = {id:r[0],column_id:r[1],title:r[2],body:r[3],completed:r[4],card_type:r[5],status:r[6],link_url:r[7],link_title:r[8],link_favicon:r[9],image_data:r[10],deadline:r[11],is_major_deadline:r[12],tags:r[13],color_hex:r[14],progress:r[15],nw_value:r[16],nw_type:r[17],nw_rate:r[18],nw_unit:r[19],nw_purchase_date:r[20],nw_subtype:r[21]||'generic',nw_gold_karat:r[22]||'21k',nw_gold_grams:r[23]||0,nw_crypto_symbol:r[24]||'',nw_crypto_amount:r[25]||0,nw_defi_platform:r[26]||'',nw_defi_apr:r[27]||0};
+
+  // Find col type
+  const colRows = qs('SELECT col_type FROM board_columns WHERE id=?',[card.column_id]);
+  const colType = colRows.length ? colRows[0][0] : 'general';
+
+  editingCardId = cardId;
+  curColId = card.column_id; curColType = colType;
+  curCardType = card.card_type || 'default';
+  curSwatchHex = card.color_hex || '';
+  curNWType = card.nw_type || 'flat';
+  curNWSubtype = card.nw_subtype || 'generic';
+  curGoldKarat = card.nw_gold_karat || '21k';
+
+  resetCardForm();
+  document.getElementById('mc-heading').textContent = 'Edit Card';
+  document.getElementById('mc-submit-btn').textContent = 'Save Changes';
+  document.getElementById('mc-edit-id').value = cardId;
+  document.getElementById('mc-title').value = card.title || '';
+
+  showColTypeSection(colType);
+
+  // Populate fields
+  if (colType === 'publications') {
+    document.getElementById('mc-status').value = card.status || 'drafting';
+    document.getElementById('mc-link').value = card.link_url || '';
+    document.getElementById('mc-pub-body').value = card.body || '';
+    if (card.link_url) handleLinkInput(card.link_url);
+    if (card.link_title) document.getElementById('mc-link-title').value = card.link_title;
+  } else if (colType === 'notes') {
+    document.getElementById('mc-body').value = card.body || '';
+    document.getElementById('mc-tags').value = card.tags || '';
+    document.getElementById('mc-progress').value = card.progress || 0;
+    document.getElementById('mc-progress-val').textContent = (card.progress||0)+'%';
+    if (card.deadline) { try { document.getElementById('mc-deadline').value = localDt(new Date(card.deadline)); } catch(e){} }
+    document.getElementById('mc-major').checked = !!card.is_major_deadline;
+    setCardType(card.card_type || 'default');
+    buildSwatches('mc-swatches', card.color_hex||'', hex=>curSwatchHex=hex);
+  } else if (colType === 'general') {
+    document.getElementById('mc-gen-body').value = card.body || '';
+    buildSwatches('mc-swatches-gen', card.color_hex||'', hex=>curSwatchHex=hex);
+  } else if (colType === 'networth') {
+    setNWSubtype(card.nw_subtype || 'generic');
+    if (card.nw_subtype === 'gold') {
+      setGoldKarat(card.nw_gold_karat || '21k');
+      document.getElementById('mc-gold-grams').value = card.nw_gold_grams || '';
+      recalcGoldValue();
+    } else if (card.nw_subtype === 'crypto') {
+      document.getElementById('mc-crypto-amount').value = card.nw_crypto_amount || '';
+      // symbol set after populate
+      setTimeout(()=>{ document.getElementById('mc-crypto-symbol').value = card.nw_crypto_symbol || ''; recalcCryptoValue(); }, 100);
+    } else if (card.nw_subtype === 'defi') {
+      document.getElementById('mc-defi-platform').value = card.nw_defi_platform || '';
+      document.getElementById('mc-defi-apr').value = card.nw_defi_apr || '';
+      document.getElementById('mc-defi-date').value = card.nw_purchase_date || '';
+      document.getElementById('mc-nw-value').value = card.nw_value || '';
+    } else {
+      document.getElementById('mc-nw-value-generic').value = card.nw_value || '';
+      setNWType(card.nw_type || 'flat');
+      document.getElementById('mc-nw-rate').value = card.nw_rate || '';
+      document.getElementById('mc-nw-unit').value = card.nw_unit || 'pct';
+    }
+    document.getElementById('mc-nw-body').value = card.body || '';
+  }
+
+  closeCtxMenu();
+  openModal('modal-card');
+  setTimeout(()=>document.getElementById('mc-title').focus(),80);
+}
+
+function resetCardForm(){
+  ['mc-title','mc-body','mc-gen-body','mc-tags','mc-link','mc-link-title','mc-nw-value','mc-nw-value-generic','mc-nw-rate','mc-nw-body','mc-gold-grams','mc-crypto-amount','mc-defi-platform','mc-defi-apr','mc-defi-date'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const pb=document.getElementById('mc-pub-body');if(pb)pb.value='';
+  document.getElementById('mc-status').value='drafting';
+  document.getElementById('mc-deadline').value='';
+  document.getElementById('mc-major').checked=false;
+  document.getElementById('mc-link-preview').style.display='none';
+  document.getElementById('mc-image').value='';
+  document.getElementById('mc-image-wrap').style.display='none';
+  document.getElementById('mc-progress-wrap').style.display='none';
+  document.getElementById('mc-progress').value=0;
+  document.getElementById('mc-progress-val').textContent='0%';
+  document.getElementById('mc-error').style.display='none';
+  document.getElementById('gold-live-preview').style.display='none';
+  document.getElementById('crypto-live-preview').style.display='none';
+  const fav=document.getElementById('mc-link-favicon');fav.src='';fav.style.display='';
+}
+
+function showColTypeSection(colType){
+  ['mc-acc','mc-pub','mc-notes','mc-gen','mc-networth'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  const secMap={accomplishments:'mc-acc',publications:'mc-pub',notes:'mc-notes',general:'mc-gen',networth:'mc-networth'};
+  const sec=document.getElementById(secMap[colType]||'mc-gen');if(sec)sec.style.display='block';
+  if(colType==='notes'){setCardType(curCardType);buildSwatches('mc-swatches',curSwatchHex,hex=>curSwatchHex=hex);}
+  if(colType==='general'){buildSwatches('mc-swatches-gen',curSwatchHex,hex=>curSwatchHex=hex);}
+  if(colType==='networth'){setNWSubtype(curNWSubtype);}
+}
+
+function setCardType(t){curCardType=t;['default','priority','project'].forEach(id=>{const e=document.getElementById('ct-'+id);if(e)e.classList.toggle('on',id===t);});document.getElementById('mc-image-wrap').style.display=t==='project'?'block':'none';document.getElementById('mc-progress-wrap').style.display=t==='project'?'block':'none';}
+function setNWType(t){curNWType=t;['flat','dep','app'].forEach(id=>{const e=document.getElementById('nwt-'+id);if(e)e.classList.toggle('on',id===t);});const wrap=document.getElementById('mc-nw-rate-wrap');if(wrap)wrap.style.display=t==='flat'?'none':'block';}
+
+function setNWSubtype(t) {
+  curNWSubtype = t;
+  ['generic','gold','crypto','defi'].forEach(id=>{const e=document.getElementById('nwst-'+id);if(e)e.classList.toggle('on',id===t);});
+  document.getElementById('nw-generic-fields').style.display = t==='generic'?'block':'none';
+  document.getElementById('nw-gold-fields').style.display   = t==='gold'?'block':'none';
+  document.getElementById('nw-crypto-fields').style.display = t==='crypto'?'block':'none';
+  document.getElementById('nw-defi-fields').style.display   = t==='defi'?'block':'none';
+  if (t==='gold') { setGoldKarat(curGoldKarat); recalcGoldValue(); }
+  if (t==='crypto') { populateCryptoSelect(); recalcCryptoValue(); }
+  if (t==='generic') setNWType(curNWType);
+}
+
+function setGoldKarat(k) {
+  curGoldKarat = k;
+  ['24k','21k','18k'].forEach(id=>{const e=document.getElementById('gk-'+id.replace('k',''));if(e)e.classList.toggle('on',id===k);});
+  // fix button ids: gk-24, gk-21, gk-18
+  ['24','21','18'].forEach(n=>{const e=document.getElementById('gk-'+n);if(e)e.classList.toggle('on',k===n+'k');});
+  recalcGoldValue();
+}
+
+function recalcGoldValue() {
+  const grams = parseFloat(document.getElementById('mc-gold-grams')?.value)||0;
+  const priceData = goldPrices?.[curGoldKarat];
+  const prev = document.getElementById('gold-live-preview');
+  if (!prev) return;
+  if (!priceData || grams <= 0) { prev.style.display='none'; return; }
+  const usd = priceData.sell_usd * grams;
+  const egp = priceData.sell_egp * grams;
+  document.getElementById('gold-live-usd').textContent = '$'+fmt2(usd);
+  document.getElementById('gold-live-egp').textContent = fmtEGP(egp);
+  document.getElementById('gold-live-rate').textContent = `$${fmt2(priceData.sell_usd)}/g · EGP ${priceData.sell_egp?.toLocaleString()}/g`;
+  prev.style.display = 'block';
+}
+
+function recalcCryptoValue() {
+  const sym = document.getElementById('mc-crypto-symbol')?.value;
+  const amt = parseFloat(document.getElementById('mc-crypto-amount')?.value)||0;
+  const prev = document.getElementById('crypto-live-preview');
+  if (!prev) return;
+  if (!sym || !cryptoPrices[sym] || amt <= 0) { prev.style.display='none'; return; }
+  const tok = cryptoPrices[sym];
+  const usd = tok.price_usd * amt;
+  const chg = tok.percent_change_24h;
+  document.getElementById('crypto-live-usd').textContent = '$'+fmt2(usd);
+  document.getElementById('crypto-live-price').textContent = `$${fmt2(tok.price_usd)}/coin`;
+  const chgEl = document.getElementById('crypto-live-change');
+  if (chg!=null) chgEl.innerHTML = `<span style="color:${chg>=0?'#42d494':'#fca5a5'};font-weight:700;">${chg>=0?'▲':'▼'} ${Math.abs(chg).toFixed(2)}%</span> <span style="color:#4a5e54;">24h</span>`;
+  prev.style.display = 'block';
+}
+
+function handleLinkInput(val){const prev=document.getElementById('mc-link-preview');if(!val||!val.trim()){prev.style.display='none';return;}try{const url=new URL(val.trim());document.getElementById('mc-link-favicon').src=`https://www.google.com/s2/favicons?domain=${url.hostname}&sz=32`;document.getElementById('mc-link-domain').textContent=url.hostname;const lt=document.getElementById('mc-link-title');if(!lt.value)lt.value=url.hostname;prev.style.display='block';}catch(e){prev.style.display='none';}}
+
+async function compressImage(file){return new Promise((res,rej)=>{const reader=new FileReader();reader.onerror=rej;reader.onload=e=>{const img=new Image();img.onerror=rej;img.onload=()=>{const MAX=900,scale=Math.min(1,MAX/Math.max(img.width,img.height,1));const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.72));};img.src=e.target.result;};reader.readAsDataURL(file);});}
+
+// ── Submit card (add + edit) ──────────────────────────────────────────────────
+async function submitCard(){
+  const title=document.getElementById('mc-title').value.trim();
+  if(!title){document.getElementById('mc-error').style.display='block';return;}
+  document.getElementById('mc-error').style.display='none';
+
+  let body='',status='drafting',linkUrl='',linkTitle='',linkFavicon='',imageData='',deadline='',isMajor=0,tags='',colorHex=curSwatchHex||'',progress=0;
+  let cardTypeVal=curCardType;
+  let nwValue=0,nwType='flat',nwRate=0,nwUnit='pct',nwPurchaseDate='';
+  let nwSubtype=curNWSubtype,nwGoldKarat='',nwGoldGrams=0,nwCryptoSymbol='',nwCryptoAmount=0,nwDefiPlatform='',nwDefiApr=0;
+
+  if(curColType==='networth'){
+    cardTypeVal='networth';
+    body = document.getElementById('mc-nw-body').value.trim();
+    if (curNWSubtype==='gold') {
+      nwGoldKarat = curGoldKarat;
+      nwGoldGrams = parseFloat(document.getElementById('mc-gold-grams').value)||0;
+      // store computed USD value for the graph
+      nwValue = goldPrices?.[curGoldKarat]?.sell_usd * nwGoldGrams || 0;
+      nwType='app'; // gold appreciates by default for graph projection
+    } else if (curNWSubtype==='crypto') {
+      nwCryptoSymbol = document.getElementById('mc-crypto-symbol').value;
+      nwCryptoAmount = parseFloat(document.getElementById('mc-crypto-amount').value)||0;
+      const tok = cryptoPrices[nwCryptoSymbol];
+      nwValue = tok ? tok.price_usd * nwCryptoAmount : 0;
+    } else if (curNWSubtype==='defi') {
+      nwDefiPlatform = document.getElementById('mc-defi-platform').value.trim();
+      nwDefiApr = parseFloat(document.getElementById('mc-defi-apr').value)||0;
+      nwPurchaseDate = document.getElementById('mc-defi-date').value||'';
+      nwValue = parseFloat(document.getElementById('mc-nw-value').value)||0;
+      nwType='app';nwRate=nwDefiApr;nwUnit='pct';
+    } else {
+      nwValue = parseFloat(document.getElementById('mc-nw-value-generic').value)||0;
+      nwType = curNWType;
+      nwRate = parseFloat(document.getElementById('mc-nw-rate').value)||0;
+      nwUnit = document.getElementById('mc-nw-unit').value;
+    }
+  } else if(curColType==='publications'){
+    body=document.getElementById('mc-pub-body').value.trim();status=document.getElementById('mc-status').value;
+    linkUrl=document.getElementById('mc-link').value.trim();linkTitle=document.getElementById('mc-link-title').value.trim()||linkUrl;
+    const fav=document.getElementById('mc-link-favicon');if(fav.src&&!fav.src.includes('about:')&&!fav.src.endsWith('/'))linkFavicon=fav.src;
+  } else if(curColType==='notes'){
+    body=document.getElementById('mc-body').value.trim();tags=document.getElementById('mc-tags').value.trim();
+    const dlv=document.getElementById('mc-deadline').value;deadline=dlv?new Date(dlv).toISOString():'';
+    isMajor=document.getElementById('mc-major').checked?1:0;progress=parseInt(document.getElementById('mc-progress').value)||0;
+    if(curCardType==='project'){const f=document.getElementById('mc-image').files[0];if(f){try{imageData=await compressImage(f);}catch(e){}}}
+  } else if(curColType==='general'){
+    body=document.getElementById('mc-gen-body').value.trim();
+  }
+
+  const isEditing = editingCardId !== null;
+
+  if (isEditing) {
+    // Preserve existing image if none uploaded
+    if (curColType==='notes' && curCardType==='project' && !imageData) {
+      const existing = qs('SELECT image_data FROM board_cards WHERE id=?',[editingCardId]);
+      if (existing.length) imageData = existing[0][0]||'';
+    }
+    db.run(`UPDATE board_cards SET title=?,body=?,card_type=?,status=?,link_url=?,link_title=?,link_favicon=?,image_data=?,deadline=?,is_major_deadline=?,tags=?,color_hex=?,progress=?,nw_value=?,nw_type=?,nw_rate=?,nw_unit=?,nw_purchase_date=?,nw_subtype=?,nw_gold_karat=?,nw_gold_grams=?,nw_crypto_symbol=?,nw_crypto_amount=?,nw_defi_platform=?,nw_defi_apr=? WHERE id=?`,
+      [title,body,cardTypeVal,status,linkUrl,linkTitle,linkFavicon,imageData,deadline,isMajor,tags,colorHex,progress,nwValue,nwType,nwRate,nwUnit,nwPurchaseDate,nwSubtype,nwGoldKarat,nwGoldGrams,nwCryptoSymbol,nwCryptoAmount,nwDefiPlatform,nwDefiApr,editingCardId]);
+    logActivity('Edited card',title,'');
+  } else {
+    const maxPos=(qs('SELECT MAX(position) FROM board_cards WHERE column_id=?',[curColId])[0]?.[0]||0)+1;
+    db.run(`INSERT INTO board_cards(column_id,title,body,completed,card_type,status,link_url,link_title,link_favicon,image_data,deadline,is_major_deadline,tags,color_hex,progress,position,created_at,nw_value,nw_type,nw_rate,nw_unit,nw_purchase_date,nw_subtype,nw_gold_karat,nw_gold_grams,nw_crypto_symbol,nw_crypto_amount,nw_defi_platform,nw_defi_apr)VALUES(?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [curColId,title,body,cardTypeVal,status,linkUrl,linkTitle,linkFavicon,imageData,deadline,isMajor,tags,colorHex,progress,maxPos,new Date().toISOString(),nwValue,nwType,nwRate,nwUnit,nwPurchaseDate,nwSubtype,nwGoldKarat,nwGoldGrams,nwCryptoSymbol,nwCryptoAmount,nwDefiPlatform,nwDefiApr]);
+    logActivity('Added card',title,getCols().find(c=>c.id===curColId)?.title||'');
+  }
+
+  saveDB();closeModal('modal-card');renderAll();
+}
+
+function toggleComplete(id){const r=qs('SELECT completed,title FROM board_cards WHERE id=?',[id]);if(!r.length)return;const nowDone=!r[0][0];db.run('UPDATE board_cards SET completed=? WHERE id=?',[nowDone?1:0,id]);logActivity(nowDone?'Completed card':'Uncompleted card',r[0][1],'');saveDB();renderAll();}
+function deleteCard(id){if(!confirm('Delete this card?'))return;const r=qs('SELECT title FROM board_cards WHERE id=?',[id]);logActivity('Deleted card',r.length?r[0][0]:'','');db.run('DELETE FROM board_cards WHERE id=?',[id]);saveDB();renderAll();}
+
+// ── Columns ───────────────────────────────────────────────────────────────────
+function submitColumn(){
+  const t=document.getElementById('col-name').value.trim();if(!t)return;
+  const p=(qs('SELECT MAX(position) FROM board_columns WHERE board_id=?',[curBoardId])[0]?.[0]||0)+1;
+  db.run('INSERT INTO board_columns(board_id,title,col_type,position,color_hex)VALUES(?,?,?,?,?)',[curBoardId,t,document.getElementById('col-type').value,p,newColSwatchHex||'']);
+  saveDB();closeModal('modal-col');document.getElementById('col-name').value='';newColSwatchHex='';renderAll();
+}
+function openColMenu(ev,colId){
+  ev.stopPropagation();document.getElementById('col-menu-id').value=colId;
+  const m=document.getElementById('col-menu');m.classList.add('open');m.style.display='block';
+  const r=ev.currentTarget.getBoundingClientRect();
+  let top=r.bottom+4,left=Math.min(r.left,window.innerWidth-220);
+  if(top+250>window.innerHeight)top=r.top-250;
+  m.style.top=top+'px';m.style.left=left+'px';
+}
+function colMenuMoveLeft(){const id=parseInt(document.getElementById('col-menu-id').value);const cols=getCols();const idx=cols.findIndex(c=>c.id===id);if(idx<=0){closeColMenu();return;}const prev=cols[idx-1];db.run('UPDATE board_columns SET position=? WHERE id=?',[prev.position,id]);db.run('UPDATE board_columns SET position=? WHERE id=?',[cols[idx].position,prev.id]);saveDB();closeColMenu();renderAll();}
+function colMenuMoveRight(){const id=parseInt(document.getElementById('col-menu-id').value);const cols=getCols();const idx=cols.findIndex(c=>c.id===id);if(idx>=cols.length-1){closeColMenu();return;}const next=cols[idx+1];db.run('UPDATE board_columns SET position=? WHERE id=?',[next.position,id]);db.run('UPDATE board_columns SET position=? WHERE id=?',[cols[idx].position,next.id]);saveDB();closeColMenu();renderAll();}
+function colMenuColor(){const id=document.getElementById('col-menu-id').value;const r=qs('SELECT color_hex FROM board_columns WHERE id=?',[id]);const cur=(r.length&&r[0][0])||'';document.getElementById('col-clr-id').value=id;colSwatchHex=cur;buildColSwatches('col-clr-swatches',cur,hex=>colSwatchHex=hex);closeColMenu();openModal('modal-col-color');}
+function submitColColor(){const id=document.getElementById('col-clr-id').value;db.run('UPDATE board_columns SET color_hex=? WHERE id=?',[colSwatchHex,id]);saveDB();closeModal('modal-col-color');renderAll();}
+function colMenuRename(){const id=document.getElementById('col-menu-id').value;const r=qs('SELECT title FROM board_columns WHERE id=?',[id]);if(!r.length)return;document.getElementById('rn-col-id').value=id;document.getElementById('rn-name').value=r[0][0];closeColMenu();openModal('modal-rename');setTimeout(()=>document.getElementById('rn-name').focus(),60);}
+function submitRename(){const id=document.getElementById('rn-col-id').value,n=document.getElementById('rn-name').value.trim();if(!n)return;db.run('UPDATE board_columns SET title=? WHERE id=?',[n,id]);saveDB();closeModal('modal-rename');renderAll();}
+function colMenuClear(){const id=document.getElementById('col-menu-id').value;if(!confirm('Clear all cards in this column? This cannot be undone.'))return;db.run('DELETE FROM board_cards WHERE column_id=?',[id]);saveDB();closeColMenu();renderAll();}
+function colMenuDelete(){const id=document.getElementById('col-menu-id').value;if(qs('SELECT COUNT(*) FROM board_columns WHERE board_id=?',[curBoardId])[0][0]<=1){alert('Cannot delete the last column.');return;}if(!confirm('Delete this column and all its cards?'))return;db.run('DELETE FROM board_cards WHERE column_id=?',[id]);db.run('DELETE FROM board_columns WHERE id=?',[id]);saveDB();closeColMenu();renderAll();}
+function closeColMenu(){const m=document.getElementById('col-menu');m.classList.remove('open');m.style.display='none';}
+
+// ── Context menu ──────────────────────────────────────────────────────────────
+function showCtxMenu(ev,cardId,cardTitle){
+  ev.stopPropagation();
+  document.getElementById('ctx-card-id').value=cardId;
+  document.getElementById('ctx-card-title-label').textContent=cardTitle?cardTitle.slice(0,28)+(cardTitle.length>28?'…':''):'Card actions';
+  const m=document.getElementById('ctx-menu');m.style.display='none';m.classList.remove('open');
+  let top=ev.clientY,left=ev.clientX;
+  if(top+400>window.innerHeight)top=window.innerHeight-410;
+  if(left+250>window.innerWidth)left=window.innerWidth-255;
+  m.style.top=top+'px';m.style.left=left+'px';
+  requestAnimationFrame(()=>{m.style.display='block';requestAnimationFrame(()=>m.classList.add('open'));});
+}
+function closeCtxMenu(){const m=document.getElementById('ctx-menu');m.classList.remove('open');setTimeout(()=>m.style.display='none',140);}
+
+function ctxEdit(){const id=parseInt(document.getElementById('ctx-card-id').value);closeCtxMenu();openEditCard(id);}
+function ctxCopyInfo(){
+  const id=document.getElementById('ctx-card-id').value;
+  const r=qs('SELECT title,body,tags,deadline,status,nw_value,nw_type,card_type,nw_subtype,nw_crypto_symbol,nw_crypto_amount,nw_gold_karat,nw_gold_grams FROM board_cards WHERE id=?',[id]);
+  if(!r.length)return;
+  const [title,body,tags,deadline,status,nwValue,nwType,cardType,nwSubtype,nwCryptoSymbol,nwCryptoAmount,nwGoldKarat,nwGoldGrams]=r[0];
+  let txt=title;
+  if(body)txt+='\n'+body;if(tags)txt+='\nTags: '+tags;if(deadline)txt+='\nDeadline: '+fmtDl(deadline);
+  if(cardType==='networth'){
+    if(nwSubtype==='crypto')txt+='\nCrypto: '+nwCryptoAmount+' '+nwCryptoSymbol;
+    else if(nwSubtype==='gold')txt+='\nGold: '+nwGoldGrams+'g '+nwGoldKarat;
+    else txt+='\nValue: '+fmt$(nwValue)+' ('+nwType+')';
+  }
+  if(status&&status!=='drafting')txt+='\nStatus: '+status;
+  navigator.clipboard.writeText(txt).then(()=>showToast('Copied to clipboard ✓')).catch(()=>showToast('Could not copy'));
+  closeCtxMenu();
+}
+function ctxMarkMajor(){const id=document.getElementById('ctx-card-id').value;const r=qs('SELECT is_major_deadline FROM board_cards WHERE id=?',[id]);if(!r.length)return;db.run('UPDATE board_cards SET is_major_deadline=? WHERE id=?',[r[0][0]?0:1,id]);saveDB();closeCtxMenu();renderAll();}
+function ctxSetDeadline(){
+  const id=document.getElementById('ctx-card-id').value;const r=qs('SELECT deadline,is_major_deadline FROM board_cards WHERE id=?',[id]);
+  document.getElementById('dl-card-id').value=id;
+  if(r.length&&r[0][0]){try{document.getElementById('dl-dt').value=localDt(new Date(r[0][0]));}catch(e){document.getElementById('dl-dt').value='';}document.getElementById('dl-major').checked=!!r[0][1];}
+  else{document.getElementById('dl-dt').value='';document.getElementById('dl-major').checked=false;}
+  closeCtxMenu();openModal('modal-deadline');setTimeout(()=>document.getElementById('dl-dt').focus(),60);
+}
+function ctxTogglePriority(){const id=document.getElementById('ctx-card-id').value;const r=qs('SELECT card_type FROM board_cards WHERE id=?',[id]);if(!r.length)return;db.run('UPDATE board_cards SET card_type=? WHERE id=?',[r[0][0]==='priority'?'default':'priority',id]);saveDB();closeCtxMenu();renderAll();}
+function ctxChangeColor(){const id=document.getElementById('ctx-card-id').value;const r=qs('SELECT color_hex FROM board_cards WHERE id=?',[id]);const cur=(r.length&&r[0][0])||'';document.getElementById('clr-card-id').value=id;ctxSwatchHex=cur;buildSwatches('clr-swatches',cur,hex=>ctxSwatchHex=hex);closeCtxMenu();openModal('modal-color');}
+function submitColor(){const id=document.getElementById('clr-card-id').value;db.run('UPDATE board_cards SET color_hex=? WHERE id=?',[ctxSwatchHex,id]);saveDB();closeModal('modal-color');renderAll();}
+function ctxDelete(){const id=document.getElementById('ctx-card-id').value;if(!confirm('Delete this card?'))return;deleteCard(parseInt(id));closeCtxMenu();}
+function ctxOpenTracker(){
+  const id=document.getElementById('ctx-card-id').value;
+  const r=qs('SELECT title,nw_value,nw_type,nw_rate,nw_unit,nw_purchase_date FROM board_cards WHERE id=?',[id]);if(!r.length)return;
+  const [title,nwValue,nwType,nwRate,nwUnit,nwPurchaseDate]=r[0];
+  document.getElementById('tracker-card-id').value=id;document.getElementById('tracker-card-name').textContent=title;
+  document.getElementById('tr-value').value=nwValue||'';document.getElementById('tr-rate').value=nwRate||'';document.getElementById('tr-unit').value=nwUnit||'pct';document.getElementById('tr-date').value=nwPurchaseDate||'';
+  setTrackerType(nwType||'flat');closeCtxMenu();openModal('modal-tracker');setTimeout(updateTrackerPreview,100);
+}
+function setTrackerType(t){curTrackerType=t;['flat','dep','app'].forEach(id=>{const e=document.getElementById('trt-'+id);if(e)e.classList.toggle('on',id===t);});const wrap=document.getElementById('tr-rate-wrap');if(wrap)wrap.style.display=t==='flat'?'none':'block';updateTrackerPreview();}
+function updateTrackerPreview(){
+  const val=parseFloat(document.getElementById('tr-value').value)||0;const rate=parseFloat(document.getElementById('tr-rate').value)||0;const unit=document.getElementById('tr-unit').value||'pct';const type=curTrackerType;
+  const mockCard={nw_value:val,nw_type:type,nw_rate:rate,nw_unit:unit,nw_purchase_date:'',nw_subtype:'generic'};
+  document.getElementById('tr-val-now').textContent=fmt$(calcAssetValue(mockCard,0));
+  document.getElementById('tr-val-5y').textContent=fmt$(calcAssetValue(mockCard,5));
+  const canvas=document.getElementById('tr-preview-canvas');const W=canvas.offsetWidth||340,H=80;canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,W,H);
+  const steps=20;const vals=[];for(let i=0;i<=steps;i++){vals.push(calcAssetValue(mockCard,i*(5/steps)));}
+  const mn=Math.min(...vals),mx=Math.max(...vals,mn+1);const pad={t:6,b:4,l:4,r:4};const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const pts=vals.map((v,i)=>({x:pad.l+i*(cW/steps),y:pad.t+cH-(v-mn)/(mx-mn)*cH}));
+  const upward=vals[vals.length-1]>=vals[0];
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(pts[pts.length-1].x,pad.t+cH);ctx.lineTo(pts[0].x,pad.t+cH);ctx.closePath();
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+cH);if(upward){grad.addColorStop(0,'rgba(66,212,148,.2)');grad.addColorStop(1,'rgba(66,212,148,.01)');}else{grad.addColorStop(0,'rgba(239,68,68,.18)');grad.addColorStop(1,'rgba(239,68,68,.01)');}
+  ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++){const cp=(pts[i-1].x+pts[i].x)/2;ctx.bezierCurveTo(cp,pts[i-1].y,cp,pts[i].y,pts[i].x,pts[i].y);}
+  ctx.strokeStyle=upward?'#42d494':'#ef4444';ctx.lineWidth=1.5;ctx.stroke();
+}
+document.addEventListener('input',e=>{if(['tr-value','tr-rate','tr-unit'].includes(e.target.id))updateTrackerPreview();});
+function submitTracker(){
+  const id=document.getElementById('tracker-card-id').value;const val=parseFloat(document.getElementById('tr-value').value)||0;const rate=parseFloat(document.getElementById('tr-rate').value)||0;const unit=document.getElementById('tr-unit').value||'pct';const pd=document.getElementById('tr-date').value||'';
+  db.run('UPDATE board_cards SET nw_value=?,nw_type=?,nw_rate=?,nw_unit=?,nw_purchase_date=? WHERE id=?',[val,curTrackerType,rate,unit,pd,id]);
+  saveDB();closeModal('modal-tracker');renderAll();showToast('Tracker saved ✓');
+}
+function clearTracker(){const id=document.getElementById('tracker-card-id').value;db.run('UPDATE board_cards SET nw_value=0,nw_type="flat",nw_rate=0,nw_unit="pct",nw_purchase_date="" WHERE id=?',[id]);saveDB();closeModal('modal-tracker');renderAll();}
+function submitDeadline(){const id=document.getElementById('dl-card-id').value,dt=document.getElementById('dl-dt').value,isMajor=document.getElementById('dl-major').checked?1:0;db.run('UPDATE board_cards SET deadline=?,is_major_deadline=? WHERE id=?',[dt?new Date(dt).toISOString():'',isMajor,id]);saveDB();closeModal('modal-deadline');renderAll();}
+
+// ── Timezone ──────────────────────────────────────────────────────────────────
+function filterTZ(q){
+  const cur=getSetting('timezone',Intl.DateTimeFormat().resolvedOptions().timeZone);const lq=(q||'').toLowerCase().trim();const list=lq?TZ.filter(t=>t.l.toLowerCase().includes(lq)||t.v.toLowerCase().includes(lq)):TZ;
+  document.getElementById('tz-list').innerHTML=list.length?list.map(t=>`<div class="tz-r${t.v===cur?' on':''}" onclick="selectTZ('${t.v}')">${t.v===cur?'<span style="color:#42d494;margin-right:4px;font-size:11px;">✓</span>':''}${esc(t.l)}</div>`).join(''):`<div style="font-size:12px;color:#2e3e36;text-align:center;padding:18px;">No results.</div>`;
+}
+function selectTZ(v){setSetting('timezone',v);saveDB();closeModal('modal-tz');renderAll();}
+function onSearch(v){searchQ=v.toLowerCase().trim();renderAll();}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal(id){
+  const el=document.getElementById(id);el.classList.remove('hidden');requestAnimationFrame(()=>el.classList.add('open'));
+  if(id==='modal-tz'){filterTZ('');setTimeout(()=>document.getElementById('tz-search').focus(),60);}
+  if(id==='modal-col'){newColSwatchHex='';buildColSwatches('new-col-swatches','',hex=>newColSwatchHex=hex);}
+}
+function closeModal(id){const el=document.getElementById(id);el.classList.remove('open');setTimeout(()=>el.classList.add('hidden'),180);}
+
+// ── Boards ────────────────────────────────────────────────────────────────────
+function toggleBoardSwitcher(ev){
+  ev.stopPropagation();const drop=document.getElementById('board-switcher-drop');if(drop.style.display==='block'){drop.style.display='none';return;}
+  renderBoardList();const btn=document.getElementById('board-switcher-btn');const r=btn.getBoundingClientRect();drop.style.top=(r.bottom+4)+'px';drop.style.left=r.left+'px';drop.style.display='block';
+}
+function renderBoardList(){
+  const boards=qs('SELECT id,name FROM boards ORDER BY position');
+  document.getElementById('board-list').innerHTML=boards.map(b=>`<div class="board-row${b[0]===curBoardId?' active-board':''}" onclick="switchBoard(${b[0]})"><span class="bd-dot"></span><span style="flex:1;">${esc(b[1])}</span>${boards.length>1?`<span class="material-symbols-outlined" style="font-size:13px;color:#2e3e36;margin-left:4px;" onclick="event.stopPropagation();deleteBoard(${b[0]})">close</span>`:''}</div>`).join('');
+  document.getElementById('active-board-name').textContent=boards.find(b=>b[0]===curBoardId)?.[1]||'Board';
+}
+function switchBoard(id){curBoardId=id;setSetting('active_board',String(id));saveDB();document.getElementById('board-switcher-drop').style.display='none';renderBoardList();renderAll();}
+function openAddBoardModal(){document.getElementById('board-switcher-drop').style.display='none';document.getElementById('new-board-name').value='';openModal('modal-board');setTimeout(()=>document.getElementById('new-board-name').focus(),80);}
+function submitNewBoard(){
+  const name=document.getElementById('new-board-name').value.trim();if(!name)return;
+  const pos=(qs('SELECT MAX(position) FROM boards')[0]?.[0]||0)+1;
+  db.run('INSERT INTO boards(name,position,created_at)VALUES(?,?,?)',[name,pos,new Date().toISOString()]);
+  const newId=qs('SELECT last_insert_rowid()')[0][0];
+  db.run("INSERT INTO board_columns(board_id,title,col_type,position)VALUES(?,?,?,?)",[newId,'Daily Accomplishments','accomplishments',0]);
+  db.run("INSERT INTO board_columns(board_id,title,col_type,position)VALUES(?,?,?,?)",[newId,'Publications','publications',1]);
+  db.run("INSERT INTO board_columns(board_id,title,col_type,position)VALUES(?,?,?,?)",[newId,'Notes & Planning','notes',2]);
+  saveDB();closeModal('modal-board');switchBoard(newId);
+}
+function deleteBoard(id){
+  if(!confirm('Delete this board and all its data?'))return;
+  const colIds=qs('SELECT id FROM board_columns WHERE board_id=?',[id]).map(r=>r[0]);
+  colIds.forEach(cid=>db.run('DELETE FROM board_cards WHERE column_id=?',[cid]));
+  db.run('DELETE FROM board_columns WHERE board_id=?',[id]);db.run('DELETE FROM activity_log WHERE board_id=?',[id]);db.run('DELETE FROM boards WHERE id=?',[id]);
+  const first=qs('SELECT id FROM boards ORDER BY position LIMIT 1')[0];saveDB();if(first)switchBoard(first[0]);
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function toggleSidebar(){
+  sidebarOpen=!sidebarOpen;const sb=document.getElementById('activity-sidebar');const main=document.getElementById('main-board');
+  sb.classList.toggle('open',sidebarOpen);main.style.marginRight=sidebarOpen?'300px':'0';
+  document.getElementById('sidebar-toggle-btn').classList.toggle('active',sidebarOpen);if(sidebarOpen)renderSidebar();
+}
+function renderSidebar(){renderActivityLog();renderActivityChart();}
+function renderActivityLog(){
+  const logs=qs('SELECT action,card_title,col_title,ts FROM activity_log WHERE board_id=? ORDER BY id DESC LIMIT 40',[curBoardId]);
+  const list=document.getElementById('activity-list');
+  if(!logs.length){list.innerHTML='<div style="padding:16px;font-size:11px;color:#2e3e36;font-style:italic;">No activity yet</div>';return;}
+  const dotMap={'Added card':'','Completed card':'','Uncompleted card':'amber','Deleted card':'red','Moved card':'blue','Edited card':'blue'};
+  list.innerHTML=logs.map(r=>`<div class="activity-item"><span class="act-dot ${dotMap[r[0]]||''}"></span><div style="flex:1;min-width:0;"><div style="font-size:11px;color:#9ab0a4;line-height:1.4;"><span style="color:#d4ddd8;font-weight:600;">${esc(r[1])||'Card'}</span><span style="color:#4a5e54;"> — ${esc(r[0])}</span></div>${r[2]?`<div style="font-size:10px;color:#2e3e36;margin-top:1px;">in ${esc(r[2])}</div>`:''}<div style="font-size:10px;color:#2e3e36;margin-top:2px;">${timeAgo(r[3])}</div></div></div>`).join('');
+}
+function renderActivityChart(){
+  const canvas=document.getElementById('activity-chart');if(!canvas)return;const ctx=canvas.getContext('2d');const W=canvas.offsetWidth||268,H=90;canvas.width=W;canvas.height=H;
+  const days=14,counts=[],labels=[];
+  for(let i=days-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toISOString().slice(0,10);counts.push(qs('SELECT COUNT(*) FROM activity_log WHERE board_id=? AND ts LIKE ?',[curBoardId,ds+'%'])[0][0]);labels.push(i===0?'Today':i===1?'Yest':d.toLocaleDateString(undefined,{month:'short',day:'numeric'}));}
+  document.getElementById('chart-label-start').textContent=labels[0];document.getElementById('chart-label-end').textContent=labels[labels.length-1];
+  const max=Math.max(...counts,1);const padT=8,padB=4,padL=4,padR=4;const chartW=W-padL-padR,chartH=H-padT-padB,stepX=chartW/(days-1);ctx.clearRect(0,0,W,H);
+  const pts=counts.map((v,i)=>({x:padL+i*stepX,y:padT+chartH-(v/max)*chartH}));
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(pts[pts.length-1].x,padT+chartH);ctx.lineTo(pts[0].x,padT+chartH);ctx.closePath();
+  const grad=ctx.createLinearGradient(0,padT,0,padT+chartH);grad.addColorStop(0,'rgba(66,212,148,.18)');grad.addColorStop(1,'rgba(66,212,148,.01)');ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++){const cp=(pts[i-1].x+pts[i].x)/2;ctx.bezierCurveTo(cp,pts[i-1].y,cp,pts[i].y,pts[i].x,pts[i].y);}
+  ctx.strokeStyle='#42d494';ctx.lineWidth=1.5;ctx.stroke();pts.forEach((p,i)=>{if(!counts[i])return;ctx.beginPath();ctx.arc(p.x,p.y,2.5,0,Math.PI*2);ctx.fillStyle='#42d494';ctx.fill();});
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+document.addEventListener('click',e=>{
+  if(!document.getElementById('col-menu').contains(e.target))closeColMenu();
+  if(!document.getElementById('ctx-menu').contains(e.target))closeCtxMenu();
+  const bd=document.getElementById('board-switcher-drop');if(!bd.contains(e.target)&&!document.getElementById('board-switcher-btn').contains(e.target))bd.style.display='none';
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){['modal-card','modal-col','modal-tz','modal-deadline','modal-rename','modal-color','modal-col-color','modal-board','modal-tracker'].forEach(closeModal);closeColMenu();closeCtxMenu();document.getElementById('board-switcher-drop').style.display='none';}
+  if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA'){const am={'modal-card':submitCard,'modal-col':submitColumn,'modal-rename':submitRename,'modal-deadline':submitDeadline,'modal-board':submitNewBoard,'modal-tracker':submitTracker};Object.entries(am).forEach(([id,fn])=>{const el=document.getElementById(id);if(el&&!el.classList.contains('hidden')&&el.classList.contains('open'))fn();});}
+});
+document.getElementById('ctx-menu').addEventListener('click',e=>e.stopPropagation());
+document.getElementById('col-menu').addEventListener('click',e=>e.stopPropagation());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderAll();fetchGoldPrices();fetchCryptoPrices();}});
+
+// ── Auto refresh prices ───────────────────────────────────────────────────────
+setInterval(()=>{fetchGoldPrices();fetchCryptoPrices();renderAll();}, 3*60*1000);
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async()=>{
+  await initDB();
+  // Fetch prices in parallel, then render
+  await Promise.all([fetchGoldPrices(), fetchCryptoPrices()]);
+  renderAll();
+})();
+</script>
+</body>
+</html>
