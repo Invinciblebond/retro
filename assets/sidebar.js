@@ -29,6 +29,17 @@
       icon:'<path d="M9 4H5a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zM19 14h-4a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1v-4a1 1 0 00-1-1zM10 7h4a2 2 0 012 2v5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>' },
     { label:'Memory Visualizer', href:'claudethink.html', match:['claudethink.html'],
       icon:'<path d="M12 3a4 4 0 00-4 4v1a3 3 0 000 6v1a4 4 0 008 0v-1a3 3 0 000-6V7a4 4 0 00-4-4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>' },
+    { label:'Learn',
+      match:[],
+      icon:'<path d="M12 6.25C10.5 5 8.3 4.5 6 4.5c-1 0-2 .1-3 .4v13.5c1-.3 2-.4 3-.4 2.3 0 4.5.5 6 1.75m0-13.5c1.5-1.25 3.7-1.75 6-1.75 1 0 2 .1 3 .4v13.5c-1-.3-2-.4-3-.4-2.3 0-4.5.5-6 1.75m0-13.5v13.5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>',
+      children:[
+        { label:'Russian', href:'learn-russian.html' },
+        { label:'Spanish', soon:true },
+        { label:'French', soon:true },
+        { label:'German', soon:true },
+        { label:'Japanese', soon:true },
+        { label:'Mandarin', soon:true }
+      ] },
     { label:'Others',
       match:[],
       icon:'<path d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>',
@@ -63,14 +74,21 @@
     var body = svg(item.icon, 'sb-ico') + '<span class="sb-label">' + item.label + '</span>';
 
     if (item.children && item.children.length) {
+      var childOpen = false;
       var links = item.children.map(function (c) {
-        return '<a class="sb-sublink" href="' + c.href + '"' +
+        if (c.soon) {
+          return '<span class="sb-sublink sb-soon" aria-disabled="true">' + c.label +
+                 '<em class="sb-badge">Coming Soon</em></span>';
+        }
+        var cur = !c.external && c.href === here();
+        if (cur) childOpen = true;
+        return '<a class="sb-sublink' + (cur ? ' current' : '') + '" href="' + c.href + '"' +
                (c.external ? ' target="_blank" rel="noopener"' : '') + '>' + c.label +
                (c.external ? '<svg class="sb-ext" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>' : '') +
                '</a>';
       }).join('');
-      return '<div class="sb-group">' +
-               '<button type="button" class="sb-row sb-grouphead" aria-expanded="false">' + body + CHEVRON + '</button>' +
+      return '<div class="sb-group' + (childOpen ? ' open' : '') + '">' +
+               '<button type="button" class="sb-row sb-grouphead' + (childOpen ? ' active' : '') + '" aria-expanded="' + childOpen + '">' + body + CHEVRON + '</button>' +
                '<div class="sb-submenu">' + links + '</div>' +
              '</div>';
     }
@@ -141,6 +159,12 @@
     '#aura-sidebar .sb-sublink{display:flex;align-items:center;gap:6px;padding:7px 12px 7px 41px;font-size:12px;color:#888;',
       'border-radius:8px;white-space:nowrap;overflow:hidden;transition:background .12s,color .12s}',
     '#aura-sidebar .sb-sublink:hover{background:rgba(255,255,255,0.04);color:#fff}',
+    '#aura-sidebar .sb-sublink.current{color:#fff;background:rgba(0,255,163,0.08)}',
+    '#aura-sidebar .sb-soon{color:#555;cursor:default}',
+    '#aura-sidebar .sb-soon:hover{background:transparent;color:#555}',
+    '#aura-sidebar .sb-badge{margin-left:auto;font-style:normal;font-size:8.5px;font-weight:600;letter-spacing:.08em;',
+      'text-transform:uppercase;padding:2px 6px;border-radius:5px;color:#777;background:rgba(255,255,255,0.05);',
+      'border:1px solid rgba(255,255,255,0.08)}',
     '#aura-sidebar .sb-ext{width:11px;height:11px;opacity:.5;flex-shrink:0}',
     '#aura-sidebar .sb-foot{margin-top:auto;padding:16px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:2px}',
     '#aura-sidebar #sb-logout:hover{color:#f87171;background:rgba(248,113,113,0.08)}',
@@ -203,6 +227,14 @@
   // collapse, remembered per browser
   var KEY = 'aura.sidebar.collapsed';
   try { if (localStorage.getItem(KEY) === '1') aside.classList.add('collapsed'); } catch (e) {}
+  // A group opened because its page is current would pop out as a flyout on a
+  // collapsed rail; only keep it expanded inline.
+  if (aside.classList.contains('collapsed')) {
+    aside.querySelectorAll('.sb-group.open').forEach(function (g) {
+      g.classList.remove('open');
+      g.querySelector('.sb-grouphead').setAttribute('aria-expanded', 'false');
+    });
+  }
 
   aside.querySelector('#aura-sidebar-toggle').addEventListener('click', function () {
     var on = aside.classList.toggle('collapsed');

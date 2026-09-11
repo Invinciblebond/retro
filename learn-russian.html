@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html class="h-full" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Learn Russian</title>
+<meta name="description" content="Learn Russian: the Cyrillic alphabet and the core everyday words, with English pronunciation for every line."/>
+<meta name="robots" content="noindex, nofollow"/>
+<meta name="theme-color" content="#060606"/>
+<link rel="canonical" href="https://utopoly.com/learn-russian.html"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Utopoly"/>
+<meta property="og:url" content="https://utopoly.com/learn-russian.html"/>
+<meta property="og:title" content="Learn Russian · Utopoly"/>
+<meta property="og:description" content="Learn Russian: the Cyrillic alphabet and the core everyday words, with English pronunciation for every line."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Learn Russian · Utopoly"/>
+<meta name="twitter:description" content="Learn Russian: the Cyrillic alphabet and the core everyday words, with English pronunciation for every line."/>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Marck+Script&display=swap" rel="stylesheet"/>
+<link href="assets/aura-ui.css" rel="stylesheet"/>
+<style>
+body{overflow:hidden}
+.shell{display:flex;height:100%}
+main{flex:1;display:flex;flex-direction:column;height:100%;min-width:0}
+
+.hdr{height:64px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  border-bottom:1px solid var(--line-soft);flex-shrink:0}
+.hdr h1{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.hdr .when{font-size:12px;color:var(--muted);margin-left:12px}
+.burger{display:none;background:none;border:none;color:var(--muted);cursor:pointer;padding:6px}
+.burger svg{width:20px;height:20px}
+@media(max-width:820px){.burger{display:block}}
+
+.scroll{flex:1;overflow-y:auto}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+.mono{font-family:'SF Mono','Fira Mono',ui-monospace,monospace}
+.hand{font-family:'Marck Script',cursive}
+/* Stress mark. Google Fonts serves U+0301 and Cyrillic from different subset
+   files, so a real combining accent renders detached; draw it instead. */
+.st{position:relative}
+.st::after{content:"\00B4";position:absolute;left:50%;top:-.28em;transform:translateX(-30%);
+  font-weight:400;color:var(--accent);pointer-events:none}
+.st.up::after{top:-.6em}
+
+/* ── lesson tabs ───────────────────────────────────────────────────────── */
+.lessons{display:flex;gap:6px;flex-wrap:wrap}
+.ls{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:10px;font:inherit;font-size:12px;
+  color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--line-soft)}
+button.ls{cursor:pointer;transition:color .12s,background .12s}
+button.ls:hover{color:#fff;background:rgba(255,255,255,.06)}
+.ls.on,.ls.on:hover{color:#fff;background:rgba(0,255,163,.10);border-color:rgba(0,255,163,.25)}
+.ls em{font-style:normal;font-size:8.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 6px;border-radius:5px;color:#777;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+
+/* ── hero ──────────────────────────────────────────────────────────────── */
+.hero{margin:26px 0 30px}
+.hero .eyebrow{margin-bottom:14px}
+.hero h2{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.hero h2 span{color:var(--accent)}
+.hero p{font-size:14px;line-height:1.7;color:#a8a8a8;max-width:660px;margin-top:12px}
+.facts{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+
+/* ── controls ──────────────────────────────────────────────────────────── */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.seg{display:inline-flex;padding:3px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line-soft)}
+.seg button{font:inherit;font-size:12px;padding:6px 13px;border-radius:8px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer}
+.seg button.on{background:rgba(255,255,255,.10);color:#fff}
+.hint{font-size:11.5px;color:var(--faint);line-height:1.5}
+.hint b{color:#bbb}
+
+/* ── letter groups + cards ─────────────────────────────────────────────── */
+.group{margin-bottom:34px}
+.group-head{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.group-head h3{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.group-head .n{font-size:11px;color:var(--faint)}
+.group-head .idx{font-size:11px;color:var(--c)}
+.group > p{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:14px;max-width:680px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+
+.card{position:relative;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  padding:14px 14px 13px;border-radius:16px;background:rgba(14,14,16,.6);border:1px solid var(--line-soft);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:border-color .15s,transform .15s,background .15s}
+.card:hover{border-color:rgba(255,255,255,.16);background:rgba(20,20,22,.75)}
+.card:active{transform:scale(.985)}
+.card.playing{border-color:rgba(0,255,163,.45)}
+.card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.card .glyph{font-size:38px;font-weight:600;line-height:1;letter-spacing:-.02em}
+.card .glyph small{font-size:26px;font-weight:400;color:#9a9a9a;margin-left:4px}
+.card .right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.card .tr{font-size:12px;font-weight:600;color:var(--c,var(--accent));padding:3px 7px;border-radius:6px;
+  background:color-mix(in srgb,var(--c,var(--accent)) 12%,transparent)}
+.card .cursive{font-size:24px;line-height:1;color:#cfcfcf}
+.card .name{font-size:11px;color:var(--muted);margin-top:10px}
+.card .name b{color:#e6e6e6;font-weight:500}
+.card .like{font-size:12px;color:#bdbdbd;margin-top:4px;line-height:1.45;min-height:34px}
+.card .ex{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,.08)}
+.card .ex b{display:block;font-size:15px;font-weight:600}
+.card .ex > span{display:block;font-size:11px;color:var(--muted);margin-top:2px;padding-right:18px}
+.card .ex > span i{font-style:normal;color:#d6d6d6;font-size:10.5px}
+.spk{width:14px;height:14px;color:var(--faint);transition:color .15s;flex-shrink:0}
+.card .spk{position:absolute;right:12px;bottom:12px}
+.card:hover .spk,.card.playing .spk{color:var(--accent)}
+
+.g-familiar{--c:#00ffa3}
+.g-false{--c:#f5a623}
+.g-shapes{--c:#38bdf8}
+.g-new{--c:#a78bfa}
+.g-signs{--c:#f472b6}
+
+/* ── panels ────────────────────────────────────────────────────────────── */
+.panel{padding:22px;border-radius:20px;background:rgba(14,14,16,.6);border:1px solid var(--line-soft);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);margin-bottom:22px}
+.panel h3{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.panel > p{font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:4px}
+.prose{font-size:13px;line-height:1.75;color:#b4b4b4;max-width:760px;margin-top:12px}
+.prose p + p{margin-top:10px}
+.prose b{color:#e8e8e8;font-weight:600}
+.timeline{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:16px}
+.tl{padding:12px 13px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line-soft)}
+.tl b{display:block;font-size:13px;color:var(--accent);font-weight:600}
+.tl span{display:block;font-size:11.5px;color:#a8a8a8;margin-top:4px;line-height:1.5}
+
+.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:16px}
+.tip{padding:14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line-soft)}
+.tip b{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+.tip p{font-size:12px;line-height:1.6;color:#a8a8a8}
+.tip code{font-family:'SF Mono','Fira Mono',ui-monospace,monospace;font-size:11px;color:#fff;
+  background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px}
+
+.words{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:16px}
+.word{font:inherit;color:inherit;text-align:left;cursor:pointer;padding:12px 13px;border-radius:12px;
+  background:rgba(255,255,255,.03);border:1px solid var(--line-soft);transition:background .12s,border-color .12s}
+.word:hover{background:rgba(255,255,255,.06)}
+.word b{display:block;font-size:17px;font-weight:600}
+.word > span{display:block;font-size:11px;color:var(--faint);margin-top:4px}
+.word.shown{border-color:rgba(0,255,163,.25)}
+.word.shown > span{color:#cfcfcf}
+
+/* ── quiz ──────────────────────────────────────────────────────────────── */
+.quiz{display:flex;gap:26px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.q-glyph{width:128px;height:128px;border-radius:22px;display:flex;align-items:center;justify-content:center;
+  font-size:64px;font-weight:600;background:rgba(255,255,255,.04);border:1px solid var(--line);flex-shrink:0}
+.q-glyph span{font-size:40px;font-weight:400;color:#9a9a9a;margin-left:4px}
+.q-side{flex:1;min-width:240px}
+.q-prompt{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.q-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.q-opt{font:inherit;font-size:13px;padding:11px 12px;border-radius:11px;cursor:pointer;text-align:left;color:#fff;
+  background:rgba(255,255,255,.04);border:1px solid var(--line-soft);transition:background .12s,border-color .12s}
+.q-opt:hover:not(:disabled){background:rgba(255,255,255,.08)}
+.q-opt:disabled{cursor:default}
+.q-opt.right{border-color:rgba(0,255,163,.5);background:rgba(0,255,163,.10)}
+.q-opt.wrong{border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.10)}
+.q-opt code{font-family:'SF Mono','Fira Mono',ui-monospace,monospace;font-weight:600;margin-right:6px}
+.q-opt span{color:var(--muted);font-size:11.5px}
+.q-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;min-height:34px}
+.q-score{font-size:12px;color:var(--muted)}
+.q-score b{color:#fff}
+.q-feedback{font-size:12px;color:#bdbdbd}
+
+/* ── core words ────────────────────────────────────────────────────────── */
+.w-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.w-search{flex:1;min-width:200px;font:inherit;font-size:13px;color:#fff;padding:9px 13px;border-radius:10px;
+  background:rgba(255,255,255,.04);border:1px solid var(--line-soft);outline:none}
+.w-search:focus{border-color:rgba(0,255,163,.35)}
+.w-search::placeholder{color:var(--faint)}
+.w-toggle{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none}
+.w-toggle input{width:15px;height:15px;accent-color:var(--accent)}
+.cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.cat{font:inherit;font-size:11.5px;padding:6px 11px;border-radius:999px;cursor:pointer;color:var(--muted);
+  background:rgba(255,255,255,.03);border:1px solid var(--line-soft);transition:color .12s,background .12s}
+.cat:hover{color:#fff}
+.cat.on{color:#000;background:#fff;border-color:#fff}
+.cat i{font-style:normal;opacity:.55;margin-left:4px}
+.w-count{font-size:11.5px;color:var(--faint);margin-bottom:10px}
+
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.wcard{position:relative;border-radius:16px;background:rgba(14,14,16,.6);border:1px solid var(--line-soft);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);overflow:hidden;transition:border-color .15s}
+.wcard:hover{border-color:rgba(255,255,255,.14)}
+.wcard.playing{border-color:rgba(0,255,163,.45)}
+.w-main,.w-ex{display:block;width:100%;font:inherit;color:inherit;text-align:left;background:none;border:none;cursor:pointer}
+.w-main{padding:14px 14px 10px}
+.w-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.w-ru{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.w-tag{font-size:10px;color:var(--muted);padding:2px 7px;border-radius:6px;background:rgba(255,255,255,.05);
+  border:1px solid var(--line-soft);white-space:nowrap}
+.w-pr{font-size:11.5px;color:var(--accent);margin-top:4px}
+.w-en{font-size:13.5px;color:#e6e6e6;margin-top:6px;transition:filter .2s}
+.w-ex{padding:10px 14px 13px;border-top:1px dashed rgba(255,255,255,.08);display:flex;gap:10px;align-items:flex-start}
+.w-ex:hover{background:rgba(255,255,255,.025)}
+.w-ex > div{flex:1;min-width:0}
+.w-ex .ru{display:block;font-size:12.5px;color:#d9d9d9}
+.w-ex .pr{display:block;font-size:10.5px;color:#8fd9bb;margin-top:3px}
+.w-ex .en{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;transition:filter .2s}
+.w-ex .spk{margin-top:2px}
+.wcard:hover .w-main .spk,.w-ex:hover .spk{color:var(--accent)}
+.w-main .spk{margin-left:6px}
+.hide-en .wcard:not(.revealed) .w-en,.hide-en .wcard:not(.revealed) .w-ex .en{filter:blur(6px);user-select:none}
+.w-empty{font-size:12.5px;color:var(--faint);padding:30px 0;text-align:center}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
+  padding:10px 16px;border-radius:12px;font-size:12.5px;background:#111;border:1px solid var(--line);
+  box-shadow:0 12px 40px rgba(0,0,0,.6);transition:opacity .2s,transform .2s;z-index:400}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:560px){
+  .hero h2{font-size:27px}
+  .wrap{padding:24px 16px 80px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .wgrid{grid-template-columns:1fr}
+  .q-opts{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body class="dot-grid" data-page="app">
+
+<div class="shell">
+<script src="assets/sidebar.js"></script>
+
+<main>
+  <header class="hdr">
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <button class="burger" id="burger" aria-label="Menu">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-width="2"/></svg>
+      </button>
+      <h1>Learn · Russian</h1>
+      <span class="when">Русский язык</span>
+    </div>
+  </header>
+
+  <div class="scroll" id="scroll">
+    <div class="wrap">
+
+      <nav class="lessons" aria-label="Lessons">
+        <button type="button" class="ls" data-lesson="alphabet">Lesson 1 · Alphabet</button>
+        <button type="button" class="ls" data-lesson="words">Lesson 2 · Core Words</button>
+        <span class="ls">Lesson 3 · Grammar Basics <em>Coming Soon</em></span>
+      </nav>
+
+      <!-- ═════════════════════════ LESSON 1 · ALPHABET ═════════════════════════ -->
+      <div id="lesson-alphabet" hidden>
+
+        <section class="hero">
+          <div class="eyebrow">Lesson 1</div>
+          <h2>The Russian Alphabet — <span>Азбука</span></h2>
+          <p>There are 33 letters in the Russian alphabet: 10 vowels, 21 consonants and 2 signs (ь, ъ).
+            Russian is an East Slavic language, a close relative of Ukrainian and Belarusian, spoken by
+            roughly 250 million people. Its alphabet is Cyrillic, and most of its letters stand for a sound
+            you already make in English.</p>
+          <p>Tap a letter to hear its name and the sample word, then say it back out loud, copying the
+            speaker as closely as you can.</p>
+          <div class="facts">
+            <span class="pill"><span class="dot" style="color:var(--accent)"></span>33 letters</span>
+            <span class="pill">10 vowels · 21 consonants · 2 signs</span>
+            <span class="pill">Spelled almost exactly how it sounds</span>
+          </div>
+        </section>
+
+        <div class="bar">
+          <div class="seg" role="tablist" aria-label="Order" id="order-seg">
+            <button type="button" class="on" data-view="abc">А–Я order</button>
+            <button type="button" data-view="groups">By group</button>
+          </div>
+          <span class="hint">Pronunciations are English sound-alikes, <b>CAPS</b> = stressed syllable.
+            The accent mark (а́) shows the stress in Russian. The <span class="hand" style="font-size:15px;color:#ccc">script</span> letter is how Russians write by hand.</span>
+        </div>
+
+        <div id="letters"></div>
+
+        <section class="panel">
+          <h3>Three rules that make it click</h3>
+          <p>The letters above get you reading. These explain why words don't always sound letter-for-letter.</p>
+          <div class="tips">
+            <div class="tip">
+              <b>Stress changes vowels</b>
+              <p>Only one syllable is stressed. An unstressed <code>о</code> relaxes to "ah":
+                <code>молоко́</code> is mah-lah-KOH, not moh-loh-KOH.</p>
+            </div>
+            <div class="tip">
+              <b>Final consonants lose their voice</b>
+              <p>At the end of a word <code>б д г з ж в</code> come out as <code>п т к с ш ф</code>:
+                <code>хлеб</code> (bread) sounds like KHLYEP.</p>
+            </div>
+            <div class="tip">
+              <b>Some vowels soften</b>
+              <p><code>е ё и ю я</code> (and <code>ь</code>) make the consonant before them "soft", with the
+                tongue lifted toward a y-sound: <code>нет</code> is NYET.</p>
+            </div>
+            <div class="tip">
+              <b>Ё often loses its dots</b>
+              <p>Outside textbooks, <code>ё</code> is usually printed as <code>е</code>: you'll see
+                <code>ёж</code> written as <code>еж</code>. Context tells you it's still "yo".</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3>Reading practice</h3>
+          <p>Each of these is a word you already know in English. Sound it out, then tap to check.</p>
+          <div class="words" id="words"></div>
+        </section>
+
+        <section class="panel">
+          <h3>Quick check</h3>
+          <p>What sound does this letter make?</p>
+          <div class="quiz">
+            <div class="q-glyph" id="q-glyph" aria-live="polite"></div>
+            <div class="q-side">
+              <div class="q-prompt" id="q-prompt"></div>
+              <div class="q-opts" id="q-opts"></div>
+              <div class="q-foot">
+                <span class="q-feedback" id="q-feedback"></span>
+                <span class="q-score" id="q-score"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3>More about the Russian alphabet</h3>
+          <div class="prose">
+            <p>In the 860s two Byzantine brothers, the monks <b>Cyril</b> and <b>Methodius</b>, invented the
+              first Slavic writing system so they could translate the Bible for Slavic peoples. They called it
+              <b>Glagolitic</b>, from the Old Slavic <i>glagolŭ</i>, "word" or "sound". Within a few decades their
+              students replaced it with a simpler script built largely on Greek letters, and named it
+              <b>Cyrillic</b> in Cyril's honour.</p>
+            <p>Cyrillic reached Kievan Rus' with Christianity in 988. For centuries the written language was
+              Church Slavonic; <b>Peter the Great</b> introduced a simplified "civil script" in 1708 for science and
+              everyday books, using the Moscow dialect as its base. The <b>1918</b> spelling reform then dropped four
+              letters (і, ѣ, ѳ, ѵ), leaving the 33-letter alphabet that is still used today.</p>
+          </div>
+          <div class="timeline">
+            <div class="tl"><b>c. 863</b><span>Cyril and Methodius create Glagolitic</span></div>
+            <div class="tl"><b>c. 890s</b><span>Their students develop Cyrillic from Greek letters</span></div>
+            <div class="tl"><b>988</b><span>Kievan Rus' adopts Christianity and the script</span></div>
+            <div class="tl"><b>1708</b><span>Peter the Great's civil script</span></div>
+            <div class="tl"><b>1918</b><span>Reform removes four letters; 33 remain</span></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ═════════════════════════ LESSON 2 · CORE WORDS ═════════════════════════ -->
+      <div id="lesson-words" hidden>
+
+        <section class="hero">
+          <div class="eyebrow">Lesson 2</div>
+          <h2>Core Words — <span>Основны́е слова́</span></h2>
+          <p>The words that turn up in almost every conversation: greetings, people, time, numbers, food and
+            the verbs you need to say what you want. Every word and example comes with an English
+            pronunciation guide. Tap a word to hear it, or tap the example to hear the whole sentence.</p>
+          <div class="facts" id="w-facts"></div>
+        </section>
+
+        <div class="w-tools">
+          <input class="w-search" id="w-search" type="search" placeholder="Search Russian or English…" autocomplete="off"/>
+          <label class="w-toggle"><input type="checkbox" id="w-hide"/> Test me (hide English)</label>
+        </div>
+        <div class="cats" id="w-cats"></div>
+        <div class="w-count" id="w-count"></div>
+        <div class="wgrid" id="w-grid"></div>
+
+        <section class="panel" style="margin-top:28px">
+          <h3>Reading the word cards</h3>
+          <div class="tips">
+            <div class="tip">
+              <b>Gender: masc, fem, neut</b>
+              <p>Every noun has a gender, and you can usually hear it: a consonant ending is masculine
+                (<code>дом</code>), <code>-а/-я</code> is feminine (<code>вода́</code>), <code>-о/-е</code> is neuter
+                (<code>молоко́</code>). Words ending in <code>ь</code> can go either way.</p>
+            </div>
+            <div class="tip">
+              <b>No "am", "is", "are"</b>
+              <p>Russian drops "to be" in the present tense. <code>Я студе́нт</code> is literally
+                "I student", and that's perfectly correct.</p>
+            </div>
+            <div class="tip">
+              <b>Ты vs вы</b>
+              <p><code>ты</code> is "you" for friends, family and children. Use <code>вы</code> with
+                strangers, elders, anyone at work, and for more than one person.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </div>
+</main>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/env.js"></script>
+<script src="assets/supabaseClient.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+/* ============================================================================
+   Learn Russian. Static content only: every section is rendered from the
+   data arrays below. Lessons are separate, revisitable stages switched by the
+   URL hash (#alphabet, #words), so each one can be linked and bookmarked.
+   Russian text carries U+0301 stress accents for display; they are stripped
+   before speaking. Audio uses the browser's Russian voice, if it has one.
+   ========================================================================== */
+var ORDER = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+
+var GROUPS = [
+  { id:'familiar', title:'Old friends', blurb:'Look like English letters and sound like them too. Free points.' },
+  { id:'false',    title:'False friends', blurb:'Look like English letters but make a different sound. These trip everyone up at first: Р is an R, Н is an N, С is an S.' },
+  { id:'shapes',   title:'New shapes, familiar sounds', blurb:'Unfamiliar at a glance, but every one is a sound English already has.' },
+  { id:'new',      title:'New sounds', blurb:'Letters for sounds English spells with two or more letters, or doesn\'t have at all.' },
+  { id:'signs',    title:'The two signs', blurb:'Silent. They never make a sound of their own; they change how the letter before them is said.' }
+];
+
+/* [upper, lower, transliteration, English sound-alike, sample word,
+    its pronunciation (CAPS = stress), meaning, group, letter name, name said in English] */
+var LETTERS = [
+  ["А","а","a","like “a” in father","ма́ма","MAH-mah","mom","familiar","а","ah"],
+  ["Б","б","b","like “b” in box","бана́н","bah-NAHN","banana","shapes","бэ","beh"],
+  ["В","в","v","like “v” in voice","вода́","vah-DAH","water","false","вэ","veh"],
+  ["Г","г","g","like “g” in go","газе́та","gah-ZYEH-tah","newspaper","shapes","гэ","geh"],
+  ["Д","д","d","like “d” in day","дом","DOHM","house","shapes","дэ","deh"],
+  ["Е","е","ye","like “ye” in yet","еда́","yee-DAH","food","false","е","yeh"],
+  ["Ё","ё","yo","like “yo” in yogurt, always stressed","ёж","YOHSH","hedgehog","new","ё","yoh"],
+  ["Ж","ж","zh","like “s” in pleasure","жук","ZHOOK","beetle","new","жэ","zheh"],
+  ["З","з","z","like “z” in zoo","зима́","zee-MAH","winter","shapes","зэ","zeh"],
+  ["И","и","i","like “ee” in meet","игра́","ee-GRAH","game","shapes","и","ee"],
+  ["Й","й","y","like “y” in boy","йо́гурт","YOH-goort","yogurt","shapes","и кра́ткое","ee KRAHT-kah-yeh (short i)"],
+  ["К","к","k","like “k” in key","кот","KOHT","cat","familiar","ка","kah"],
+  ["Л","л","l","like “l” in lamp","ла́мпа","LAHM-pah","lamp","shapes","эль","el'"],
+  ["М","м","m","like “m” in man","молоко́","mah-lah-KOH","milk","familiar","эм","em"],
+  ["Н","н","n","like “n” in note","нос","NOHS","nose","false","эн","en"],
+  ["О","о","o","like “o” in more, when stressed","о́вощи","OH-vah-shshee","vegetables","familiar","о","oh"],
+  ["П","п","p","like “p” in pet","парк","PAHRK","park","shapes","пэ","peh"],
+  ["Р","р","r","like “r” in rock, but rolled","ры́ба","RIH-bah","fish","false","эр","ehr"],
+  ["С","с","s","like “s” in sun","суп","SOOP","soup","false","эс","es"],
+  ["Т","т","t","like “t” in table","торт","TOHRT","cake","familiar","тэ","teh"],
+  ["У","у","u","like “oo” in moon","у́тро","OO-trah","morning","false","у","oo"],
+  ["Ф","ф","f","like “f” in food","фо́то","FOH-tah","photo","shapes","эф","ef"],
+  ["Х","х","kh","like “ch” in Scottish loch","хлеб","KHLYEP","bread","false","ха","khah"],
+  ["Ц","ц","ts","like “ts” in boots","цирк","TSEERK","circus","new","цэ","tseh"],
+  ["Ч","ч","ch","like “ch” in chat","ча́шка","CHAHSH-kah","cup","new","че","cheh"],
+  ["Ш","ш","sh","like “sh” in short, tongue pulled back","ша́пка","SHAHP-kah","hat","new","ша","shah"],
+  ["Щ","щ","shch","a long, soft “sh”, like fresh sheep said fast","щётка","SHSHYOT-kah","brush","new","ща","shshah"],
+  ["Ъ","ъ","ʺ","hard sign: no sound, adds a tiny break before е ё ю я","объе́кт","ahb-YEKT","object","signs","твёрдый знак","TVYOR-dy znahk (hard sign)"],
+  ["Ы","ы","y","like “i” in ill, with the tongue pulled back","сыр","SIHR","cheese","new","ы","ih"],
+  ["Ь","ь","ʹ","soft sign: no sound, softens the consonant before it","мать","MAHT'","mother","signs","мя́гкий знак","MYAHKH-kee znahk (soft sign)"],
+  ["Э","э","e","like “e” in end","э́то","EH-tah","this","shapes","э","eh"],
+  ["Ю","ю","yu","like “u” in use","ю́бка","YOOP-kah","skirt","new","ю","yoo"],
+  ["Я","я","ya","like “ya” in yard","я́блоко","YAH-blah-kah","apple","new","я","yah"]
+];
+
+var READING = [
+  ["рестора́н","ree-stah-RAHN","restaurant"],
+  ["ко́фе","KOH-fyeh","coffee"],
+  ["телефо́н","tee-lee-FOHN","telephone"],
+  ["метро́","mee-TROH","metro"],
+  ["спорт","SPOHRT","sport"],
+  ["интерне́т","een-tehr-NET","internet"],
+  ["банк","BAHNK","bank"],
+  ["студе́нт","stoo-DYENT","student"],
+  ["компью́тер","kahm-PYOO-tehr","computer"],
+  ["футбо́л","food-BOHL","football"],
+  ["му́зыка","MOO-zih-kah","music"],
+  ["до́ктор","DOHK-tahr","doctor"]
+];
+
+var CATS = [
+  { id:'expressions', label:'Common expressions' },
+  { id:'people',      label:'People & pronouns' },
+  { id:'questions',   label:'Question words' },
+  { id:'time',        label:'Time' },
+  { id:'days',        label:'Days of the week' },
+  { id:'numbers',     label:'Numbers' },
+  { id:'food',        label:'Food & drink' },
+  { id:'places',      label:'Places & things' },
+  { id:'verbs',       label:'Verbs' },
+  { id:'adjectives',  label:'Adjectives' }
+];
+
+/* [word, part of speech, pronunciation, English, example, example pronunciation, example English, category] */
+var WORDS = [
+  ["приве́т","interj","pree-VYET","hi","Приве́т, как дела́?","pree-VYET, KAHG dee-LAH?","Hi, how are you?","expressions"],
+  ["здра́вствуйте","interj","ZDRAHST-vooy-tyeh","hello (formal)","Здра́вствуйте, меня́ зову́т А́нна.","ZDRAHST-vooy-tyeh, mee-NYAH zah-VOOT AHN-nah.","Hello, my name is Anna.","expressions"],
+  ["пока́","interj","pah-KAH","bye","Пока́, до за́втра!","pah-KAH, dah ZAHF-trah!","Bye, see you tomorrow!","expressions"],
+  ["до свида́ния","phr","dah svee-DAH-nee-yah","goodbye","До свида́ния и спаси́бо!","dah svee-DAH-nee-yah ee spah-SEE-bah!","Goodbye and thank you!","expressions"],
+  ["спаси́бо","interj","spah-SEE-bah","thank you","Спаси́бо большо́е!","spah-SEE-bah bahl'-SHOH-yeh!","Thank you very much!","expressions"],
+  ["пожа́луйста","interj","pah-ZHAHL-stah","please; you're welcome","Чай, пожа́луйста.","CHAI, pah-ZHAHL-stah.","Tea, please.","expressions"],
+  ["да","part","DAH","yes","Да, коне́чно.","DAH, kah-NYESH-nah.","Yes, of course.","expressions"],
+  ["нет","part","NYET","no","Нет, спаси́бо.","NYET, spah-SEE-bah.","No, thank you.","expressions"],
+  ["извини́те","interj","eez-vee-NEE-tyeh","excuse me; sorry","Извини́те, где метро́?","eez-vee-NEE-tyeh, GDYEH mee-TROH?","Excuse me, where is the metro?","expressions"],
+  ["хорошо́","adv","khah-rah-SHOH","good; okay","Всё хорошо́.","FSYOH khah-rah-SHOH.","Everything is fine.","expressions"],
+  ["я не понима́ю","phr","YAH nee pah-nee-MAH-yoo","I don't understand","Извини́те, я не понима́ю.","eez-vee-NEE-tyeh, YAH nee pah-nee-MAH-yoo.","Sorry, I don't understand.","expressions"],
+
+  ["я","pron","YAH","I","Я студе́нт.","YAH stoo-DYENT.","I am a student.","people"],
+  ["ты","pron","TIH","you (informal)","Ты до́ма?","TIH DOH-mah?","Are you at home?","people"],
+  ["он","pron","OHN","he","Он врач.","OHN VRAHCH.","He is a doctor.","people"],
+  ["она́","pron","ah-NAH","she","Она́ здесь.","ah-NAH ZDYES'.","She is here.","people"],
+  ["мы","pron","MIH","we","Мы идём домо́й.","MIH ee-DYOM dah-MOY.","We are going home.","people"],
+  ["вы","pron","VIH","you (formal, plural)","Вы говори́те по-англи́йски?","VIH gah-vah-REE-tyeh pah-ahn-GLEEY-skee?","Do you speak English?","people"],
+  ["они́","pron","ah-NEE","they","Они́ мои́ друзья́.","ah-NEE mah-EE drooz'-YAH.","They are my friends.","people"],
+  ["друг","n · masc","DROOK","friend","Мой друг Ива́н.","MOY DROOK ee-VAHN.","My friend Ivan.","people"],
+  ["семья́","n · fem","seem'-YAH","family","Моя́ семья́ больша́я.","mah-YAH seem'-YAH bahl'-SHAH-yah.","My family is big.","people"],
+  ["ма́ма","n · fem","MAH-mah","mom","Ма́ма до́ма.","MAH-mah DOH-mah.","Mom is at home.","people"],
+  ["па́па","n · masc","PAH-pah","dad","Па́па на рабо́те.","PAH-pah nah rah-BOH-tyeh.","Dad is at work.","people"],
+  ["челове́к","n · masc","chee-lah-VYEK","person","Он хоро́ший челове́к.","OHN khah-ROH-shiy chee-lah-VYEK.","He is a good person.","people"],
+
+  ["что","pron","SHTOH","what","Что э́то?","SHTOH EH-tah?","What is this?","questions"],
+  ["где","adv","GDYEH","where","Где туале́т?","GDYEH too-ah-LYET?","Where is the toilet?","questions"],
+  ["кто","pron","KTOH","who","Кто там?","KTOH TAHM?","Who's there?","questions"],
+  ["когда́","adv","kahg-DAH","when","Когда́ обе́д?","kahg-DAH ah-BYET?","When is lunch?","questions"],
+  ["почему́","adv","pah-chee-MOO","why","Почему́ нет?","pah-chee-MOO NYET?","Why not?","questions"],
+  ["как","adv","KAHK","how","Как тебя́ зову́т?","KAHK tee-BYAH zah-VOOT?","What's your name? (lit. how are you called?)","questions"],
+  ["ско́лько","adv","SKOHL'-kah","how much; how many","Ско́лько сто́ит?","SKOHL'-kah STOH-eet?","How much does it cost?","questions"],
+
+  ["сего́дня","adv","see-VOHD-nyah","today","Сего́дня хо́лодно.","see-VOHD-nyah KHOH-lahd-nah.","It's cold today.","time"],
+  ["за́втра","adv","ZAHF-trah","tomorrow","Уви́димся за́втра.","oo-VEE-deem-syah ZAHF-trah.","See you tomorrow.","time"],
+  ["вчера́","adv","fchee-RAH","yesterday","Вчера́ был дождь.","fchee-RAH BIHL DOHSHT'.","It rained yesterday.","time"],
+  ["сейча́с","adv","see-CHAHS","now","Я сейча́с до́ма.","YAH see-CHAHS DOH-mah.","I'm at home now.","time"],
+  ["день","n · masc","DYEN'","day","До́брый день!","DOH-bry DYEN'!","Good afternoon!","time"],
+  ["неде́ля","n · fem","nee-DYEH-lyah","week","В неде́ле семь дней.","vnee-DYEH-lyeh SYEM' DNYAY.","There are seven days in a week.","time"],
+  ["год","n · masc","GOHT","year","С Но́вым го́дом!","SNOH-vihm GOH-dahm!","Happy New Year!","time"],
+  ["час","n · masc","CHAHS","hour; o'clock","Уже́ два часа́.","oo-ZHEH DVAH chee-SAH.","It's already two o'clock.","time"],
+  ["мину́та","n · fem","mee-NOO-tah","minute","Одну́ мину́ту!","ahd-NOO mee-NOO-too!","Just a minute!","time"],
+  ["у́тро","n · neut","OO-trah","morning","До́брое у́тро!","DOH-brah-yeh OO-trah!","Good morning!","time"],
+  ["ве́чер","n · masc","VYEH-cheer","evening","До́брый ве́чер!","DOH-bry VYEH-cheer!","Good evening!","time"],
+
+  ["понеде́льник","n · masc","pah-nee-DYEL'-neek","Monday","в понеде́льник","fpah-nee-DYEL'-neek","on Monday","days"],
+  ["вто́рник","n · masc","FTOHR-neek","Tuesday","во вто́рник","vah FTOHR-neek","on Tuesday","days"],
+  ["среда́","n · fem","sree-DAH","Wednesday","в сре́ду","FSRYEH-doo","on Wednesday","days"],
+  ["четве́рг","n · masc","cheet-VYERK","Thursday","в четве́рг","fcheet-VYERK","on Thursday","days"],
+  ["пя́тница","n · fem","PYAHT-nee-tsah","Friday","в пя́тницу","FPYAHT-nee-tsoo","on Friday","days"],
+  ["суббо́та","n · fem","soo-BOH-tah","Saturday","в суббо́ту","fsoo-BOH-too","on Saturday","days"],
+  ["воскресе́нье","n · neut","vahs-kree-SYEN'-yeh","Sunday","в воскресе́нье","vvahs-kree-SYEN'-yeh","on Sunday","days"],
+
+  ["оди́н","num","ah-DEEN","one","оди́н чай","ah-DEEN CHAI","one tea","numbers"],
+  ["два","num","DVAH","two","два ко́фе","DVAH KOH-fyeh","two coffees","numbers"],
+  ["три","num","TREE","three","три дня","TREE DNYAH","three days","numbers"],
+  ["четы́ре","num","chee-TIH-ryeh","four","четы́ре часа́","chee-TIH-ryeh chee-SAH","four o'clock","numbers"],
+  ["пять","num","PYAHT'","five","пять мину́т","PYAHT' mee-NOOT","five minutes","numbers"],
+  ["шесть","num","SHEST'","six","шесть лет","SHEST' LYET","six years","numbers"],
+  ["семь","num","SYEM'","seven","семь дней","SYEM' DNYAY","seven days","numbers"],
+  ["во́семь","num","VOH-seem'","eight","во́семь часо́в","VOH-seem' chee-SOHF","eight o'clock","numbers"],
+  ["де́вять","num","DYEH-veet'","nine","де́вять раз","DYEH-veet' RAHS","nine times","numbers"],
+  ["де́сять","num","DYEH-seet'","ten","де́сять рубле́й","DYEH-seet' roo-BLYAY","ten rubles","numbers"],
+  ["сто","num","STOH","one hundred","сто проце́нтов","STOH prah-TSEN-tahf","a hundred percent","numbers"],
+
+  ["вода́","n · fem","vah-DAH","water","Стака́н воды́, пожа́луйста.","stah-KAHN vah-DIH, pah-ZHAHL-stah.","A glass of water, please.","food"],
+  ["чай","n · masc","CHAI","tea","чай с лимо́ном","CHAI slee-MOH-nahm","tea with lemon","food"],
+  ["ко́фе","n · masc","KOH-fyeh","coffee","ко́фе с молоко́м","KOH-fyeh smah-lah-KOHM","coffee with milk","food"],
+  ["молоко́","n · neut","mah-lah-KOH","milk","холо́дное молоко́","khah-LOHD-nah-yeh mah-lah-KOH","cold milk","food"],
+  ["хлеб","n · masc","KHLYEP","bread","бе́лый хлеб","BYEH-ly KHLYEP","white bread","food"],
+  ["сыр","n · masc","SIHR","cheese","хлеб с сы́ром","KHLYEP SSIH-rahm","bread with cheese","food"],
+  ["мя́со","n · neut","MYAH-sah","meat","Я не ем мя́со.","YAH nee YEM MYAH-sah.","I don't eat meat.","food"],
+  ["ры́ба","n · fem","RIH-bah","fish","ры́ба и рис","RIH-bah ee REES","fish and rice","food"],
+  ["я́блоко","n · neut","YAH-blah-kah","apple","кра́сное я́блоко","KRAHS-nah-yeh YAH-blah-kah","a red apple","food"],
+  ["суп","n · masc","SOOP","soup","горя́чий суп","gah-RYAH-chee SOOP","hot soup","food"],
+  ["еда́","n · fem","yee-DAH","food","вку́сная еда́","FKOOS-nah-yah yee-DAH","tasty food","food"],
+  ["за́втрак","n · masc","ZAHF-trahk","breakfast","За́втрак в во́семь.","ZAHF-trahk VVOH-seem'.","Breakfast is at eight.","food"],
+  ["обе́д","n · masc","ah-BYET","lunch","Обе́д гото́в.","ah-BYET gah-TOHF.","Lunch is ready.","food"],
+  ["у́жин","n · masc","OO-zhin","dinner","Что на у́жин?","SHTOH nah OO-zhin?","What's for dinner?","food"],
+
+  ["дом","n · masc","DOHM","house; home","Мой дом там.","MOY DOHM TAHM.","My house is over there.","places"],
+  ["рабо́та","n · fem","rah-BOH-tah","work; job","Я на рабо́те.","YAH nah rah-BOH-tyeh.","I'm at work.","places"],
+  ["шко́ла","n · fem","SHKOH-lah","school","Шко́ла ря́дом.","SHKOH-lah RYAH-dahm.","The school is nearby.","places"],
+  ["го́род","n · masc","GOH-raht","city","большо́й го́род","bahl'-SHOY GOH-raht","a big city","places"],
+  ["у́лица","n · fem","OO-lee-tsah","street","На у́лице тепло́.","nah OO-lee-tseh teep-LOH.","It's warm outside.","places"],
+  ["магази́н","n · masc","mah-gah-ZEEN","shop","Магази́н закры́т.","mah-gah-ZEEN zah-KRIHT.","The shop is closed.","places"],
+  ["маши́на","n · fem","mah-SHIH-nah","car","но́вая маши́на","NOH-vah-yah mah-SHIH-nah","a new car","places"],
+  ["кни́га","n · fem","KNEE-gah","book","интере́сная кни́га","een-tee-RYES-nah-yah KNEE-gah","an interesting book","places"],
+  ["телефо́н","n · masc","tee-lee-FOHN","phone","Где мой телефо́н?","GDYEH MOY tee-lee-FOHN?","Where is my phone?","places"],
+  ["де́ньги","n · pl","DYEN'-gee","money","У меня́ нет де́нег.","oo mee-NYAH NYET DYEH-neek.","I have no money.","places"],
+
+  ["быть","v","BIHT'","to be","Я бу́ду до́ма.","YAH BOO-doo DOH-mah.","I will be at home.","verbs"],
+  ["де́лать","v","DYEH-laht'","to do; to make","Что ты де́лаешь?","SHTOH TIH DYEH-lah-yesh?","What are you doing?","verbs"],
+  ["идти́","v","eet-TEE","to go (on foot)","Я иду́ домо́й.","YAH ee-DOO dah-MOY.","I'm going home.","verbs"],
+  ["мочь","v","MOHCH","can; to be able","Я могу́ помо́чь.","YAH mah-GOO pah-MOHCH.","I can help.","verbs"],
+  ["хоте́ть","v","khah-TYET'","to want","Я хочу́ чай.","YAH khah-CHOO CHAI.","I want tea.","verbs"],
+  ["знать","v","ZNAHT'","to know","Я не зна́ю.","YAH nee ZNAH-yoo.","I don't know.","verbs"],
+  ["говори́ть","v","gah-vah-REET'","to speak; to say","Я говорю́ по-ру́сски.","YAH gah-vah-RYOO pah-ROOS-kee.","I speak Russian.","verbs"],
+  ["понима́ть","v","pah-nee-MAHT'","to understand","Ты понима́ешь?","TIH pah-nee-MAH-yesh?","Do you understand?","verbs"],
+  ["люби́ть","v","lyoo-BEET'","to love; to like","Я люблю́ ко́фе.","YAH lyoo-BLYOO KOH-fyeh.","I love coffee.","verbs"],
+  ["есть","v","YEST'","to eat","Я хочу́ есть.","YAH khah-CHOO YEST'.","I'm hungry. (lit. I want to eat)","verbs"],
+  ["пить","v","PEET'","to drink","Я пью во́ду.","YAH P'YOO VOH-doo.","I'm drinking water.","verbs"],
+  ["смотре́ть","v","smah-TRYET'","to watch; to look","Мы смо́трим фильм.","MIH SMOH-treem FEEL'M.","We're watching a film.","verbs"],
+  ["жить","v","ZHIT'","to live","Я живу́ в Москве́.","YAH zhih-VOO vmahsk-VYEH.","I live in Moscow.","verbs"],
+  ["рабо́тать","v","rah-BOH-taht'","to work","Он мно́го рабо́тает.","OHN MNOH-gah rah-BOH-tah-yet.","He works a lot.","verbs"],
+
+  ["хоро́ший","adj","khah-ROH-shiy","good","хоро́ший день","khah-ROH-shiy DYEN'","a good day","adjectives"],
+  ["плохо́й","adj","plah-KHOY","bad","плоха́я пого́да","plah-KHAH-yah pah-GOH-dah","bad weather","adjectives"],
+  ["большо́й","adj","bahl'-SHOY","big","большо́й дом","bahl'-SHOY DOHM","a big house","adjectives"],
+  ["ма́ленький","adj","MAH-leen'-kee","small","ма́ленький кот","MAH-leen'-kee KOHT","a small cat","adjectives"],
+  ["но́вый","adj","NOH-vy","new","Но́вый год","NOH-vy GOHT","New Year","adjectives"],
+  ["ста́рый","adj","STAH-ry","old","ста́рый друг","STAH-ry DROOK","an old friend","adjectives"],
+  ["краси́вый","adj","krah-SEE-vy","beautiful","краси́вый го́род","krah-SEE-vy GOH-raht","a beautiful city","adjectives"],
+  ["тру́дный","adj","TROOD-ny","difficult","тру́дный вопро́с","TROOD-ny vah-PROHS","a difficult question","adjectives"],
+  ["лёгкий","adj","LYOKH-kee","easy; light","лёгкий тест","LYOKH-kee TEST","an easy test","adjectives"],
+  ["горя́чий","adj","gah-RYAH-chee","hot (to the touch)","горя́чий чай","gah-RYAH-chee CHAI","hot tea","adjectives"],
+  ["холо́дный","adj","khah-LOHD-ny","cold","холо́дная вода́","khah-LOHD-nah-yah vah-DAH","cold water","adjectives"]
+];
+
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c] }) }
+function $(id){ return document.getElementById(id) }
+function plain(s){ return String(s).replace(/́/g,'') }
+
+// Swap every "vowel + U+0301" in rendered text for <span class="st">vowel</span>.
+function stressify(root){
+  var walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), hits = [], n;
+  while ((n = walk.nextNode())) if (n.nodeValue.indexOf('́') >= 0) hits.push(n);
+  hits.forEach(function(t){
+    var frag = document.createDocumentFragment();
+    t.nodeValue.split(/(.́)/).forEach(function(part){
+      if (!part) return;
+      if (part.length === 2 && part[1] === '́') {
+        var s = document.createElement('span');
+        s.className = part[0] === part[0].toLowerCase() ? 'st' : 'st up';
+        s.textContent = part[0];
+        frag.appendChild(s);
+      } else frag.appendChild(document.createTextNode(part));
+    });
+    t.parentNode.replaceChild(frag, t);
+  });
+}
+
+/* ── speech ─────────────────────────────────────────────────────────────── */
+var ruVoice = null, warned = false;
+function pickVoice(){
+  if (!('speechSynthesis' in window)) return;
+  var vs = speechSynthesis.getVoices();
+  for (var i = 0; i < vs.length; i++) if (/^ru/i.test(vs[i].lang)) { ruVoice = vs[i]; return; }
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+
+function toast(msg){
+  var t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast.t); toast.t = setTimeout(function(){ t.classList.remove('on') }, 2800);
+}
+// Speaks one phrase or a list of them in order; `el` glows while it plays.
+function say(texts, el){
+  if (!('speechSynthesis' in window)) { if (!warned) { warned = true; toast('Audio is not supported in this browser.') } return; }
+  if (!ruVoice) pickVoice();
+  if (!ruVoice) { if (!warned) { warned = true; toast('No Russian voice is installed on this device.') } return; }
+  speechSynthesis.cancel();
+  document.querySelectorAll('.playing').forEach(function(c){ c.classList.remove('playing') });
+  [].concat(texts).forEach(function(text, i, all){
+    var u = new SpeechSynthesisUtterance(plain(text));
+    u.voice = ruVoice; u.lang = ruVoice.lang; u.rate = .8;
+    if (el && i === all.length - 1) u.onend = u.onerror = function(){ el.classList.remove('playing') };
+    speechSynthesis.speak(u);
+  });
+  if (el) el.classList.add('playing');
+}
+
+var SPK = '<svg class="spk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4V5zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>';
+
+/* ── lessons (hash routed) ──────────────────────────────────────────────── */
+var LESSONS = ['alphabet','words'];
+function showLesson(){
+  var id = location.hash.slice(1);
+  if (LESSONS.indexOf(id) < 0) id = 'alphabet';
+  LESSONS.forEach(function(l){ $('lesson-' + l).hidden = l !== id });
+  document.querySelectorAll('.ls[data-lesson]').forEach(function(b){
+    var on = b.dataset.lesson === id;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-current', on ? 'page' : 'false');
+  });
+  document.title = id === 'words' ? 'Learn Russian · Core Words' : 'Learn Russian · Alphabet';
+  $('scroll').scrollTop = 0;
+}
+document.querySelectorAll('.ls[data-lesson]').forEach(function(b){
+  b.addEventListener('click', function(){ location.hash = b.dataset.lesson });
+});
+addEventListener('hashchange', showLesson);
+
+/* ── lesson 1: letters ──────────────────────────────────────────────────── */
+function card(L){
+  return '<button type="button" class="card g-' + L[7] + '" data-i="' + LETTERS.indexOf(L) + '" ' +
+           'aria-label="' + esc(L[0] + ', called ' + plain(L[8]) + ', ' + L[3] + '. Example: ' + plain(L[4]) + ', ' + L[6]) + '">' +
+    '<div class="top"><div class="glyph">' + L[0] + '<small>' + L[1] + '</small></div>' +
+      '<div class="right"><span class="tr mono">' + esc(L[2]) + '</span>' +
+      '<span class="cursive hand" aria-hidden="true">' + L[0] + L[1] + '</span></div></div>' +
+    '<div class="name">Name: <b>' + L[8] + '</b> · ' + esc(L[9]) + '</div>' +
+    '<div class="like">' + esc(L[3]) + '</div>' +
+    '<div class="ex"><b>' + L[4] + '</b><span><i class="mono">' + esc(L[5]) + '</i> · ' + esc(L[6]) + '</span></div>' +
+    SPK +
+  '</button>';
+}
+
+function renderLetters(view){
+  var html = '';
+  if (view === 'abc') {
+    var sorted = LETTERS.slice().sort(function(a,b){ return ORDER.indexOf(a[0]) - ORDER.indexOf(b[0]) });
+    html = '<div class="group"><div class="grid">' + sorted.map(card).join('') + '</div></div>';
+  } else {
+    GROUPS.forEach(function(g, i){
+      var ls = LETTERS.filter(function(L){ return L[7] === g.id });
+      html += '<section class="group g-' + g.id + '">' +
+        '<div class="group-head"><span class="idx mono">0' + (i + 1) + '</span>' +
+          '<h3>' + g.title + '</h3><span class="n">' + ls.length + ' letters</span></div>' +
+        '<p>' + esc(g.blurb) + '</p>' +
+        '<div class="grid">' + ls.map(card).join('') + '</div></section>';
+    });
+  }
+  $('letters').innerHTML = html;
+  stressify($('letters'));
+}
+
+$('letters').addEventListener('click', function(e){
+  var c = e.target.closest('.card'); if (!c) return;
+  var L = LETTERS[+c.dataset.i];
+  say([L[8], L[4]], c);
+});
+
+document.querySelectorAll('#order-seg button').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('#order-seg button').forEach(function(x){ x.classList.toggle('on', x === b) });
+    renderLetters(b.dataset.view);
+  });
+});
+
+/* reading practice */
+$('words').innerHTML = READING.map(function(w, i){
+  return '<button type="button" class="word" data-i="' + i + '"><b>' + w[0] + '</b><span>Tap to reveal</span></button>';
+}).join('');
+$('words').addEventListener('click', function(e){
+  var b = e.target.closest('.word'); if (!b) return;
+  var w = READING[+b.dataset.i];
+  b.classList.add('shown');
+  b.querySelector('span').textContent = w[1] + ' · ' + w[2];
+  say(w[0]);
+});
+
+/* quiz */
+var POOL = LETTERS.filter(function(L){ return L[7] !== 'signs' });
+var ROUND = 10, qi = 0, score = 0, deck = [];
+
+function shuffle(a){ for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t } return a }
+
+function startQuiz(){ deck = shuffle(POOL.slice()).slice(0, ROUND); qi = 0; score = 0; ask() }
+
+function ask(){
+  var L = deck[qi];
+  // Distractors must differ in sound, not just letter (Й and Ы both transliterate as "y").
+  var others = shuffle(POOL.filter(function(x){ return x[2] !== L[2] }));
+  var seen = {}, opts = [L];
+  seen[L[2]] = 1;
+  for (var i = 0; i < others.length && opts.length < 4; i++) {
+    if (!seen[others[i][2]]) { seen[others[i][2]] = 1; opts.push(others[i]) }
+  }
+  shuffle(opts);
+  $('q-glyph').innerHTML = L[0] + '<span>' + L[1] + '</span>';
+  $('q-prompt').textContent = 'Question ' + (qi + 1) + ' of ' + ROUND;
+  $('q-opts').innerHTML = opts.map(function(o){
+    return '<button type="button" class="q-opt" data-ok="' + (o === L ? 1 : 0) + '"><code>' + esc(o[2]) + '</code><span>' + esc(o[3]) + '</span></button>';
+  }).join('');
+  $('q-feedback').textContent = '';
+  $('q-score').innerHTML = 'Score <b>' + score + '</b> / ' + qi;
+}
+
+$('q-opts').addEventListener('click', function(e){
+  var b = e.target.closest('.q-opt'); if (!b || b.disabled) return;
+  var L = deck[qi], ok = b.dataset.ok === '1';
+  if (ok) score++;
+  $('q-opts').querySelectorAll('.q-opt').forEach(function(o){
+    o.disabled = true;
+    if (o.dataset.ok === '1') o.classList.add('right');
+    else if (o === b) o.classList.add('wrong');
+  });
+  qi++;
+  $('q-score').innerHTML = 'Score <b>' + score + '</b> / ' + qi;
+  var done = qi >= ROUND;
+  $('q-feedback').innerHTML = (ok ? 'Correct. ' : 'Not quite. ') + esc(L[4]) + ' = ' + esc(L[6]) + '. ' +
+    '<button type="button" class="btn btn-ghost btn-sm" id="q-next" style="margin-left:6px">' + (done ? 'Play again' : 'Next') + '</button>';
+  stressify($('q-feedback'));
+  say(L[4]);
+  $('q-next').addEventListener('click', function(){ done ? startQuiz() : ask() });
+});
+
+/* ── lesson 2: core words ───────────────────────────────────────────────── */
+var wCat = 'all';
+
+function catCount(id){ return WORDS.filter(function(w){ return w[7] === id }).length }
+
+$('w-facts').innerHTML =
+  '<span class="pill"><span class="dot" style="color:var(--accent)"></span>' + WORDS.length + ' words</span>' +
+  '<span class="pill">' + CATS.length + ' topics</span>' +
+  '<span class="pill">An example sentence for every word</span>';
+
+$('w-cats').innerHTML = '<button type="button" class="cat on" data-cat="all">All<i>' + WORDS.length + '</i></button>' +
+  CATS.map(function(c){
+    return '<button type="button" class="cat" data-cat="' + c.id + '">' + esc(c.label) + '<i>' + catCount(c.id) + '</i></button>';
+  }).join('');
+
+function wcard(w){
+  var i = WORDS.indexOf(w);
+  return '<article class="wcard" data-i="' + i + '">' +
+    '<button type="button" class="w-main" data-say="word" aria-label="' + esc('Hear ' + plain(w[0])) + '">' +
+      '<div class="w-row"><span class="w-ru">' + w[0] + '</span>' +
+        '<span style="display:flex;align-items:center"><span class="w-tag">' + esc(w[1]) + '</span>' + SPK + '</span></div>' +
+      '<div class="w-pr mono">' + esc(w[2]) + '</div>' +
+      '<div class="w-en">' + esc(w[3]) + '</div>' +
+    '</button>' +
+    '<button type="button" class="w-ex" data-say="example" aria-label="' + esc('Hear example: ' + plain(w[4])) + '">' +
+      '<div><span class="ru">' + w[4] + '</span>' +
+      '<span class="pr mono">' + esc(w[5]) + '</span>' +
+      '<span class="en">' + esc(w[6]) + '</span></div>' + SPK +
+    '</button>' +
+  '</article>';
+}
+
+function norm(s){ return plain(s).toLowerCase().replace(/ё/g,'е') }
+
+function renderWords(){
+  var q = norm($('w-search').value.trim());
+  var list = WORDS.filter(function(w){
+    if (wCat !== 'all' && w[7] !== wCat) return false;
+    if (!q) return true;
+    return norm(w[0]).indexOf(q) >= 0 || w[3].toLowerCase().indexOf(q) >= 0 || w[2].toLowerCase().indexOf(q) >= 0;
+  });
+  $('w-count').textContent = list.length === WORDS.length ? 'Showing all ' + list.length + ' words' :
+    'Showing ' + list.length + ' of ' + WORDS.length + ' words';
+  $('w-grid').innerHTML = list.length ? list.map(wcard).join('') :
+    '<div class="w-empty" style="grid-column:1/-1">No words match "' + esc($('w-search').value) + '".</div>';
+  stressify($('w-grid'));
+}
+
+$('w-cats').addEventListener('click', function(e){
+  var b = e.target.closest('.cat'); if (!b) return;
+  wCat = b.dataset.cat;
+  $('w-cats').querySelectorAll('.cat').forEach(function(x){ x.classList.toggle('on', x === b) });
+  renderWords();
+});
+$('w-search').addEventListener('input', renderWords);
+$('w-hide').addEventListener('change', function(){
+  $('w-grid').classList.toggle('hide-en', this.checked);
+  $('w-grid').querySelectorAll('.revealed').forEach(function(c){ c.classList.remove('revealed') });
+});
+$('w-grid').addEventListener('click', function(e){
+  var b = e.target.closest('[data-say]'); if (!b) return;
+  var c = b.closest('.wcard'), w = WORDS[+c.dataset.i];
+  c.classList.add('revealed');
+  say(b.dataset.say === 'word' ? w[0] : w[4], c);
+});
+
+$('burger').addEventListener('click', function(){
+  window.auraSidebar && window.auraSidebar.toggleMobile();
+});
+
+renderLetters('abc');
+startQuiz();
+renderWords();
+stressify(document.querySelector('.wrap'));
+showLesson();
+</script>
+</body>
+</html>
