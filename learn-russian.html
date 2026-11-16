@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.min.js" as="script"/>
+<link rel="preconnect" href="https://iowxqmkgnmhrccuaqson.supabase.co" crossorigin/>
 <title>Learn Russian</title>
 <meta name="description" content="Learn Russian: the Cyrillic alphabet, core everyday words, grammar basics and reading Crime and Punishment in the original, with English pronunciation for every line."/>
 <meta name="robots" content="noindex, nofollow"/>
@@ -19,6 +21,8 @@
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Marck+Script&display=swap" rel="stylesheet"/>
 <link href="assets/aura-ui.css" rel="stylesheet"/>
 <style>
@@ -360,6 +364,13 @@ button.ls:hover{color:#fff;background:rgba(255,255,255,.06)}
   .wgrid{grid-template-columns:1fr}
   .q-opts{grid-template-columns:1fr}
 }
+/* sources panel, and cheap layout for long lists until they scroll into view */
+.src a{color:#8fd9bb;text-decoration:underline;text-decoration-color:rgba(143,217,187,.35);text-underline-offset:2px}
+.src a:hover{color:var(--accent)}
+.src ol{padding-left:18px;margin-top:12px;font-size:12.5px;line-height:1.7;color:#a8a8a8}
+.src li + li{margin-top:6px}
+.src li span{color:var(--faint)}
+.rule:not([open]),.wcard,.card{content-visibility:auto;contain-intrinsic-size:auto 120px}
 </style>
 </head>
 <body class="dot-grid" data-page="app">
@@ -1978,7 +1989,7 @@ button.ls:hover{color:#fff;background:rgba(255,255,255,.06)}
         </details>
 
         <details class="rule" id="g-participles">
-          <summary><span class="r-num mono">36</span><span class="r-t"><b>Participles and gerunds (for reading)</b><i>Прича́стия и деепричя́стия</i></span>
+          <summary><span class="r-num mono">36</span><span class="r-t"><b>Participles and gerunds (for reading)</b><i>Прича́стия и дееприча́стия</i></span>
             <span class="r-sum">Verb-adjectives ("reading", "read") and verb-adverbs ("while reading", "having read"). Rare in speech, everywhere in books.</span></summary>
           <div class="r-body">
             <p>You don't need to produce these to speak Russian: in conversation people use a <span class="ru">кото́рый</span> clause instead. But written Russian, and Dostoevsky
@@ -2191,6 +2202,16 @@ button.ls:hover{color:#fff;background:rgba(255,255,255,.06)}
         </section>
       </div>
 
+          <section class="panel src" style="margin-top:22px">
+        <h3>Sources</h3>
+        <p>Where the facts on this page come from, and where to go deeper.</p>
+        <ol>
+          <li><a href="https://gramota.ru/" target="_blank" rel="noopener">Грамота.ру</a> <span>· the reference portal for Russian spelling, stress and grammar</span></li>
+          <li><a href="https://ru.wiktionary.org/" target="_blank" rel="noopener">Русский Викисловарь</a> <span>· stress marks and full declension tables for individual words</span></li>
+          <li><a href="https://ru.wikisource.org/wiki/Преступление_и_наказание_(Достоевский)" target="_blank" rel="noopener">Достоевский, «Преступление и наказание» (Викитека)</a> <span>· the 1866 text used in Lesson 4</span></li>
+          <li><a href="https://www.britannica.com/topic/Russian-language" target="_blank" rel="noopener">Encyclopaedia Britannica: Russian language</a> <span>· history, speakers, the alphabet</span></li>
+        </ol>
+      </section>
     </div>
   </div>
 </main>
@@ -2198,7 +2219,7 @@ button.ls:hover{color:#fff;background:rgba(255,255,255,.06)}
 
 <div class="toast" id="toast" role="status"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.min.js"></script>
 <script src="assets/env.js"></script>
 <script src="assets/supabaseClient.js"></script>
 <script src="assets/auth.js"></script>
@@ -2472,6 +2493,7 @@ var LESSONS = { alphabet:'Alphabet', words:'Core Words', grammar:'Grammar Basics
 function showLesson(){
   var id = location.hash.slice(1);
   if (!LESSONS[id]) id = 'alphabet';
+  if (!built[id]) { built[id] = 1; INIT[id](); stressify($('lesson-' + id)) }
   Object.keys(LESSONS).forEach(function(l){ $('lesson-' + l).hidden = l !== id });
   document.querySelectorAll('.ls[data-lesson]').forEach(function(b){
     var on = b.dataset.lesson === id;
@@ -2994,12 +3016,12 @@ $('burger').addEventListener('click', function(){
   window.auraSidebar && window.auraSidebar.toggleMobile();
 });
 
-renderLetters('abc');
-startQuiz();
-renderWords();
-initGrammar();
-renderExcerpts();
-stressify(document.querySelector('.wrap'));
+// Each lesson is built the first time it is opened, so the page paints
+// without rendering all four up front.
+var INIT = {
+  alphabet: function(){ renderLetters('abc'); startQuiz() },
+  words: renderWords, grammar: initGrammar, reading: renderExcerpts
+}, built = {};
 showLesson();
 </script>
 </body>

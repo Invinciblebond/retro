@@ -33,12 +33,33 @@
       match:[],
       icon:'<path d="M12 6.25C10.5 5 8.3 4.5 6 4.5c-1 0-2 .1-3 .4v13.5c1-.3 2-.4 3-.4 2.3 0 4.5.5 6 1.75m0-13.5c1.5-1.25 3.7-1.75 6-1.75 1 0 2 .1 3 .4v13.5c-1-.3-2-.4-3-.4-2.3 0-4.5.5-6 1.75m0-13.5v13.5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>',
       children:[
+/*LEARN-NAV-START*/
+        { label:'All courses', href:'learn.html' },
+        { head:'Languages' },
         { label:'Russian', href:'learn-russian.html' },
-        { label:'Spanish', soon:true },
-        { label:'French', soon:true },
-        { label:'German', soon:true },
-        { label:'Japanese', soon:true },
-        { label:'Mandarin', soon:true }
+        { label:'Spanish', href:'learn-spanish.html' },
+        { label:'French', href:'learn-french.html' },
+        { label:'German', href:'learn-german.html' },
+        { label:'Japanese', href:'learn-japanese.html' },
+        { label:'Mandarin', href:'learn-mandarin.html' },
+        { label:'Advanced English', href:'learn-english.html' },
+        { head:'Knowledge' },
+        { label:'Advanced Algebra', href:'learn-algebra.html' },
+        { label:'Cryptography', href:'learn-cryptography.html' },
+        { label:'Morse Code', href:'learn-morse.html' },
+        { label:'Physics', href:'learn-physics.html' },
+        { label:'Quantum Mechanics', href:'learn-quantum.html' },
+        { label:'Biology', href:'learn-biology.html' },
+        { label:'Advanced Pharmacology', href:'learn-pharmacology.html' },
+        { label:'How to Read Studies', href:'learn-studies.html' },
+        { label:'Anatomy & Physiology', href:'learn-anatomy.html' },
+        { label:'Chemistry', href:'learn-chemistry.html' },
+        { label:'Nutrition Science', href:'learn-nutrition.html' },
+        { label:'Computer Science', href:'learn-cs.html' },
+        { label:'Economics & Money', href:'learn-economics.html' },
+        { head:'Other fields' },
+        { label:'Signs & Symbols', href:'learn-signs.html' }
+        /*LEARN-NAV-END*/
       ] },
     { label:'Others',
       match:[],
@@ -76,6 +97,7 @@
     if (item.children && item.children.length) {
       var childOpen = false;
       var links = item.children.map(function (c) {
+        if (c.head) return '<span class="sb-subhead">' + c.head + '</span>';
         if (c.soon) {
           return '<span class="sb-sublink sb-soon" aria-disabled="true">' + c.label +
                  '<em class="sb-badge">Coming Soon</em></span>';
@@ -87,7 +109,7 @@
                (c.external ? '<svg class="sb-ext" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>' : '') +
                '</a>';
       }).join('');
-      return '<div class="sb-group' + (childOpen ? ' open' : '') + '">' +
+      return '<div class="sb-group' + (item.children.length > 8 ? ' sb-long' : '') + (childOpen ? ' open' : '') + '">' +
                '<button type="button" class="sb-row sb-grouphead' + (childOpen ? ' active' : '') + '" aria-expanded="' + childOpen + '">' + body + CHEVRON + '</button>' +
                '<div class="sb-submenu">' + links + '</div>' +
              '</div>';
@@ -166,6 +188,11 @@
       'text-transform:uppercase;padding:2px 6px;border-radius:5px;color:#777;background:rgba(255,255,255,0.05);',
       'border:1px solid rgba(255,255,255,0.08)}',
     '#aura-sidebar .sb-ext{width:11px;height:11px;opacity:.5;flex-shrink:0}',
+    '#aura-sidebar .sb-subhead{display:block;padding:10px 12px 4px 41px;font-size:9px;font-weight:600;letter-spacing:.1em;',
+      'text-transform:uppercase;color:#555;white-space:nowrap}',
+    '#aura-sidebar:not(.collapsed) .sb-top{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin}',
+    '#aura-sidebar.collapsed .sb-subhead{padding-left:12px}',
+    '#aura-sidebar.collapsed .sb-group.sb-long.open .sb-submenu{position:fixed;left:62px;top:12px;max-height:calc(100vh - 24px);overflow-y:auto}',
     '#aura-sidebar .sb-foot{margin-top:auto;padding:16px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:2px}',
     '#aura-sidebar #sb-logout:hover{color:#f87171;background:rgba(248,113,113,0.08)}',
     '#collapse-icon{transition:transform .25s ease}',

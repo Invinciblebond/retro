@@ -13,5 +13,9 @@ Disallow: /cycletracker.html
 Disallow: /CainTracker.html
 Disallow: /claudethink.html
 Disallow: /reset.html
+Disallow: /Body.html
+Disallow: /Scheduler.html
+Disallow: /Settings.html
+Disallow: /learn
 
 Sitemap: https://utopoly.com/sitemap.xml
